@@ -13,6 +13,10 @@ namespace PIOGHOASIS.Controllers
             _logger = logger;
         }
 
+        //public IActionResult Index()
+        //{
+        //    return RedirectToAction("Index", "Login");
+        //}
         public IActionResult Index()
         {
             return View();

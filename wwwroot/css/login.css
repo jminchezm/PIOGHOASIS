@@ -1,0 +1,155 @@
+﻿:root {
+    --oasis-primary: #f0a100;
+    --oasis-primary-600: #db9400;
+    --glass-bg: rgba(255,255,255,.72);
+    --glass-border: rgba(255,255,255,.38);
+    --shadow: 0 22px 55px rgba(0,0,0,.35);
+    --ink: #243344;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    background: #000 url('/img/login/login-bg.png') no-repeat center center fixed;
+    background-size: cover; /* cubre toda la pantalla */
+    /* o usa: background-size: contain; si quieres que nunca recorte la imagen */
+    position: relative;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+    /* overlay suave para mejorar contraste */
+    body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.28);
+        pointer-events: none;
+    }
+
+.login-shell {
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+}
+
+.card-glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 5px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    padding: 25px;
+}
+
+.brand-box {
+    position: relative;
+    align-content: center;
+    /*padding: clamp(0px, 0vw, px);*/
+}
+
+    .brand-box img {
+        /*width: clamp(350px, 40%, 240px);*/
+        height: auto;
+        display: block;
+        margin-inline: auto;
+        filter: drop-shadow(0 8px 14px rgba(0,0,0,0.1));
+    }
+/* separador vertical sólo en md+ */
+@media (min-width: 768px) {
+    .v-divider {
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: linear-gradient(180deg, var(--oasis-primary), #f8cd6a 70%, transparent 100%);
+        opacity: .95;
+    }
+}
+
+.form-side {
+    /*background-color: rgba(0,0,0,.35);*/
+    padding: clamp(20px, 5vw, 100px);
+}
+
+.title {
+    color: var(--ink);
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: .25rem;
+    text-shadow: 0 1px 0 rgba(255,255,255,.35);
+}
+
+.subtitle {
+    color: var(--ink);
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 1.25rem;
+    text-shadow: 0 1px 0 rgba(255,255,255,.35);
+}
+
+.form-label {
+    color: #465b6f;
+    font-weight: 1000;
+}
+
+.oasis-input.form-control {
+    background-color: transparent;
+    border: none;
+    border-bottom: 2px solid #BF7E04;
+    border-radius: 0;
+    padding-left: .25rem;
+    padding-right: .25rem;
+    /*width: 500px;*/
+    /*align-content: center;*/
+}
+
+    .oasis-input.form-control:focus {
+        box-shadow: 0 10px 0 -50px var(--oasis-primary);
+        border-bottom-color: var(--oasis-primary);
+    }
+
+.area_btn_ingresar {
+    width: auto;
+    /*margin: 10px;*/
+    /*background: #db9400;*/
+    /*align-items: center;*/
+}
+
+.btn-oasis {
+    background-color: #FFA600; /* color de fondo */
+    color: #000; /* color del texto */
+    border: none; /* quitar borde */
+    padding: 10px 100px; /* tamaño interno */
+    border-radius: 5px 10px; /* esquinas redondeadas */
+    font-size: 17px; /* tamaño del texto */
+    cursor: pointer; /* cursor de manito */
+    transition: background 0.3s;
+    animación hover
+}
+
+    .btn-oasis:hover {
+        /*background: var(--oasis-primary-600);*/
+        background-color: #b87900; /* tono más oscuro al pasar el mouse */
+    }
+
+.area_link_contraseña {
+    /*width: 100%;*/
+    /*background-color: aqua;*/
+    margin-top: 15px;
+    text-align: center;
+}
+
+.help-link {
+    text-decoration: none;
+}
+
+    .help-link:hover {
+        text-decoration: underline;
+    }
