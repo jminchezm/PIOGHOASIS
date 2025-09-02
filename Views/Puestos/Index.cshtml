@@ -222,6 +222,7 @@
             </div>
 
             <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold">Estado</label>
                 <select id="fEstado" class="form-select">
                     <option value="" selected="@(qEstado == ""  ? "selected" : null)">Todos</option>
                     <option value="1" selected="@(qEstado == "1" ? "selected" : null)">Activo</option>
@@ -234,183 +235,202 @@
                     <i class="bi bi-printer"></i>
                 </button>
             </div>
+
+            @* <div class="col-12 d-flex col-md-1">
+                <button type="button" id="btnPrint" class="btn btn-outline-secondary" title="Imprimir">
+                    <i class="bi bi-printer"></i>
+                </button>
+            </div> *@
         </form>
     </div>
 
 
     <!-- Tabla -->
+    @* <div id="printArea" class="card p-0"> *@
+
     <div id="printArea" class="card p-0">
+        @if (!Model.Any())
+        {
+            <div class="empty-state p-5 text-center">
+                <img src="~/img/empty-search.svg" asp-append-version="true"
+                        alt="Sin resultados" class="mb-3 empty-illus"
+                        onerror="this.style.display='none'"/>
+                <h5 class="fw-bold mb-1">No se encontró ningún registro</h5>
+                <p class="text-muted mb-3">Ajusta los filtros o limpia la búsqueda.</p>
 
-        <div id="printArea" class="card p-0">
-            @if (!Model.Any())
-            {
-                <div class="empty-state p-5 text-center">
-                    <img src="~/img/empty-search.svg" asp-append-version="true"
-                         alt="Sin resultados" class="mb-3 empty-illus"
-                         onerror="this.style.display='none'"/>
-                    <h5 class="fw-bold mb-1">No se encontró ningún registro</h5>
-                    <p class="text-muted mb-3">Ajusta los filtros o limpia la búsqueda.</p>
-
-                    <button type="button" class="btn btn-outline-secondary js-clear-filters">
-                        <i class="bi bi-eraser me-1"></i> Limpiar filtros
-                    </button>
-                </div>
-            }
-            else
-            {
-                <div class="table-responsive">
-                    <table id="tblPuestos" class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th style="width:140px">Código</th>
-                                <th style="width:240px">Nombre</th>
-                                <th>Descripción</th>
-                                <th style="width:120px">Estado</th>
-                                <th style="width:150px" class="text-center">Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var p in Model)
-                            {
-                                <tr data-codigo="@p.PuestoID"
-                                    data-nombre="@p.Nombre"
-                                    data-estado="@(p.Estado ? "1" : "0")">
-                                    <td>@p.PuestoID</td>
-                                    <td>@p.Nombre</td>
-                                    <td>@p.Descripcion</td>
-                                    <td>
-                                        @(p.Estado
-                                            ? Html.Raw("<span class=\"pill pill-ok\">Activo</span>")
-                                            : Html.Raw("<span class=\"pill pill-off\">Inactivo</span>"))
-                                    </td>
-                                    @* <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <a class="btn btn-sm btn-outline-primary btn-icon btn-edit ajax-nav"
-                                                href="/Puestos/Edit/@p.PuestoID" data-url="/Puestos/Edit/@p.PuestoID" title="Editar"><i class="bi bi-pencil-square"></i></a>
-                                            <a class="btn btn-sm btn-outline-info btn-icon btn-detail ajax-nav"
-                                                href="/Puestos/Details/@p.PuestoID" data-url="/Puestos/Details/@p.PuestoID" title="Detalles"><i class="bi bi-eye"></i></a>
-                                            <a class="btn btn-sm btn-outline-danger btn-icon btn-delete ajax-nav"
-                                                href="/Puestos/Delete/@p.PuestoID" data-url="/Puestos/Delete/@p.PuestoID" title="Eliminar"><i class="bi bi-trash"></i></a>
-                                        </div>
-                                    </td> *@
-                                    <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <a class="btn btn-sm btn-outline-primary btn-icon btn-edit ajax-nav"
-                                                href="/Puestos/Edit/@p.PuestoID" data-url="/Puestos/Edit/@p.PuestoID" title="Editar">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-
-                                            <a class="btn btn-sm btn-outline-info btn-icon btn-detail ajax-nav"
-                                                href="/Puestos/Details/@p.PuestoID" data-url="/Puestos/Details/@p.PuestoID" title="Detalles">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
-
-                                            @* Solo mostrar el botón de desactivar si el puesto está ACTIVO *@
-                                            @if (p.Estado)
-                                            {
-                                                <a class="btn btn-sm btn-outline-danger btn-icon btn-delete ajax-nav"
-                                                    href="/Puestos/Delete/@p.PuestoID" data-url="/Puestos/Delete/@p.PuestoID" title="Desactivar">
-                                                    <i class="bi bi-trash"></i>
-                                                </a>
-                                            }
-                                            @* Si quieres, puedes mostrar un botón alternativo para ACTIVAR cuando esté inactivo:
-                                        else
-                                        {
-                                        <a class="btn btn-sm btn-outline-success btn-icon ajax-nav"
-                                        href="/Puestos/Delete/@p.PuestoID" data-url="/Puestos/Delete/@p.PuestoID" title="Activar">
-                                        <i class="bi bi-arrow-counterclockwise"></i>
+                <button type="button" class="btn btn-outline-secondary js-clear-filters">
+                    <i class="bi bi-eraser me-1"></i> Limpiar filtros
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="tblPuestos" class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:140px">Código</th>
+                            <th style="width:240px">Nombre</th>
+                            <th>Descripción</th>
+                            <th style="width:120px">Estado</th>
+                            <th style="width:150px" class="text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model)
+                        {
+                            <tr data-codigo="@p.PuestoID"
+                                data-nombre="@p.Nombre"
+                                data-estado="@(p.Estado ? "1" : "0")">
+                                <td>@p.PuestoID</td>
+                                <td>@p.Nombre</td>
+                                <td>@p.Descripcion</td>
+                                <td>
+                                    @(p.Estado
+                                        ? Html.Raw("<span class=\"pill pill-ok\">Activo</span>")
+                                        : Html.Raw("<span class=\"pill pill-off\">Inactivo</span>"))
+                                </td>
+                                @* <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a class="btn btn-sm btn-outline-primary btn-icon btn-edit ajax-nav"
+                                            href="/Puestos/Edit/@p.PuestoID" data-url="/Puestos/Edit/@p.PuestoID" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                                        <a class="btn btn-sm btn-outline-info btn-icon btn-detail ajax-nav"
+                                            href="/Puestos/Details/@p.PuestoID" data-url="/Puestos/Details/@p.PuestoID" title="Detalles"><i class="bi bi-eye"></i></a>
+                                        <a class="btn btn-sm btn-outline-danger btn-icon btn-delete ajax-nav"
+                                            href="/Puestos/Delete/@p.PuestoID" data-url="/Puestos/Delete/@p.PuestoID" title="Eliminar"><i class="bi bi-trash"></i></a>
+                                    </div>
+                                </td> *@
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a class="btn btn-sm btn-outline-primary btn-icon btn-edit ajax-nav"
+                                            href="/Puestos/Edit/@p.PuestoID" data-url="/Puestos/Edit/@p.PuestoID" title="Editar">
+                                            <i class="bi bi-pencil-square"></i>
                                         </a>
+
+                                        <a class="btn btn-sm btn-outline-info btn-icon btn-detail ajax-nav"
+                                            href="/Puestos/Details/@p.PuestoID" data-url="/Puestos/Details/@p.PuestoID" title="Detalles">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+
+                                        @* Solo mostrar el botón de desactivar si el puesto está ACTIVO *@
+                                        @if (p.Estado)
+                                        {
+                                            <a class="btn btn-sm btn-outline-danger btn-icon btn-delete ajax-nav"
+                                                href="/Puestos/Delete/@p.PuestoID" data-url="/Puestos/Delete/@p.PuestoID" title="Desactivar">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
                                         }
-                                        *@
-                                        </div>
-                                    </td>
+                                        @* Si quieres, puedes mostrar un botón alternativo para ACTIVAR cuando esté inactivo:
+                                    else
+                                    {
+                                    <a class="btn btn-sm btn-outline-success btn-icon ajax-nav"
+                                    href="/Puestos/Delete/@p.PuestoID" data-url="/Puestos/Delete/@p.PuestoID" title="Activar">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                    </a>
+                                    }
+                                    *@
+                                    </div>
+                                </td>
 
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
 
-                <!-- Paginación -->
-                <div class="d-flex justify-content-between align-items-center p-2">
-                    <div class="small text-muted">
-                        <span id="infoRows"></span>
-                    </div>
-                    <nav><ul id="pager" class="pagination mb-0"></ul></nav>
+            <!-- Paginación -->
+            <div class="d-flex justify-content-between align-items-center p-2">
+                <div class="small text-muted">
+                    <span id="infoRows"></span>
                 </div>
-            }
-        </div>
+                <nav><ul id="pager" class="pagination mb-0"></ul></nav>
+            </div>
+        }
     </div>
+    @* </div> *@
 </div>
 
 <script>
-        (function () {
-      const fCodigo = document.getElementById('fCodigo');
+    (function () {
+        const fCodigo = document.getElementById('fCodigo');
         const fNombre = document.getElementById('fNombre');
         const fEstado = document.getElementById('fEstado');
 
         function buildUrl() {
-        const params = new URLSearchParams();
-        const cod = (fCodigo?.value || '').trim();
-        const nom = (fNombre?.value || '').trim();
-        const est = (fEstado?.value ?? '');          // "" cuando es “Todos”
+            const params = new URLSearchParams();
+            const cod = (fCodigo?.value || '').trim();
+            const nom = (fNombre?.value || '').trim();
+            const est = (fEstado?.value ?? '');          // "" cuando es “Todos”
 
-        if (cod) params.set('codigo', cod);
-        if (nom) params.set('nombre', nom);
-        params.set('estado', est);                   // <-- SIEMPRE incluirlo
+            if (cod) params.set('codigo', cod);
+            if (nom) params.set('nombre', nom);
+            params.set('estado', est);                   // <-- SIEMPRE incluirlo
 
-        const qs = params.toString();
-        return '/Puestos/Index' + (qs ? ('?' + qs) : '');
-      }
+            const qs = params.toString();
+            return '/Puestos/Index' + (qs ? ('?' + qs) : '');
+        }
 
         function debounce(fn, ms = 700) {
-            let t; return (...args) => {clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
-      }
+            let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+        }
 
-      // const go = debounce(() => {
-      //   const url = buildUrl();
-      //   if (window.loadToHost) window.loadToHost(url); else window.location.href = url;
-      // }, 700);
-      
         const go = debounce(async () => {
-          const url = buildUrl();
+            const url = buildUrl();
 
-          // guardar foco y caret
-          const active   = document.activeElement;
-          const id       = active?.id;
-          const selStart = ('selectionStart' in active) ? active.selectionStart : null;
-          const selEnd   = ('selectionEnd'   in active) ? active.selectionEnd   : null;
+            // guardar foco y caret
+            const active = document.activeElement;
+            const id = active?.id;
+            const selStart = ('selectionStart' in active) ? active.selectionStart : null;
+            const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
 
-          await window.swapInHost(url, '#printArea');      // solo grilla/pager
-          history.replaceState(null, '', url);             // actualiza URL
+            await window.swapInHost(url, '#printArea');      // solo grilla/pager
+            history.replaceState(null, '', url);             // actualiza URL
 
-          // re-inicializa paginación sobre el NUEVO #printArea
-          window.initPuestosPager(document.getElementById('printArea'));
+            // re-inicializa paginación sobre el NUEVO #printArea
+            window.initPuestosPager(document.getElementById('printArea'));
 
-          // restaura foco/caret
-          if (id) {
-            const el = document.getElementById(id);
-            if (el) {
-              el.focus();
-              if (selStart != null && selEnd != null) el.setSelectionRange(selStart, selEnd);
+            // restaura foco/caret
+            if (id) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.focus();
+                    if (selStart != null && selEnd != null) el.setSelectionRange(selStart, selEnd);
+                }
             }
-          }
         }, 700);
 
         // Llama una vez al cargar la página inicial
         window.addEventListener('DOMContentLoaded', () => {
-          window.initPuestosPager(document.getElementById('printArea'));
+            window.initPuestosPager(document.getElementById('printArea'));
         });
 
 
         function onTextInput() {
-        const v = this.value.trim();
-        if (v.length === 0 || v.length >= 2) go();   // no recargar en 1 carácter
-      }
+            const v = this.value.trim();
+            if (v.length === 0 || v.length >= 2) go();   // no recargar en 1 carácter
+        }
 
         fCodigo?.addEventListener('input', onTextInput);
         fNombre?.addEventListener('input', onTextInput);
         fEstado?.addEventListener('change', go);
+
+        @* function pdfUrl() {
+            const qs = new URLSearchParams();
+            const cod = (fCodigo?.value || '').trim();
+            const nom = (fNombre?.value || '').trim();
+            const est = (fEstado?.value ?? '');
+
+            if (cod) qs.set('codigo', cod);
+            if (nom) qs.set('nombre', nom);
+            if (est !== '') qs.set('estado', est);
+
+            return '/Puestos/ExportPdf' + (qs.toString() ? '?' + qs.toString() : '');
+        }
+
+        document.getElementById('btnPrint')?.addEventListener('click', () => {
+            window.open(pdfUrl(), '_blank');  // abre/descarga el PDF con los filtros actuales
+        }); *@
+
     })();
 
 </script>

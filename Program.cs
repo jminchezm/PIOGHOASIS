@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PIOGHOASIS.Infraestructure.Data;
+using Rotativa.AspNetCore;
+using System.IO;
 using System;
 
 
@@ -9,8 +11,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-
-
 
 
 // AUTENTICACIÓN POR COOKIES
@@ -36,15 +36,6 @@ builder.Services.AddDbContext<AppDbContext>
     }
 );
 
-
-
-
-
-
-
-
-
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -58,6 +49,8 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+RotativaConfiguration.Setup(app.Environment.WebRootPath, "Rotativa");
+
 app.UseRouting();
 
 app.UseAuthentication();
@@ -68,6 +61,8 @@ app.MapControllerRoute(
     pattern: "{controller=Login}/{action=Index}/{id?}");
 
 app.Run();
+
+//RotativaConfiguration.Setup(app.Environment.WebRootPath, "Rotativa");
 
 //app.MapGet("/ado-check", async (IConfiguration cfg) =>
 //{

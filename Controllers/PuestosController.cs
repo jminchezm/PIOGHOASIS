@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PIOGHOASIS.Infraestructure.Data;
 using PIOGHOASIS.Models;
+using Rotativa.AspNetCore.Options;
+using Rotativa.AspNetCore;
 
 namespace PIOGHOASIS.Controllers
 {
@@ -261,11 +263,76 @@ namespace PIOGHOASIS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-
-
-
-
         private bool PuestoExists(string id)
             => _context.puestos.Any(e => e.PuestoID == id);
+
+        ////Metodo para generación de pdf
+        //[HttpGet]
+        //public async Task<IActionResult> ExportPdf(string? codigo, string? nombre, string? estado)
+        //{
+        //    if (!Request.Query.ContainsKey("estado"))
+        //        estado = "1";
+
+        //    var q = _context.puestos.AsNoTracking().AsQueryable();
+
+        //    if (!string.IsNullOrWhiteSpace(codigo))
+        //        q = q.Where(p => p.PuestoID.Contains(codigo));
+
+        //    if (!string.IsNullOrWhiteSpace(nombre))
+        //        q = q.Where(p => p.Nombre.Contains(nombre));
+
+        //    if (!string.IsNullOrWhiteSpace(estado))
+        //    {
+        //        if (estado == "1") q = q.Where(p => p.Estado);
+        //        else if (estado == "0") q = q.Where(p => !p.Estado);
+        //    }
+
+        //    var model = await q.OrderBy(p => p.PuestoID).ToListAsync();
+
+        //    // pasa también los filtros a la vista (para mostrarlos en el encabezado)
+        //    ViewBag.Codigo = codigo;
+        //    ViewBag.Nombre = nombre;
+        //    ViewBag.Estado = estado;
+
+        //    return new ViewAsPdf("ReportePdf", model)
+        //    {
+        //        FileName = $"Puestos_{DateTime.Now:yyyyMMdd_HHmm}.pdf",
+        //        PageSize = Size.A4,
+        //        PageOrientation = Orientation.Portrait,
+        //        CustomSwitches = "--footer-center \"Página [page] de [toPage]\" --footer-font-size 8 --footer-spacing 5"
+        //    };
+        //}
+
+        [HttpGet]
+        public async Task<IActionResult> ExportPdf(string? codigo, string? nombre, string? estado, bool descargar = false)
+        {
+            //if (!Request.Query.ContainsKey("estado")) estado = "1";
+            var tieneEstado = Request.Query.ContainsKey("estado");
+            if (!tieneEstado) estado = ""; // tratar como Todos
+
+            var q = _context.puestos.AsNoTracking().AsQueryable();
+            if (!string.IsNullOrWhiteSpace(codigo)) q = q.Where(p => p.PuestoID.Contains(codigo));
+            if (!string.IsNullOrWhiteSpace(nombre)) q = q.Where(p => p.Nombre.Contains(nombre));
+            if (!string.IsNullOrWhiteSpace(estado))
+                q = estado == "1" ? q.Where(p => p.Estado) : q.Where(p => !p.Estado);
+
+            var model = await q.OrderBy(p => p.PuestoID).ToListAsync();
+
+            ViewBag.Codigo = codigo; ViewBag.Nombre = nombre; ViewBag.Estado = estado;
+
+            var pdf = new ViewAsPdf("ReportePdf", model)
+            {
+                PageSize = Size.A4,
+                PageOrientation = Orientation.Portrait,
+                CustomSwitches = "--footer-center \"Página [page] de [toPage]\" --footer-font-size 8 --footer-spacing 5",
+                ContentDisposition = descargar ? ContentDisposition.Attachment
+                                               : ContentDisposition.Inline
+            };
+
+            if (descargar)
+                pdf.FileName = $"Puestos_{DateTime.Now:yyyyMMdd_HHmm}.pdf"; // fuerza descarga
+
+            return pdf; // si es Inline, el navegador lo previsualiza en una pestaña
+        }
     }
 }

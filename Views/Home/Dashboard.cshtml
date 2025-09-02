@@ -337,6 +337,23 @@
             ev.preventDefault();
             loadToHost(a.dataset.url || a.href);
           }
+
+          //PDF
+
+            document.getElementById('btnPrint')?.addEventListener('click', () => {
+                const qs = new URLSearchParams();
+                const cod = document.getElementById('fCodigo')?.value.trim() || '';
+                const nom = document.getElementById('fNombre')?.value.trim() || '';
+                const est = document.getElementById('fEstado')?.value ?? '';
+                if (cod) qs.set('codigo', cod);
+                if (nom) qs.set('nombre', nom);
+                if (est !== '') qs.set('estado', est);
+
+                qs.set('descargar', 'false');               // <-- inline (preview)
+                window.open('/Puestos/ExportPdf?' + qs.toString(), '_blank');
+            });
+
+
         });
 
         // Delegación de formularios AJAX dentro del host (require data-ajax="true")
