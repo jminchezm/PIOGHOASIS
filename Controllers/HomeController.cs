@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PIOGHOASIS.Models;
 using System.Diagnostics;
@@ -17,10 +18,23 @@ namespace PIOGHOASIS.Controllers
         //{
         //    return RedirectToAction("Index", "Login");
         //}
-        public IActionResult Index()
+
+        // Opcional: protege el dashboard
+        [Authorize]
+        [HttpGet]
+        public IActionResult Dashboard()
         {
-            return View();
+            return View();  // busca Views/Home/Dashboard.cshtml
         }
+
+        // Si alguien entra a /Home/Index, lo mandamos al Dashboard
+        [HttpGet]
+        public IActionResult Index() => RedirectToAction(nameof(Dashboard));
+
+        //public IActionResult Index()
+        //{
+        //    return View();
+        //}
 
         public IActionResult Privacy()
         {

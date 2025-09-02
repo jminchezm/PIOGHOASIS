@@ -1,4 +1,8 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using PIOGHOASIS.Infraestructure.Data;
+using System;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +13,28 @@ builder.Services.AddControllersWithViews();
 
 
 
+// AUTENTICACIÓN POR COOKIES
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Login/Index";
+        options.LogoutPath = "/Login/Salir";
+        options.AccessDeniedPath = "/Login/Index";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+    });
 
+builder.Services.AddAuthorization();
+
+// DbContext (ajusta tu cadena de conexión/nombre)
+builder.Services.AddDbContext<AppDbContext>
+(
+    opt =>
+    {
+        opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    }
+);
 
 
 
@@ -35,6 +60,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

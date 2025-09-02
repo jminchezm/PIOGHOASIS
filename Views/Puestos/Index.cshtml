@@ -1,0 +1,416 @@
+﻿@using Azure.Core
+@model IEnumerable<PIOGHOASIS.Models.Puesto>
+@* Ajusta el namespace si tu clase está en otra carpeta/espacio *@
+@{
+    Layout = null; // se inyecta en el Dashboard
+
+    // Lee una sola vez el querystring
+    var q = Context.Request.Query;
+    var qCodigo = q["codigo"].ToString();
+    var qNombre = q["nombre"].ToString();
+
+    // Si no viene 'estado', por defecto "1" (Activo) para que coincida con tu controlador
+    var qEstado = q.ContainsKey("estado") ? q["estado"].ToString() : "1";
+
+    // flags para selected
+    var selAll = qEstado == "" ? "selected" : "";
+    var sel1 = qEstado == "1" ? "selected" : "";
+    var sel0 = qEstado == "0" ? "selected" : "";
+}
+
+<style>
+
+    .puestos-ui {
+        position: relative;
+        margin-top: 0;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        /* imagen + velo blanco en la MISMA propiedad */
+        background: linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)), url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+        padding: 30px;
+    }
+
+
+    .puestos-ui .card-filtros {
+        background: rgba(255,255,255,.85);
+        box-shadow: 0 6px 22px rgba(0,0,0,.08);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+    }
+
+    .puestos-ui .tt {
+        font-size: clamp(1.25rem, 1.8vw, 1.75rem);
+        font-weight: 800;
+        color: #1f2a37;
+    }
+
+    .puestos-ui .btn-nuevo {
+        background: #f0a100;
+        border: none;
+        color: #222;
+        font-weight: 800;
+        box-shadow: 0 10px 22px rgba(240,161,0,.35);
+    }
+
+        .puestos-ui .btn-nuevo:hover {
+            background: #db9400;
+        }
+
+    /* Tabla */
+    .puestos-ui table {
+        background: #fff
+    }
+
+    .puestos-ui thead th {
+        background: #f3c259; /* dorado suave */
+        color: #222;
+        border-bottom: 2px solid #d7a536;
+        vertical-align: middle;
+    }
+
+    .puestos-ui tbody td {
+        vertical-align: middle;
+    }
+
+    /* Estado pill */
+    .puestos-ui .pill {
+        display: inline-block;
+        padding: .15rem .5rem;
+        border-radius: 999px;
+        font-size: .84rem;
+        font-weight: 700;
+    }
+
+    .puestos-ui .pill-ok {
+        background: #e8f7e9;
+        color: #16803d;
+        border: 1px solid #bfe8c2;
+    }
+
+    .puestos-ui .pill-off {
+        background: #fff0f0;
+        color: #b42318;
+        border: 1px solid #f5c2c7;
+    }
+
+    /* Acciones */
+    .puestos-ui .btn-icon {
+        --bs-btn-padding-y: .25rem;
+        --bs-btn-padding-x: .45rem;
+        --bs-btn-border-radius: .35rem;
+    }
+
+    .puestos-ui .btn-edit {
+        color: #0d6efd;
+        border-color: #cfe2ff;
+        background: #eff6ff;
+    }
+
+    .puestos-ui .btn-detail {
+        color: #0aa2c0;
+        border-color: #beeaf3;
+        background: #e7f9fd;
+    }
+
+    .puestos-ui .btn-delete {
+        color: #dc3545;
+        border-color: #f1c2c6;
+        background: #fff1f2;
+    }
+
+    .puestos-ui .btn-edit:hover {
+        filter: brightness(.95);
+    }
+
+    .puestos-ui .btn-detail:hover {
+        filter: brightness(.95);
+    }
+
+    .puestos-ui .btn-delete:hover {
+        filter: brightness(.95);
+    }
+
+    /* Paginación */
+    .puestos-ui .pagination .page-link {
+        border: none;
+    }
+
+    .puestos-ui .pagination .active > .page-link {
+        background: #f0a100;
+        color: #222;
+    }
+
+    /* icono clear (x) dentro de inputs */
+    .puestos-ui .clearable {
+        position: relative;
+    }
+
+        .puestos-ui .clearable .btn-clear {
+            position: absolute;
+            right: .35rem;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #6c757d;
+            display: none;
+        }
+
+        .puestos-ui .clearable input:not(:placeholder-shown) + .btn-clear {
+            display: block;
+        }
+
+    /* print solo la tabla -> OJO: escapamos media como @@media en Razor */
+    @@media print {
+        body * {
+            visibility: hidden;
+        }
+
+        #printArea, #printArea * {
+            visibility: visible;
+        }
+
+        #printArea {
+            position: fixed;
+            inset: 0;
+        }
+    }
+
+    .empty-state{
+  min-height: 320px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+}
+.empty-illus{ max-width:160px; opacity:.85; }
+</style>
+
+<div class="puestos-ui">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="tt mb-0">Listado de Puestos</h2>
+
+        <a class="btn btn-nuevo" href="/Puestos/Create" data-url="/Puestos/Create">
+            <i class="bi bi-plus-circle me-1"></i> Nuevo puesto
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card-filtros p-3 mb-3">
+        <form id="frmFiltros" class="row g-3 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Código</label>
+                <div class="clearable">
+                    <input type="text" class="form-control" id="fCodigo" placeholder=" " value="@qCodigo" />
+                    <button type="button" class="btn-clear" aria-label="Limpiar"
+                            onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Nombre</label>
+                <div class="clearable">
+                    <input type="text" class="form-control" id="fNombre" placeholder=" " value="@qNombre" />
+                    <button type="button" class="btn-clear" aria-label="Limpiar"
+                            onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-3">
+                <select id="fEstado" class="form-select">
+                    <option value="" selected="@(qEstado == ""  ? "selected" : null)">Todos</option>
+                    <option value="1" selected="@(qEstado == "1" ? "selected" : null)">Activo</option>
+                    <option value="0" selected="@(qEstado == "0" ? "selected" : null)">Inactivo</option>
+                </select>
+           </div>
+
+            <div class="col-12 d-flex col-md-1">
+                <button type="button" id="btnPrint" class="btn btn-outline-secondary" title="Imprimir">
+                    <i class="bi bi-printer"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+
+
+    <!-- Tabla -->
+    <div id="printArea" class="card p-0">
+
+        <div id="printArea" class="card p-0">
+            @if (!Model.Any())
+            {
+                <div class="empty-state p-5 text-center">
+                    <img src="~/img/empty-search.svg" asp-append-version="true"
+                         alt="Sin resultados" class="mb-3 empty-illus"
+                         onerror="this.style.display='none'"/>
+                    <h5 class="fw-bold mb-1">No se encontró ningún registro</h5>
+                    <p class="text-muted mb-3">Ajusta los filtros o limpia la búsqueda.</p>
+
+                    <button type="button" class="btn btn-outline-secondary js-clear-filters">
+                        <i class="bi bi-eraser me-1"></i> Limpiar filtros
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table id="tblPuestos" class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width:140px">Código</th>
+                                <th style="width:240px">Nombre</th>
+                                <th>Descripción</th>
+                                <th style="width:120px">Estado</th>
+                                <th style="width:150px" class="text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Model)
+                            {
+                                <tr data-codigo="@p.PuestoID"
+                                    data-nombre="@p.Nombre"
+                                    data-estado="@(p.Estado ? "1" : "0")">
+                                    <td>@p.PuestoID</td>
+                                    <td>@p.Nombre</td>
+                                    <td>@p.Descripcion</td>
+                                    <td>
+                                        @(p.Estado
+                                            ? Html.Raw("<span class=\"pill pill-ok\">Activo</span>")
+                                            : Html.Raw("<span class=\"pill pill-off\">Inactivo</span>"))
+                                    </td>
+                                    @* <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a class="btn btn-sm btn-outline-primary btn-icon btn-edit ajax-nav"
+                                                href="/Puestos/Edit/@p.PuestoID" data-url="/Puestos/Edit/@p.PuestoID" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                                            <a class="btn btn-sm btn-outline-info btn-icon btn-detail ajax-nav"
+                                                href="/Puestos/Details/@p.PuestoID" data-url="/Puestos/Details/@p.PuestoID" title="Detalles"><i class="bi bi-eye"></i></a>
+                                            <a class="btn btn-sm btn-outline-danger btn-icon btn-delete ajax-nav"
+                                                href="/Puestos/Delete/@p.PuestoID" data-url="/Puestos/Delete/@p.PuestoID" title="Eliminar"><i class="bi bi-trash"></i></a>
+                                        </div>
+                                    </td> *@
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a class="btn btn-sm btn-outline-primary btn-icon btn-edit ajax-nav"
+                                                href="/Puestos/Edit/@p.PuestoID" data-url="/Puestos/Edit/@p.PuestoID" title="Editar">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+
+                                            <a class="btn btn-sm btn-outline-info btn-icon btn-detail ajax-nav"
+                                                href="/Puestos/Details/@p.PuestoID" data-url="/Puestos/Details/@p.PuestoID" title="Detalles">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+
+                                            @* Solo mostrar el botón de desactivar si el puesto está ACTIVO *@
+                                            @if (p.Estado)
+                                            {
+                                                <a class="btn btn-sm btn-outline-danger btn-icon btn-delete ajax-nav"
+                                                    href="/Puestos/Delete/@p.PuestoID" data-url="/Puestos/Delete/@p.PuestoID" title="Desactivar">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            }
+                                            @* Si quieres, puedes mostrar un botón alternativo para ACTIVAR cuando esté inactivo:
+                                        else
+                                        {
+                                        <a class="btn btn-sm btn-outline-success btn-icon ajax-nav"
+                                        href="/Puestos/Delete/@p.PuestoID" data-url="/Puestos/Delete/@p.PuestoID" title="Activar">
+                                        <i class="bi bi-arrow-counterclockwise"></i>
+                                        </a>
+                                        }
+                                        *@
+                                        </div>
+                                    </td>
+
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginación -->
+                <div class="d-flex justify-content-between align-items-center p-2">
+                    <div class="small text-muted">
+                        <span id="infoRows"></span>
+                    </div>
+                    <nav><ul id="pager" class="pagination mb-0"></ul></nav>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+        (function () {
+      const fCodigo = document.getElementById('fCodigo');
+        const fNombre = document.getElementById('fNombre');
+        const fEstado = document.getElementById('fEstado');
+
+        function buildUrl() {
+        const params = new URLSearchParams();
+        const cod = (fCodigo?.value || '').trim();
+        const nom = (fNombre?.value || '').trim();
+        const est = (fEstado?.value ?? '');          // "" cuando es “Todos”
+
+        if (cod) params.set('codigo', cod);
+        if (nom) params.set('nombre', nom);
+        params.set('estado', est);                   // <-- SIEMPRE incluirlo
+
+        const qs = params.toString();
+        return '/Puestos/Index' + (qs ? ('?' + qs) : '');
+      }
+
+        function debounce(fn, ms = 700) {
+            let t; return (...args) => {clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+      }
+
+      // const go = debounce(() => {
+      //   const url = buildUrl();
+      //   if (window.loadToHost) window.loadToHost(url); else window.location.href = url;
+      // }, 700);
+      
+        const go = debounce(async () => {
+          const url = buildUrl();
+
+          // guardar foco y caret
+          const active   = document.activeElement;
+          const id       = active?.id;
+          const selStart = ('selectionStart' in active) ? active.selectionStart : null;
+          const selEnd   = ('selectionEnd'   in active) ? active.selectionEnd   : null;
+
+          await window.swapInHost(url, '#printArea');      // solo grilla/pager
+          history.replaceState(null, '', url);             // actualiza URL
+
+          // re-inicializa paginación sobre el NUEVO #printArea
+          window.initPuestosPager(document.getElementById('printArea'));
+
+          // restaura foco/caret
+          if (id) {
+            const el = document.getElementById(id);
+            if (el) {
+              el.focus();
+              if (selStart != null && selEnd != null) el.setSelectionRange(selStart, selEnd);
+            }
+          }
+        }, 700);
+
+        // Llama una vez al cargar la página inicial
+        window.addEventListener('DOMContentLoaded', () => {
+          window.initPuestosPager(document.getElementById('printArea'));
+        });
+
+
+        function onTextInput() {
+        const v = this.value.trim();
+        if (v.length === 0 || v.length >= 2) go();   // no recargar en 1 carácter
+      }
+
+        fCodigo?.addEventListener('input', onTextInput);
+        fNombre?.addEventListener('input', onTextInput);
+        fEstado?.addEventListener('change', go);
+    })();
+
+</script>

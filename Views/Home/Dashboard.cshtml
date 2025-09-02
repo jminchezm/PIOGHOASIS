@@ -1,0 +1,701 @@
+﻿@{
+    Layout = null; /* Déjalo así si esta vista es independiente.
+              Si quieres convertirla en layout, reemplaza el cuerpo por @RenderBody() en #app-content */
+    ViewData["Title"] = "Dashboard";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Hotel Oasis</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+    
+    <link rel="stylesheet" href="~/css/dashboard.css" />
+
+</head>
+<body>
+
+    <!-- ======= HEADER ======= -->
+    <header class="app-header">
+        <div class="header-left">
+            <button id="btnSidebar" class="burger-btn" aria-label="Abrir menú">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+
+        <div class="header-center">
+            <img src="/img/login/logo-oasis.png" class="brand-logo" alt="Hotel Oasis" />
+        </div>
+
+        <div class="header-right">
+            @using System.Security.Claims
+            @{
+                var avatar = User.FindFirst("avatar")?.Value ?? Url.Content("~/img/DefaultUsuario.png");
+                var userName = User.Identity?.Name ?? "";
+                var roleName = User.FindFirstValue(ClaimTypes.Role) ?? "";
+            }
+            <div class="dropdown">
+                <a href="#" class="d-flex align-items-center text-decoration-none"
+                   id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                    <img src="@avatar" class="avatar rounded-circle" alt="Usuario" />
+                    <div class="ms-2 d-none d-sm-block">
+                        <div>@userName</div>
+                        <div class="role">@roleName</div>
+                    </div>
+                    <i class="bi bi-chevron-down ms-2 d-none d-sm-inline"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userMenu" style="min-width:220px;">
+                    <li class="dropdown-header">
+                        <div class="fw-semibold">@userName</div>
+                        <div class="text-muted small">@roleName</div>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="px-3 pb-2">
+                        <form method="post" action="/Login/Salir">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-shell d-flex">
+        <!-- ======= SIDEBAR ======= -->
+        <nav id="appSidebar" class="sidebar">
+            <ul class="menu">
+                <li class="active">
+                    <a href="/Home/Index" data-url="/Dashboard/Inicio">
+                        <i class="bi bi-house-door"></i> <span>Inicio</span>
+                    </a>
+                </li>
+
+                <li>
+                    <a href="/Reservas/Index" data-url="/Reservas/Index">
+                        <i class="bi bi-calendar-check"></i> <span>Reservaciones</span>
+                    </a>
+                </li>
+
+                <!-- REPORTES -->
+                <li class="has-children">
+                    <a href="#" class="toggle" data-toggle="submenu">
+                        <i class="bi bi-bar-chart"></i> <span>Reportes</span>
+                        <i class="bi bi-caret-down-fill caret"></i>
+                    </a>
+                    <ul class="submenu">
+                        <li><a href="/Reportes/Reservas" data-url="/Reportes/Reservas"><span>Reporte de reservas</span></a></li>
+                        <li><a href="/Reportes/PagosIngresos" data-url="/Reportes/PagosIngresos"><span>Reporte de pagos / ingresos</span></a></li>
+                        <li><a href="/Reportes/Clientes" data-url="/Reportes/Clientes"><span>Reporte de Clientes</span></a></li>
+                    </ul>
+                </li>
+
+                <!-- HABITACIONES -->
+                <li class="has-children">
+                    <a href="#" class="toggle" data-toggle="submenu">
+                        <i class="bi bi-door-open"></i> <span>Habitaciones</span>
+                        <i class="bi bi-caret-down-fill caret"></i>
+                    </a>
+                    <ul class="submenu">
+                        <li><a href="/Habitaciones/Index" data-url="/Habitaciones/Index"><span>Habitaciones</span></a></li>
+                        <li><a href="/Habitaciones/Tipos" data-url="/Habitaciones/Tipos"><span>Tipo de Habitación</span></a></li>
+                    </ul>
+                </li>
+
+                <li>
+                    <a href="/Clientes/Index" data-url="/Clientes/Index">
+                        <i class="bi bi-people"></i> <span>Clientes</span>
+                    </a>
+                </li>
+
+                <!-- EMPLEADOS -->
+                <li class="has-children">
+                    <a href="#" class="toggle" data-toggle="submenu">
+                        <i class="bi bi-person-badge"></i> <span>Empleados</span>
+                        <i class="bi bi-caret-down-fill caret"></i>
+                    </a>
+                    <ul class="submenu">
+                        <li><a href="/Empleados/Index" data-url="/Empleados/Index"><span>Empleados</span></a></li>
+                        <li><a href="/Puestos/Index" data-url="/Puestos/Index"><span>Puestos</span></a></li>
+                    </ul>
+                </li>
+
+                <!-- USUARIOS -->
+                <li class="has-children">
+                    <a href="#" class="toggle" data-toggle="submenu">
+                        <i class="bi bi-person"></i> <span>Usuarios</span>
+                        <i class="bi bi-caret-down-fill caret"></i>
+                    </a>
+                    <ul class="submenu">
+                        <li><a href="/Usuarios/Index" data-url="/Usuarios/Index"><span>Usuarios</span></a></li>
+                        <li><a href="/Usuarios/Roles" data-url="/Usuarios/Roles"><span>Roles</span></a></li>
+                    </ul>
+                </li>
+
+                <li>
+                    <a href="/Caja/Index" data-url="/Caja/Index">
+                        <i class="bi bi-cash-stack"></i> <span>Caja</span>
+                    </a>
+                </li>
+
+                <!-- CONFIGURACIONES -->
+                <li class="has-children">
+                    <a href="#" class="toggle" data-toggle="submenu">
+                        <i class="bi bi-gear"></i> <span>Configuraciones</span>
+                        <i class="bi bi-caret-down-fill caret"></i>
+                    </a>
+                    <ul class="submenu">
+                        <li><a href="/Configuraciones/Modulos" data-url="/Configuraciones/Modulos"><span>Módulos</span></a></li>
+                        <li><a href="/Configuraciones/Permisos" data-url="/Configuraciones/Permisos"><span>Permisos</span></a></li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+
+
+        <!-- Overlay móvil -->
+        <div id="menuBackdrop" class="backdrop"></div>
+
+        <!-- ======= CONTENT ======= -->
+        <main id="appContent" class="app-content flex-grow-1">
+            <!-- Hero inicial (como en tu prototipo) -->
+            <div id="hero" class="hero"></div>
+
+            <!-- Contenedor donde se insertará el HTML cargado -->
+            @* <div id="contentHost" class="mt-3"></div> *@
+            <div id="contentHost"></div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+
+      /* ================= Sidebar & Layout ================= */
+      const sidebar   = document.getElementById('appSidebar');
+      const backdrop  = document.getElementById('menuBackdrop');
+      const btnSidebar= document.getElementById('btnSidebar');
+
+      function openSidebar() {
+        sidebar?.classList.add('open');
+        if (window.matchMedia('(max-width: 991.98px)').matches) backdrop?.classList.add('show');
+        document.body.classList.add('sidebar-open');
+        localStorage.setItem('sidebar-open','1');
+      }
+      function closeSidebar() {
+        sidebar?.classList.remove('open');
+        backdrop?.classList.remove('show');
+        document.body.classList.remove('sidebar-open');
+        localStorage.setItem('sidebar-open','0');
+      }
+      function toggleSidebar(){ sidebar?.classList.contains('open') ? closeSidebar() : openSidebar(); }
+
+      (function restoreSidebar(){
+        const saved = localStorage.getItem('sidebar-open');
+        if (saved === '1' && window.matchMedia('(min-width: 992px)').matches) openSidebar();
+        else document.body.classList.remove('sidebar-open');
+      })();
+
+      btnSidebar?.addEventListener('click', toggleSidebar);
+      backdrop?.addEventListener('click', closeSidebar);
+
+      // Submenús en acordeón
+      document.querySelectorAll('.menu .has-children > a[data-toggle="submenu"]').forEach(tg=>{
+        tg.addEventListener('click', (e)=>{
+          e.preventDefault();
+          const li = tg.closest('.has-children');
+          const isOpen = li.classList.contains('open');
+          document.querySelectorAll('.menu .has-children.open').forEach(o=>{ if(o!==li) o.classList.remove('open'); });
+          li.classList.toggle('open', !isOpen);
+        });
+      });
+
+      /* ================= Router ÚNICO para #contentHost ================= */
+      (function () {
+        const host = document.getElementById('contentHost');
+        const hero = document.getElementById('hero');
+        if (!host) return;
+
+        async function loadToHost(url, opts) {
+          const resp = await fetch(url, Object.assign({
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          }, opts || {}));
+
+        // helper para limpiar cualquier modal huérfano
+        function cleanupModals() {
+          document.querySelectorAll('.modal.show').forEach(el => {
+            try { bootstrap.Modal.getInstance(el)?.hide(); } catch {}
+          });
+          document.body.classList.remove('modal-open');
+          document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+          document.body.style.removeProperty('padding-right'); // por si Bootstrap la agregó
+        }
+
+          const ct = (resp.headers.get('content-type') || '').toLowerCase();
+          const ctype = (resp.headers.get('content-type') || '').toLowerCase();
+
+          // --- Respuesta JSON (Edit/Create por AJAX)
+            if (ctype.includes('application/json')) {
+                const data = await resp.json();
+
+                if (data.ok) {
+                // Modal de éxito
+                const okEl = host.querySelector('#saveOkModal');
+                    if (okEl) {
+                        const msgEl = okEl.querySelector('.js-msg');
+                        if (data.message && msgEl) msgEl.textContent = data.message; // <-- solo cambia el texto
+                        const m = bootstrap.Modal.getOrCreateInstance(okEl);
+                        if (data.redirectUrl) {
+                            okEl.addEventListener('hidden.bs.modal', () => loadToHost(data.redirectUrl), { once: true });
+                        }
+                        m.show();
+                    } else {
+                    // Fallback si el modal no existe
+                    alert(data.message || 'Guardado correctamente.');
+                    if (data.redirectUrl) loadToHost(data.redirectUrl);
+                }
+                return; // ¡No sustituyas el HTML!
+                }
+
+                // --- SIN CAMBIOS ---
+                if (data.reason === 'nochanges') {
+                    const warnEl = host.querySelector('#noChangesModal');
+                    if (warnEl) {
+                        if (data.message) {
+                            const msg = warnEl.querySelector('.js-msg');
+                            if (msg) msg.textContent = data.message;  // <— no toques .modal-body
+                        }
+                        bootstrap.Modal.getOrCreateInstance(warnEl).show();
+                    } else {
+                        alert(data.message || 'No has modificado ningún campo.');
+                    }
+                    return;
+                }
+
+                // --- Otros errores
+                alert(data.message || 'Ocurrió un problema.');
+                return;
+            }
+
+          // HTML normal (Index, Create, Edit con validaciones, etc.)
+          if (!resp.ok) { window.location.href = url; return; }
+          const html = await resp.text();
+          if (hero) hero.style.display = 'none';
+          cleanupModals();  
+          host.innerHTML = html;
+          initPageFeatures(host);
+          cleanupModals();  
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+
+        // Menú lateral: enlaces con data-url
+        document.querySelectorAll('.menu a[data-url]').forEach(a=>{
+          a.addEventListener('click', (ev)=>{
+            ev.preventDefault();
+            loadToHost(a.dataset.url || a.href);
+          });
+        });
+
+        // // Delegación de enlaces dentro del host (Index/Create/Edit)
+        // host.addEventListener('click', (ev)=>{
+        //   const a = ev.target.closest('a[data-url], a.ajax-nav[data-url]');
+        //   if (!a) return;
+        //   ev.preventDefault();
+        //   loadToHost(a.dataset.url || a.href);
+        // });
+
+        // Delegación de CLICS dentro del host (Delete + navegación AJAX)
+        host.addEventListener('click', (ev) => {
+          // A) Mostrar modal de confirmación (Delete.cshtml)
+          const askBtn = ev.target.closest('#btnAsk');
+          if (askBtn) {
+            ev.preventDefault();
+            const modalEl = host.querySelector('#confirmDeleteModal');
+            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            return;
+          }
+
+          // B) Confirmar => enviar el form (Delete.cshtml)
+          const confirmBtn = ev.target.closest('#btnConfirm');
+          if (confirmBtn) {
+            ev.preventDefault();
+            const form = host.querySelector('#frmDelete');
+            if (form?.requestSubmit) form.requestSubmit(); else form?.submit();
+            return;
+          }
+
+          // C) Navegación AJAX normal (links)
+          const a = ev.target.closest('a[data-url], a.ajax-nav[data-url]');
+          if (a) {
+            ev.preventDefault();
+            loadToHost(a.dataset.url || a.href);
+          }
+        });
+
+        // Delegación de formularios AJAX dentro del host (require data-ajax="true")
+        host.addEventListener('submit', (ev)=>{
+          const form = ev.target.closest('form[data-ajax="true"]');
+          if (!form) return;                      // los que no tengan data-ajax navegan normal
+          ev.preventDefault();
+          const fd = new FormData(form);
+          loadToHost(form.action, { method: form.method || 'POST', body: fd });
+        });
+
+        // Exponer opcionalmente para usos puntuales
+        // window.loadToHost = loadToHost;
+            window.swapInHost = async function swapInHost(url, selector) {
+                const host = document.getElementById('contentHost');
+                const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (!resp.ok) { window.location.href = url; return; }
+                const html = await resp.text();
+
+                // montar HTML en un contenedor temporal
+                const tmp = document.createElement('div');
+                tmp.innerHTML = html;
+
+                const newNode = tmp.querySelector(selector);
+                const oldNode = host.querySelector(selector);
+                if (newNode && oldNode) oldNode.replaceWith(newNode);
+            };
+      })();
+
+
+      // Atajo Ctrl+B para abrir/cerrar el sidebar
+      document.addEventListener('keydown', (e)=>{
+        if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); toggleSidebar(); }
+      });
+
+      // ==== Autofiltros de Puestos (delegado en #contentHost) ====
+      // (function () {
+      //   const host = document.getElementById('contentHost');
+      //   if (!host || !window.loadToHost) return;
+
+      //   let t;
+      //   const debounce = (fn, ms = 300) => { clearTimeout(t); t = setTimeout(fn, ms); };
+
+      //   function runFilter() {
+      //     const form   = host.querySelector('#frmFiltros');
+      //     if (!form) return;
+
+      //     const codigo = form.querySelector('#fCodigo')?.value.trim() || '';
+      //     const nombre = form.querySelector('#fNombre')?.value.trim() || '';
+      //     const estado = form.querySelector('#fEstado')?.value ?? '';
+
+      //     const qs = new URLSearchParams();
+      //     if (codigo) qs.set('codigo', codigo);
+      //     if (nombre) qs.set('nombre', nombre);
+      //     if (estado !== '') qs.set('estado', estado);
+
+      //     const url = '/Puestos/Index' + (qs.toString() ? '?' + qs.toString() : '');
+      //     loadToHost(url); // recarga la tabla filtrada dentro de #contentHost
+      //   }
+
+      //   // Escribe en Código/Nombre => filtra con debounce
+      //   host.addEventListener('input', (ev) => {
+      //     const id = ev.target?.id;
+      //     if (id === 'fCodigo' || id === 'fNombre') debounce(runFilter, 300);
+      //   });
+
+      //   // Cambia Estado => filtra inmediato
+      //   host.addEventListener('change', (ev) => {
+      //     if (ev.target?.id === 'fEstado') runFilter();
+      //   });
+      // })();
+
+        (function () {
+            const host = document.getElementById('contentHost');
+            if (!host) return;
+
+            // debounce simple
+            const debounce = (fn, ms = 400) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+            function buildUrl() {
+                const form = host.querySelector('#frmFiltros');
+                if (!form) return '/Puestos/Index';
+
+                const codigo = form.querySelector('#fCodigo')?.value.trim() || '';
+                const nombre = form.querySelector('#fNombre')?.value.trim() || '';
+                const estado = form.querySelector('#fEstado')?.value ?? '';
+
+                const qs = new URLSearchParams();
+                if (codigo) qs.set('codigo', codigo);
+                if (nombre) qs.set('nombre', nombre);
+                qs.set('estado', estado);             // siempre incluir estado; ""=Todos
+
+                const s = qs.toString();
+                return '/Puestos/Index' + (s ? '?' + s : '');
+            }
+
+            const run = debounce(async () => {
+                const url = buildUrl();
+
+                // guardar foco y caret
+                const active = document.activeElement;
+                const id = active?.id;
+                const selStart = ('selectionStart' in active) ? active.selectionStart : null;
+                const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
+
+                await window.swapInHost(url, '#printArea');              // solo grilla/pager
+                history.replaceState(null, '', url);                     // actualiza la URL
+                window.initPuestosPager(host.querySelector('#printArea'));// re-init paginación
+
+                // restaurar foco/caret
+                if (id) {
+                    const el = host.querySelector('#' + CSS.escape(id));
+                    if (el) {
+                        el.focus();
+                        if (selStart != null && selEnd != null && el.setSelectionRange) {
+                            el.setSelectionRange(selStart, selEnd);
+                        }
+                    }
+                }
+            }, 400);
+
+            // Tecla en Código/Nombre => dispara con debounce (0 o >=2 chars)
+            host.addEventListener('input', (ev) => {
+                const id = ev.target?.id;
+                if (id === 'fCodigo' || id === 'fNombre') {
+                    const v = ev.target.value.trim();
+                    if (v.length === 0 || v.length >= 2) run();
+                }
+            });
+
+            // Cambio de Estado => dispara inmediato
+            host.addEventListener('change', (ev) => {
+                if (ev.target?.id === 'fEstado') run();
+            });
+
+            // Al insertar por primera vez el Index, inicializa el paginador
+            const mo = new MutationObserver(() => {
+                const area = host.querySelector('#printArea');
+                if (area && !area.__inited) { area.__inited = true; window.initPuestosPager(area); }
+            });
+            mo.observe(host, { childList: true, subtree: true });
+
+            // Click en "Limpiar filtros" del estado vacío
+            host.addEventListener('click', (ev) => {
+                const btn = ev.target.closest('.js-clear-filters');
+                if (!btn) return;
+                ev.preventDefault();
+
+                const form = host.querySelector('#frmFiltros');
+                const fCodigo = form?.querySelector('#fCodigo');
+                const fNombre = form?.querySelector('#fNombre');
+                const fEstado = form?.querySelector('#fEstado');
+
+                if (fCodigo) fCodigo.value = '';
+                if (fNombre) fNombre.value = '';
+                if (fEstado) fEstado.value = '';  // “Todos”
+
+                // dispara eventos para que tu lógica de filtros se ejecute
+                fCodigo?.dispatchEvent(new Event('input', { bubbles: true }));
+                fNombre?.dispatchEvent(new Event('input', { bubbles: true }));
+                fEstado?.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        })();
+
+      //--------------- PAGINACION ----------------------------------------------------
+        // function initPageFeatures(host) {
+        //     initPuestosIndex(host);
+        // }
+
+        // function initPuestosIndex(host) {
+        //     const tbl = host.querySelector('#tblPuestos');
+        //     if (!tbl) return; // no estamos en /Puestos/Index
+
+        //     const pageSize = 9;
+        //     const $tbody = tbl.querySelector('tbody');
+        //     const rows = Array.from($tbody.querySelectorAll('tr'));
+        //     const $pager = host.querySelector('#pager');
+        //     const $info = host.querySelector('#infoRows');
+        //     let filtered = rows.slice();
+        //     let page = 1;
+
+        //     function render(toPage) {
+        //         page = toPage ?? page;
+        //         const total = filtered.length;
+        //         const pages = Math.max(1, Math.ceil(total / pageSize));
+        //         if (page > pages) page = pages;
+
+        //         rows.forEach(tr => tr.style.display = 'none');
+        //         const start = (page - 1) * pageSize;
+        //         filtered.slice(start, start + pageSize).forEach(tr => tr.style.display = '');
+
+        //         const first = total ? start + 1 : 0;
+        //         const last = Math.min(start + pageSize, total);
+        //         if ($info) $info.textContent = `Mostrando ${first}-${last} de ${total}`;
+
+        //         if ($pager) {
+        //             $pager.closest('nav')?.style.setProperty('display', pages > 1 ? '' : 'none');
+        //             drawPager(pages);
+        //         }
+        //     }
+
+        //     function drawPager(pages) {
+        //         const li = (label, p, disabled = false, active = false) => {
+        //             const el = document.createElement('li');
+        //             el.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+        //             const a = document.createElement('a');
+        //             a.className = 'page-link'; a.href = '#'; a.textContent = label;
+        //             a.addEventListener('click', (ev) => { ev.preventDefault(); if (!disabled && !active) render(p); });
+        //             el.appendChild(a);
+        //             return el;
+        //         };
+        //         $pager.innerHTML = '';
+        //         $pager.appendChild(li('«', 1, page === 1));
+        //         $pager.appendChild(li('‹', page - 1, page === 1));
+        //         const range = 2;
+        //         const start = Math.max(1, page - range);
+        //         const end = Math.min(pages, page + range);
+        //         if (start > 1) $pager.appendChild(li('1', 1, false, page === 1));
+        //         if (start > 2) $pager.appendChild(li('…', page, true));
+        //         for (let i = start; i <= end; i++) $pager.appendChild(li(String(i), i, false, i === page));
+        //         if (end < pages - 1) $pager.appendChild(li('…', page, true));
+        //         if (end < pages) $pager.appendChild(li(String(pages), pages, false, page === pages));
+        //         $pager.appendChild(li('›', page + 1, page === pages));
+        //         $pager.appendChild(li('»', pages, page === pages));
+        //     }
+
+        //     // Filtros del servidor (auto-búsqueda)
+        //     const fCodigo = host.querySelector('#fCodigo');
+        //     const fNombre = host.querySelector('#fNombre');
+        //     const fEstado = host.querySelector('#fEstado');
+
+        //     function buildUrl() {
+        //         const params = new URLSearchParams();
+        //         const cod = (fCodigo?.value || '').trim();
+        //         const nom = (fNombre?.value || '').trim();
+        //         const est = (fEstado?.value ?? ''); // "" = Todos
+
+        //         if (cod) params.set('codigo', cod);
+        //         if (nom) params.set('nombre', nom);
+        //         params.set('estado', est);
+
+        //         const qs = params.toString();
+        //         return '/Puestos/Index' + (qs ? ('?' + qs) : '');
+        //     }
+
+        //     // const debounce = (fn, ms = 700) => {
+        //     //     let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn.apply(null, a), ms); };
+        //     // };
+
+        //     function debounce(fn, ms = 700) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+        //     // const go = debounce(() => {
+        //     //     const url = buildUrl();
+        //     //     window.loadToHost ? window.loadToHost(url) : window.location.assign(url);
+        //     // }, 700);
+
+        //     const go = debounce(async () => {
+        //         const url = buildUrl();
+
+        //         // guardar foco y posición del caret
+        //         const active = document.activeElement;
+        //         const id = active?.id;
+        //         const selStart = ('selectionStart' in active) ? active.selectionStart : null;
+        //         const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
+
+        //         await window.swapInHost(url, '#printArea');   // <— solo recarga la grilla/pager
+        //         history.replaceState(null, '', url);          // actualiza la URL sin recargar
+
+        //         // restaurar foco/caret
+        //         if (id) {
+        //             const el = document.getElementById(id);
+        //             if (el) {
+        //                 el.focus();
+        //                 if (selStart != null && selEnd != null) el.setSelectionRange(selStart, selEnd);
+        //             }
+        //         }
+        //     }, 700);
+
+        //     function onTextInput() {
+        //         const v = this.value.trim();
+        //         if (v.length === 0 || v.length >= 2) go();
+        //     }
+
+        //     fCodigo?.addEventListener('input', onTextInput);
+        //     fNombre?.addEventListener('input', onTextInput);
+        //     fEstado?.addEventListener('change', go);
+        //     host.querySelector('#btnPrint')?.addEventListener('click', () => window.print());
+
+        //     // arranque
+        //     filtered = rows.slice();
+        //     render(1);
+        // }
+
+        // Se ejecuta después de cada loadToHost
+        function initPageFeatures(host) {
+            // Inicializa el paginador si estamos en Puestos/Index
+            const area = host.querySelector('#printArea');
+            if (area) window.initPuestosPager(area);
+        }
+
+        // Init de paginación para la grilla actual
+        window.initPuestosPager = function initPuestosPager(rootEl) {
+            const wrap = rootEl || document.getElementById('printArea');
+            if (!wrap) return;
+
+            const pageSize = 9;                                      // <— ajusta si quieres
+            const $tbody = wrap.querySelector('#tblPuestos tbody');
+            const rows = Array.from($tbody?.querySelectorAll('tr') || []);
+            const $pager = wrap.querySelector('#pager');
+            const $info = wrap.querySelector('#infoRows');
+            let page = 1;
+
+            function render(toPage) {
+                page = toPage ?? page;
+                const total = rows.length;
+                const pages = Math.max(1, Math.ceil(total / pageSize));
+                if (page > pages) page = pages;
+
+                rows.forEach(tr => tr.style.display = 'none');
+                const start = (page - 1) * pageSize;
+                rows.slice(start, start + pageSize).forEach(tr => tr.style.display = '');
+
+                const first = total ? start + 1 : 0;
+                const last = Math.min(start + pageSize, total);
+                if ($info) $info.textContent = `Mostrando ${first}-${last} de ${total}`;
+                drawPager(pages);
+            }
+
+            function drawPager(pages) {
+                if (!$pager) return;
+                const mk = (label, p, disabled = false, active = false) => {
+                    const li = document.createElement('li');
+                    li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+                    const a = document.createElement('a');
+                    a.className = 'page-link'; a.href = '#'; a.textContent = label;
+                    a.addEventListener('click', ev => { ev.preventDefault(); if (!disabled && !active) render(p); });
+                    li.appendChild(a);
+                    return li;
+                };
+                $pager.innerHTML = '';
+                const pagesCount = pages;
+                $pager.appendChild(mk('«', 1, page === 1));
+                $pager.appendChild(mk('‹', page - 1, page === 1));
+                const range = 2;
+                const start = Math.max(1, page - range);
+                const end = Math.min(pagesCount, page + range);
+                if (start > 1) $pager.appendChild(mk('1', 1, false, page === 1));
+                if (start > 2) $pager.appendChild(mk('…', page, true));
+                for (let p = start; p <= end; p++) $pager.appendChild(mk(String(p), p, false, p === page));
+                if (end < pagesCount - 1) $pager.appendChild(mk('…', page, true));
+                if (end < pagesCount) $pager.appendChild(mk(String(pagesCount), pagesCount, false, page === pagesCount));
+                $pager.appendChild(mk('›', page + 1, page === pagesCount));
+                $pager.appendChild(mk('»', pagesCount, page === pagesCount));
+            }
+
+            render(1);
+        };
+    </script>
+
+
+</body>
+</html>

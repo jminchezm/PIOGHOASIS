@@ -1,0 +1,319 @@
+﻿:root {
+    --header-h: 64px;
+    --sidebar-w: 260px;
+    --sidebar-bg: #ffffff;
+    --sidebar-border: #d9d9d9;
+    --accent: #f0a100;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    background: #f6f7fb;
+    margin: 0;              /* ← IMPORTANTE */
+    overflow-x: hidden;;
+    /*padding-top: 0;*/
+}
+
+/* 2) el contenido no debe empujar al hero cuando está vacío */
+#contentHost:empty {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 0;
+}
+
+
+/* ===== Header ===== */
+.app-header {
+    /*position: sticky;*/
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    height: var(--header-h);
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(240, 161, 0, .2);
+    display: flex;
+    align-items: center;
+    padding: 0 .75rem;
+}
+
+.header-left {
+    width: 25%;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.header-center {
+    width: 50%;
+    text-align: center;
+}
+
+.header-right {
+    width: 25%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: .75rem;
+    padding-right: .5rem;
+}
+
+.brand-logo {
+    height: 60px;
+    width: auto;
+    object-fit: contain;
+}
+
+.burger-btn {
+    border: none;
+    background: transparent;
+    font-size: 1.6rem;
+    line-height: 1;
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+    .profile .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid rgba(0,0,0,.08);
+    }
+
+    .profile .role {
+        font-size: .8rem;
+        color: #818a96;
+        margin-top: -4px;
+    }
+
+/* ===== Layout base ===== */
+.app-shell {
+    position: relative;
+    min-height: calc(100dvh - var(--header-h));
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+    position: fixed;
+    top: var(--header-h);
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    transform: translateX(-100%); /* escondido por defecto */
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+    box-shadow: 8px 0 24px rgba(0,0,0,.06);
+    transition: transform .25s ease;
+    z-index: 1025;
+}
+
+    /* ← ESTA REGLA ES LA QUE FALTABA */
+    .sidebar.open {
+        transform: translateX(0); /* mostrar menú */
+    }
+
+/* Empujar el contenido cuando el menú está abierto (desktop) */
+@media (min-width: 992px) {
+    .sidebar.open ~ .app-content { /* usa ~, no + */
+        margin-left: var(--sidebar-w);
+    }
+
+    .backdrop {
+        display: none;
+    }
+}
+
+.menu {
+    list-style: none;
+    margin: 0;
+    padding: .35rem 0;
+}
+
+    .menu li a {
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+        padding: .85rem 1rem;
+        text-decoration: none;
+        color: #1f2a37;
+        font-weight: 600;
+        border-bottom: 1px solid #f1f2f4;
+    }
+
+        .menu li a:hover {
+            background: #fff7e1;
+        }
+
+        .menu li a .bi {
+            font-size: 1.1rem;
+            width: 1.5rem;
+            text-align: center;
+            color: #303b49;
+        }
+
+    .menu .active > a {
+        background: #ffe7ad;
+    }
+
+/* ===== Overlay móvil ===== */
+.backdrop {
+    position: fixed;
+    inset: var(--header-h) 0 0 0;
+    background: rgba(0,0,0,.35);
+    opacity: 0;
+    visibility: hidden;
+    transition: .2s ease;
+    z-index: 1020;
+}
+
+    .backdrop.show {
+        opacity: 1;
+        visibility: visible;
+    }
+
+/* ===== Content ===== */
+.app-content {
+    transition: margin-left .25s ease, padding .2s ease;
+    margin-left: 0;
+    /*padding: 18px;*/
+}
+
+/* Hero (imagen como en tu captura) */
+.hero {
+    position: relative;
+    margin-top: 0; /* inicia pegado al contenido */
+    width: 100%;
+    min-height: calc(100vh - var(--header-h)); /* alto = viewport - header */
+    background: #000 url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat;
+    overflow: hidden;
+}
+
+/* Mejor soporte en móviles (barra de direcciones dinámica) */
+@supports (height: 100svh) {
+    .hero {
+        min-height: calc(100svh - var(--header-h));
+    }
+}
+
+    .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(255,255,255,.30);
+    }
+
+/* Cuando el sidebar está abierto en escritorio, empujamos el contenido */
+@media (min-width: 992px) {
+    .sidebar.open + .app-content {
+        margin-left: var(--sidebar-w);
+    }
+
+    .backdrop {
+        display: none;
+    }
+}
+
+/* Ajustes en pantallas pequeñas: el contenido no se empuja, solo overlay */
+@media (max-width: 991.98px) {
+    .app-content {
+        margin-left: 0;
+    }
+}
+
+/*css del avatar*/
+.header-right .avatar {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border: 1px solid rgba(0,0,0,.08);
+}
+
+.header-right .role {
+    font-size: .8rem;
+    color: #818a96;
+    margin-top: -2px;
+}
+
+
+/* ==== Submenús ==== */
+.menu .has-children > a.toggle {
+    position: relative;
+}
+
+.menu .has-children > a .caret {
+    margin-left: auto;
+    font-size: .8rem;
+    opacity: .8;
+    transition: transform .2s ease;
+}
+
+.menu .has-children.open > a .caret {
+    transform: rotate(180deg);
+}
+
+/*.submenu {
+    display: none;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: #fff;*/ /* cuerpo del submenú */
+/*}*/
+
+.submenu {
+    overflow: hidden;
+    max-height: 0; /* cerrado */
+    transition: max-height .25s ease;
+}
+
+/*.has-children.open > .submenu {
+    display: block;
+}*/
+
+.has-children.open > .submenu {
+    max-height: 600px; /* lo bastante grande para tu lista */
+}
+
+/* items del submenú */
+.submenu > li > a {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .65rem 1rem .65rem 2.5rem; /* sangría */
+    text-decoration: none;
+    color: #1f2a37;
+    font-weight: 600;
+    border-bottom: 1px solid #f3f3f5;
+    background: #fffbe9; /* leve crema */
+}
+
+    .submenu > li > a:hover {
+        background: #fff3cf;
+    }
+
+.submenu > li.active > a {
+    background: #e7c37a;
+}
+/* activo (dorado) */
+
+/* separador visual entre grupos (opcional) */
+.menu > li.has-children {
+    border-bottom: 1px solid #efefef;
+}
+
+/* mantén lo que ya tienes… */
+
+/* Empuje del contenido cuando el sidebar está abierto (desktop) */
+@@media (min-width: 992px) {
+    .sidebar.open + .app-content {
+        margin-left: var(--sidebar-w);
+    }
+}
+
+

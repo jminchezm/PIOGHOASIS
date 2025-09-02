@@ -1,0 +1,320 @@
+﻿@model PIOGHOASIS.Models.Puesto
+@{
+    Layout = null; // esta vista se incrusta en el Dashboard (contentHost)
+}
+
+<style>
+    /* ===== Fondo y layout local ===== */
+    .puestos-edit {
+        position: relative;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)), url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+    }
+    /* tarjeta "glass" y encabezado */
+    .pe-card {
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 8px 28px rgba(0,0,0,.08);
+        backdrop-filter: blur(2px);
+    }
+
+    .pe-header {
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .75rem 1rem;
+        border-top-left-radius: .75rem;
+        border-top-right-radius: .75rem;
+        border-bottom: 2px solid #d7a536;
+    }
+
+    .pe-back {
+        position: sticky;
+        top: calc(var(--header-h) + 8px);
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        background: #4b5563;
+        color: #fff;
+        border: none;
+        border-radius: .5rem;
+        padding: .4rem .75rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.15);
+    }
+
+        .pe-back:hover {
+            filter: brightness(.95);
+            color: #fff;
+        }
+
+    .pe-save {
+        font-weight: 800;
+        padding: .6rem 1.25rem;
+    }
+
+    .form-label {
+        font-weight: 700;
+        color: #1f2a37;
+    }
+
+    /* color del switch cuando está ON */
+    .form-check.form-switch .form-check-input:checked {
+        background-color: #16a34a;
+        border-color: #16a34a;
+    }
+    /* color del texto Activo/Inactivo */
+    #estadoText.active {
+        color: #16803d;
+        font-weight: 700;
+    }
+
+    #estadoText.inactive {
+        color: #b42318;
+        font-weight: 700;
+    }
+
+    #imgExitoModal {
+        width: 50px;
+        height: auto;
+    }
+
+    #tituloExitoModal {
+        color: #009E42;
+        font-weight: bold;
+    }
+
+    #imgAdvertenciaModal {
+        width: 50px;
+        height: auto;
+    }
+
+    #tituloAdvertenciaModal {
+        color: #F0A100;
+        font-weight: bold;
+    }
+</style>
+
+<div class="puestos-edit">
+    <!-- Volver a la lista -->
+    <div class="d-flex justify-content-end mb-2">
+        <a class="pe-back ajax-nav"
+           href="/Puestos/Index" data-url="/Puestos/Index"
+           title="Volver a la lista">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <!-- Card formulario -->
+    <div class="pe-card">
+        <div class="pe-header">Editar Puesto</div>
+
+        <div class="p-3 p-md-4">
+            <form id="frmEdit" asp-action="Edit" method="post" data-ajax="true" novalidate>
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div class="row g-3">
+                    <!-- Código -->
+                    <div class="col-12 col-md-4">
+                        <label asp-for="PuestoID" class="form-label">Código*</label>
+                        <input asp-for="PuestoID" class="form-control" readonly />
+                        <span asp-validation-for="PuestoID" class="text-danger"></span>
+                    </div>
+
+                    <!-- Nombre -->
+                    <div class="col-12">
+                        <label asp-for="Nombre" class="form-label">Nombre*</label>
+                        <input asp-for="Nombre" class="form-control" placeholder="Nombre del puesto" />
+                        <span asp-validation-for="Nombre" class="text-danger"></span>
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="col-12">
+                        <label asp-for="Descripcion" class="form-label">Descripción*</label>
+                        <textarea asp-for="Descripcion" class="form-control" rows="4"
+                                  placeholder="Descripción del puesto"></textarea>
+                        <span asp-validation-for="Descripcion" class="text-danger"></span>
+                    </div>
+
+                    <!-- Estado -->
+                    @* <div class="col-12 col-md-4">
+                        <label class="form-label">Estado*</label>
+                        <select asp-for="Estado" class="form-select">
+                            <option value="">Seleccione el estado</option>
+                            <option value="true">Activo</option>
+                            <option value="false">Inactivo</option>
+                        </select>
+                        <span asp-validation-for="Estado" class="text-danger"></span>
+                    </div> *@
+
+                    <div class="col-12 col-md-4">
+                        <label class="form-label d-block">Estado*</label>
+
+                        <div class="form-check form-switch align-items-center">
+                            <!-- ASP.NET Core genera automáticamente el hidden para false -->
+                            <input asp-for="Estado" class="form-check-input" role="switch" id="chkEstado" />
+                            <label class="form-check-label ms-2" for="chkEstado">
+                                <span id="estadoText">@((Model?.Estado ?? false) ? "Activo" : "Inactivo")</span>
+                            </label>
+                        </div>
+
+                        <span asp-validation-for="Estado" class="text-danger"></span>
+                    </div>
+
+
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end gap-2">
+                    <a class="btn btn-outline-secondary ajax-nav"
+                       href="/Puestos/Index" data-url="/Puestos/Index">
+                        Cancelar
+                    </a>
+                    <button id="btnSave" type="submit" class="btn btn-primary pe-save">
+                        <i class="bi bi-save2 me-1"></i> Guardar cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Modal de éxito (mismo estilo Bootstrap, no cambia tu UI) ===== -->
+<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white py-2">
+                <h6 class="modal-title mb-0">
+                    <i class="bi bi-check-circle me-1"></i> Cambios guardados
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                @* El puesto se actualizó correctamente. *@
+                <img id="imgExitoModal" src="~/img/exito.png" asp-append-version="true"
+                     class="img-fluid d-block mx-auto my-2" alt="Usuario" />
+                <p id="tituloExitoModal">Puesto Actualizado</p>
+                <p class="mb-0 js-msg">@* ¡Puesto actualizado exitosamente! *@</p>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: sin cambios -->
+<div class="modal fade" id="noChangesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark py-2">
+                <h6 class="modal-title mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Sin cambios
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                @* El puesto se actualizó correctamente. *@
+                <img id="imgAdvertenciaModal" src="~/img/advertencia.png" asp-append-version="true"
+                     class="img-fluid d-block mx-auto my-2" alt="Advertencia" />
+                <p id="tituloAdvertenciaModal">¡No has modificado ningún campo!</p>
+                <p class="mb-0 js-msg">@* Realiza un cambio antes de guardar. *@</p>
+            </div>
+            @* <div class="modal-body">
+                No has modificado ningún campo. Realiza un cambio antes de guardar.
+            </div> *@
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Entendido</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        (function () {
+            const host = window.parent?.document?.getElementById?.('contentHost') || document.getElementById('contentHost');
+            const hero = window.parent?.document?.getElementById?.('hero') || document.getElementById('hero');
+
+            // Navegación AJAX para enlaces con data-url
+            document.querySelectorAll('.ajax-nav[data-url]').forEach(a => {
+                a.addEventListener('click', async (ev) => {
+                    if (!host) return;
+                    ev.preventDefault();
+                    try {
+                        const url = a.dataset.url || a.href;
+                        const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                        const html = await resp.text();
+                        if (hero) hero.style.display = 'none';
+                        host.innerHTML = html;
+                        window.parent?.scrollTo?.(0, 0);
+                    } catch { window.location.href = a.href; }
+                });
+            });
+        })();
+
+        (function () {
+            const host = window.parent?.document?.getElementById?.('contentHost') || document.getElementById('contentHost');
+            const hero = window.parent?.document?.getElementById?.('hero') || document.getElementById('hero');
+
+            // Navegación AJAX para enlaces con data-url (tu código actual)
+            document.querySelectorAll('.ajax-nav[data-url]').forEach(a => {
+                a.addEventListener('click', async (ev) => {
+                    if (!host) return;
+                    ev.preventDefault();
+                    try {
+                        const url = a.dataset.url || a.href;
+                        const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                        const html = await resp.text();
+                        if (hero) hero.style.display = 'none';
+                        host.innerHTML = html;
+                        window.parent?.scrollTo?.(0, 0);
+                    } catch { window.location.href = a.href; }
+                });
+            });
+
+            // === Submit AJAX del formulario de Edición ===
+            const form = document.getElementById('frmEdit');
+            const btn = document.getElementById('btnSave');
+
+            form?.addEventListener('submit', async (ev) => {
+                // si no estamos dentro del Dashboard, deja el comportamiento normal
+                if (!host) return;
+
+                ev.preventDefault();
+                btn.disabled = true;
+
+                try {
+                    const fd = new FormData(form);
+                    const resp = await fetch(form.action, {
+                        method: 'POST',
+                        body: fd,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+
+                    const ctype = (resp.headers.get('content-type') || '').toLowerCase();
+
+                    // Si el servidor devolvió HTML (validaciones), re-render del formulario dentro del dashboard
+                    const html = await resp.text();
+                    if (hero) hero.style.display = 'none';
+                    host.innerHTML = html;
+                    window.parent?.scrollTo?.(0, 0);
+                } catch (err) {
+                    console.error(err);
+                    alert('Error de red. Intenta nuevamente.');
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        })();
+
+    </script>
+}
