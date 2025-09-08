@@ -1,0 +1,184 @@
+﻿@model PIOGHOASIS.Models.Entities.Usuario
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    // Si viene por AJAX desde el Dashboard, no uses layout
+    if (ViewBag.IsPartial == true) { Layout = null; }
+
+    var roles = ViewBag.Roles as SelectList ?? new SelectList(Enumerable.Empty<SelectListItem>());
+    var empleados = ViewBag.Empleados as SelectList ?? new SelectList(Enumerable.Empty<SelectListItem>());
+}
+
+<style>
+    .usr-form {
+        position:relative; margin-top:0; width:100%;
+        background:linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)), url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        min-height:calc(100vh - var(--header-h)); padding:24px;
+    }
+    .usr-card { background:rgba(255,255,255,.90); border:1px solid rgba(0,0,0,.06); border-radius:.75rem;
+               box-shadow:0 6px 22px rgba(0,0,0,.08); }
+    .usr-title { background:#f3c259; color:#222; font-weight:800; font-size:1.25rem; padding:.75rem 1rem; border-radius:.75rem .75rem 0 0; }
+    .note { font-size:.86rem; color:#555; }
+    .pw-req li{ margin:.15rem 0; }
+    .pw-ok{ color:#16803d; }
+    .pw-bad{ color:#b42318; }
+    .btn-primary-oasis{ background:#0d6efd; border-color:#0d6efd; }
+    .btn-primary-oasis:hover{ filter:brightness(.95); }
+
+    #imgModal {
+        width: 50px;
+        height: auto;
+    }
+
+    #tituloModal {
+        color: #009E42;
+        font-weight: bold;
+    }
+</style>
+
+<div class="usr-form">
+    <div class="d-flex justify-content-end mb-2">
+        <a class="btn btn-secondary ajax-nav" href="/Usuarios/Index" data-url="/Usuarios/Index">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <div class="usr-card">
+        <div class="usr-title">Registrar Nuevo Usuario</div>
+
+        <div class="p-3 p-md-4">
+            <form id="frmCreateUsuario" asp-action="Create" asp-controller="Usuarios" method="post" data-ajax="true" novalidate>
+                @Html.AntiForgeryToken()
+
+                @* <div asp-validation-summary="All" class="text-danger mb-2"></div> *@
+
+                <div class="row g-3">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-semibold">Código*</label>
+                        <input asp-for="UsuarioID" class="form-control" readonly required/>
+                    </div>
+
+                    <div class="col-12 col-md-8">
+                        <label class="form-label fw-semibold">Nombre de Usuario*</label>
+                        <input asp-for="UsuarioNombre" class="form-control" placeholder="Ingresa el nombre de usuario" required/>
+                        <span asp-validation-for="UsuarioNombre" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Contraseña*</label>
+                        <input asp-for="NuevaContrasena" type="password" class="form-control" autocomplete="new-password" required/>
+                        <span asp-validation-for="NuevaContrasena" class="text-danger"></span>
+                        
+
+                        <div class="note mt-2">
+                            <div class="fw-semibold">Nota: La contraseña debe de tener los siguientes requisitos.</div>
+                            <ul class="mb-0 pw-req" id="pwChecklist">
+                                <li data-req="lower"><i class="bi"></i> Tener al menos una letra minúscula.</li>
+                                <li data-req="upper"><i class="bi"></i> Tener al menos una letra mayúscula.</li>
+                                <li data-req="digit"><i class="bi"></i> Tener al menos un número.</li>
+                                <li data-req="len"><i class="bi"></i> Tener una longitud entre 8 y 15 caracteres.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Confirmar Contraseña*</label>
+                        <input asp-for="ConfirmarContrasena" type="password" class="form-control" autocomplete="new-password" required/>
+                        <span asp-validation-for="ConfirmarContrasena" class="text-danger"></span>
+
+                        <!-- Mensaje reactivo de coincidencia -->
+                        <small id="pwMatchMsg" class="form-text"></small>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold">Rol*</label>
+                        <select asp-for="RolID" asp-items="roles" class="form-select" required>
+                            <option value="">Selecciona el rol</option>
+                        </select>
+                        <span asp-validation-for="RolID" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold">Estado*</label>
+                        <select id="Estado" name="Estado" class="form-select" required>
+                            <option value="">Selecciona el estado</option>
+                            <option value="true" selected="@(Model?.Estado == true  ? "selected" : null)">Activo</option>
+                            <option value="false" selected="@(Model?.Estado == false ? "selected" : null)">Inactivo</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Empleado*</label>
+                        <select asp-for="EmpleadoID" asp-items="empleados" class="form-select" required>
+                            <option value="">Selecciona al empleado</option>
+                        </select>
+                        <span asp-validation-for="EmpleadoID" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 mt-2">
+                        <button type="submit" class="btn btn-primary-oasis">
+                            <i class="bi bi-cloud-arrow-down"></i> Guardar Usuario
+                        </button>
+                        <a class="btn btn-outline-secondary ms-2 ajax-nav" href="/Usuarios/Index" data-url="/Usuarios/Index">
+                            Cancelar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de éxito -->
+<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white py-2">
+                <h6 class="modal-title mb-0">
+                    <i class="bi bi-check-circle me-1"></i> Usuario creado
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="imgModal" src="~/img/exito.png" asp-append-version="true"
+                     class="img-fluid d-block mx-auto my-2" alt="Éxito" />
+                <p id="tituloModal" style="color:#009E42;font-weight:700;">Usuario Creado</p>
+                <p class="mb-0 js-msg">¡Usuario creado exitosamente!</p>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* SOLO incluye jquery-validate cuando hay layout. En el Dashboard (partial) ya está cargado *@
+@if (ViewBag.IsPartial != true)
+{
+    <partial name="_ValidationScriptsPartial" />
+}
+
+<script>
+    (function () {
+        // --- checklist de contraseña ---
+        const pwd = document.getElementById('NuevaContrasena');
+        const list = document.getElementById('pwChecklist');
+
+        function setItem(el, ok) {
+            el.classList.toggle('pw-ok', ok);
+            el.classList.toggle('pw-bad', !ok);
+            const i = el.querySelector('i');
+            if (i) i.className = ok ? 'bi bi-check-circle-fill me-1' : 'bi bi-x-circle-fill me-1';
+        }
+        function checkPwd() {
+            const v = (pwd?.value || '');
+            setItem(list.querySelector('[data-req="lower"]'), /[a-z]/.test(v));
+            setItem(list.querySelector('[data-req="upper"]'), /[A-Z]/.test(v));
+            setItem(list.querySelector('[data-req="digit"]'), /\d/.test(v));
+            setItem(list.querySelector('[data-req="len"]'), v.length >= 8 && v.length <= 15);
+        }
+        pwd?.addEventListener('input', checkPwd);
+        window.addEventListener('DOMContentLoaded', checkPwd);
+    })();
+</script>
+

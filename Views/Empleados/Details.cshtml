@@ -1,0 +1,318 @@
+﻿@model PIOGHOASIS.Models.Empleado
+@{
+    Layout = null;
+    var fotoSrc = (Model?.Persona != null && !string.IsNullOrWhiteSpace(Model.Persona.FotoPath))
+        ? Url.Content("~/" + Model.Persona.FotoPath)
+        : Url.Content("~/img/DefaultUsuario.png");
+    string NombreCompleto(params string?[] parts) => string.Join(" ", parts.Where(x => !string.IsNullOrWhiteSpace(x)));
+}
+
+<style>
+    /* ===== Contenedor con el mismo fondo del dashboard ===== */
+    .puestos-details {
+        position: relative;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)), url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+    }
+
+    /* Tarjeta "glass" */
+    .pd-card {
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 8px 28px rgba(0,0,0,.08);
+        backdrop-filter: blur(2px);
+    }
+
+    /* Encabezado dorado */
+    .pd-header {
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .75rem 1rem;
+        border-top-left-radius: .75rem;
+        border-top-right-radius: .75rem;
+        border-bottom: 2px solid #d7a536;
+        font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+    }
+
+    /* Botón volver (igual que en Create/Edit) */
+    .pd-back {
+        position: sticky;
+        top: calc(var(--header-h) + 8px);
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        background: #4b5563;
+        color: #fff;
+        border: none;
+        border-radius: .5rem;
+        padding: .45rem .85rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.15);
+    }
+
+        .pd-back:hover {
+            filter: brightness(.95);
+            color: #fff;
+        }
+
+    /* Campos tipo "detalle" */
+    .pd-field {
+        padding: 1rem .25rem;
+        border-bottom: 1px solid rgba(0,0,0,.08);
+    }
+
+    .pd-label {
+        font-weight: 800;
+        color: #1f2a37;
+    }
+
+    .pd-value {
+        color: #111827;
+    }
+
+    /* Pills de estado (mismas del Index) */
+    .pill {
+        display: inline-block;
+        padding: .15rem .5rem;
+        border-radius: 999px;
+        font-size: .9rem;
+        font-weight: 700;
+        border: 1px solid transparent;
+    }
+
+    .pill-ok {
+        background: #e8f7e9;
+        color: #16803d;
+        border-color: #bfe8c2;
+    }
+
+    .pill-off {
+        background: #fff0f0;
+        color: #b42318;
+        border-color: #f5c2c7;
+    }
+
+    /* Foto a la derecha, como en la imagen */
+    .emp-photo-box {
+        width: 250px; /* ajusta a gusto */
+        height: 250px; /* ajusta a gusto */
+        border-radius: .5rem;
+        background: #fff;
+        border: 1px solid rgba(0,0,0,.08);
+        box-shadow: 0 4px 16px rgba(0,0,0,.06);
+        overflow: hidden;
+        display: flex; /* centra contenido */
+        align-items: center; /* vertical */
+        justify-content: center; /* horizontal */
+    }
+
+        .emp-photo-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain; /* usa 'cover' si prefieres recortar y llenar */
+        }
+
+    /* Acción principal */
+    .pd-actions .btn-primary {
+        font-weight: 800;
+        padding: .65rem 1.2rem;
+        box-shadow: 0 10px 22px rgba(13,110,253,.22);
+    }
+</style>
+
+<div class="puestos-details">
+    <!-- Volver -->
+    <div class="d-flex justify-content-end mb-2">
+        <a class="pd-back ajax-nav" href="/Empleados/Index" data-url="/Empleados/Index">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <div class="pd-card">
+        <div class="pd-header">
+            Detalles del Empleado: @Model?.EmpleadoID
+        </div>
+
+        <div class="p-3 p-md-4">
+            <div class="row g-3">
+                <!-- Columna de datos + foto a la derecha (como la captura) -->
+                <div class="col-12 col-lg-9">
+
+                    <!-- Nombres -->
+                    <div class="pd-field row align-items-center">
+                        <div class="col-12 col-md-3 pd-label">Nombre Completo:</div>
+                        <div class="col-12 col-md-9 pd-value">
+                            @NombreCompleto(Model?.Persona?.PrimerNombre, Model?.Persona?.SegundoNombre, Model?.Persona?.PrimerApellido, Model?.Persona?.SegundoApellido)
+                        </div>
+                    </div>
+
+                    <!-- Apellidos -->
+                    @* <div class="pd-field row align-items-center">
+                        <div class="col-12 col-md-3 pd-label">Apellidos:</div>
+                        <div class="col-12 col-md-9 pd-value">
+                            @NombreCompleto(Model?.Persona?.PrimerApellido, Model?.Persona?.SegundoApellido)
+                        </div>
+                    </div> *@
+
+                    <!-- Fecha de creación / Email -->
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">Fecha de Creación:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @(Model?.Persona?.FechaRegistro?.ToString("dd/MM/yyyy") ?? "-")
+                        </div>   
+                    </div>
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">Correo electrónico:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @(string.IsNullOrWhiteSpace(Model?.Persona?.Email) ? "-" : Model.Persona.Email)
+                        </div>
+                    </div>
+
+                    <!-- Teléfono / Puesto -->
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">No. Celular:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @(string.IsNullOrWhiteSpace(Model?.Persona?.Telefono1) ? "-" : Model.Persona.Telefono1)
+                        </div>
+                    </div>
+
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">Puesto:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @((Model?.Puesto?.Nombre ?? Model?.PuestoID) ?? "-")
+                        </div>
+                    </div>
+
+                    <!-- Dirección / Estado -->
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">Dirección:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @(string.IsNullOrWhiteSpace(Model?.Persona?.Direccion) ? "-" : Model.Persona.Direccion)
+                        </div>  
+                    </div>
+
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">Estado:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @if (Model?.Estado == true)
+                            {
+                                <span class="pill pill-ok">Activo</span>
+                            }
+                            else
+                            {
+                                <span class="pill pill-off">Inactivo</span>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Tipo Doc / No. Doc -->
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">Tipo de documento:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @(string.IsNullOrWhiteSpace(Model?.Persona?.TipoDocumentoID) ? "-" : Model.Persona.TipoDocumentoID)
+                        </div>
+                    </div>
+
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">No. Documento:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @(string.IsNullOrWhiteSpace(Model?.Persona?.NumeroDocumento) ? "-" : Model.Persona.NumeroDocumento)
+                        </div>
+                    </div>
+
+                    <!-- NIT / Fecha nacimiento -->
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">Nit:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @(string.IsNullOrWhiteSpace(Model?.Persona?.Nit) ? "-" : Model.Persona.Nit)
+                        </div>  
+                    </div>
+
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">Fecha de nacimiento:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @(Model?.Persona?.FechaNacimiento?.ToString("dd/MM/yyyy") ?? "-")
+                        </div>
+                    </div>
+
+                    <!-- Fecha de ingreso / Teléfono 2 (si hay) -->
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">Fecha de ingreso:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @(Model?.FechaContratacion?.ToString("dd/MM/yyyy") ?? "-")
+                        </div>      
+                    </div>
+
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">Teléfono 2:</div>
+                        <div class="col-12 col-md-3 pd-value">
+                            @(string.IsNullOrWhiteSpace(Model?.Persona?.Telefono2) ? "-" : Model.Persona.Telefono2)
+                        </div>
+                    </div>
+
+                    <!-- (Opcional) Código Persona -->
+                    <div class="pd-field row">
+                        <div class="col-12 col-md-3 pd-label">Código Persona:</div>
+                        <div class="col-12 col-md-9 pd-value">
+                            @(Model?.PersonalID ?? "-")
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Foto -->
+                <div class="col-12 col-lg-3 d-flex align-items-center justify-content-center">
+                    <div class="emp-photo-box d-flex align-items-center justify-content-center">
+                        <img src="@fotoSrc" alt="Foto del empleado" />
+                    </div>
+                </div>
+                @* <div class="col-12 col-lg-3 d-flex justify-content-center justify-content-lg-center">
+                    <div class="emp-photo-box">
+                        <img src="@fotoSrc" alt="Foto del empleado" />
+                    </div>
+                </div> *@
+            </div>
+
+            <div class="pd-actions mt-4 d-flex justify-content-center">
+                <a class="btn btn-primary btn-lg ajax-nav"
+                   href="/Empleados/Edit/@Model?.EmpleadoID"
+                   data-url="/Empleados/Edit/@Model?.EmpleadoID">
+                    <i class="bi bi-pencil-square me-1"></i> Editar Empleado
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Navegación AJAX para que Details/Edit/Index vivan dentro de #contentHost
+        (function(){
+          const host = window.parent?.document?.getElementById?.('contentHost') || document.getElementById('contentHost');
+          const hero = window.parent?.document?.getElementById?.('hero') || document.getElementById('hero');
+
+          document.querySelectorAll('.ajax-nav[data-url]').forEach(a=>{
+            a.addEventListener('click', async (ev)=>{
+              if(!host) return;
+              ev.preventDefault();
+              try{
+                const url = a.dataset.url || a.getAttribute('href');
+                const resp = await fetch(url, { headers:{ 'X-Requested-With':'XMLHttpRequest' }});
+                const html = await resp.text();
+                if(hero) hero.style.display='none';
+                host.innerHTML = html;
+                window.parent?.scrollTo?.(0,0);
+              }catch{
+                // Fallback navegación normal si falla AJAX
+                window.location.href = a.getAttribute('href');
+              }
+            });
+          });
+        })();
+    </script>
+}

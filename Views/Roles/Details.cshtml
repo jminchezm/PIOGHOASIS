@@ -1,11 +1,11 @@
-﻿@model PIOGHOASIS.Models.Puesto
+﻿@model PIOGHOASIS.Models.Rol
 @{
     Layout = null; // se renderiza dentro del Dashboard
 }
 
 <style>
     /* ===== Contenedor con el mismo fondo del dashboard ===== */
-    .puestos-details{
+    .roles-details{
       position:relative;
       width:100%;
       min-height:calc(100vh - var(--header-h));
@@ -17,7 +17,7 @@
     }
 
     /* Tarjeta "glass" */
-    .pd-card{
+    .rd-card{
       background:rgba(255,255,255,.85);
       border:1px solid rgba(0,0,0,.06);
       border-radius:.75rem;
@@ -26,7 +26,7 @@
     }
 
     /* Encabezado dorado */
-    .pd-header{
+    .rd-header{
       background:#f0a100;
       color:#1f2a37;
       font-weight:800;
@@ -38,7 +38,7 @@
     }
 
     /* Botón volver (igual que en Create/Edit) */
-    .pd-back{
+    .rd-back{
       position:sticky;
       top: calc(var(--header-h) + 8px);
       z-index:2;
@@ -47,18 +47,19 @@
       padding:.45rem .85rem; text-decoration:none;
       box-shadow:0 4px 14px rgba(0,0,0,.15);
     }
-    .pd-back:hover{ filter:brightness(.95); color:#fff; }
+    .rd-back:hover{ filter:brightness(.95); color:#fff; }
 
     /* Campos tipo "detalle" */
-    .pd-field{
+    .rd-field{
       padding:1rem .25rem;
       border-bottom:1px solid rgba(0,0,0,.08);
     }
-    .pd-label{
+    .rd-label{
       font-weight:800; color:#1f2a37;
     }
-    .pd-value{
+    .rd-value{
       color:#111827;
+      word-break: break-word;
     }
 
     /* Pills de estado (mismas del Index) */
@@ -71,44 +72,49 @@
     .pill-off{ background:#fff0f0; color:#b42318; border-color:#f5c2c7; }
 
     /* Acción principal */
-    .pd-actions .btn-primary{
+    .rd-actions .btn-primary{
       font-weight:800; padding:.65rem 1.2rem;
       box-shadow:0 10px 22px rgba(13,110,253,.22);
     }
 </style>
 
-<div class="puestos-details">
+<div class="roles-details">
     <!-- Volver a la lista -->
     <div class="d-flex justify-content-end mb-2">
-        <a class="pd-back ajax-nav"
-           href="/Puestos/Index" data-url="/Puestos/Index"
+        <a class="rd-back ajax-nav"
+           href="/Roles/Index" data-url="/Roles/Index"
            title="Volver a la lista">
             <i class="bi bi-arrow-left"></i> Volver a la lista
         </a>
     </div>
 
     <!-- Card Detalle -->
-    <div class="pd-card">
-        <div class="pd-header">
-            Detalle del Puesto: @Model?.PuestoID
+    <div class="rd-card">
+        <div class="rd-header">
+            Detalle del Rol: @Model?.RolID
         </div>
 
         <div class="p-3 p-md-4">
-            <div class="pd-field row">
-                <div class="col-12 col-md-3 pd-label">Nombre:</div>
-                <div class="col-12 col-md-9 pd-value">@Model?.Nombre</div>
+            <div class="rd-field row">
+                <div class="col-12 col-md-3 rd-label">Código:</div>
+                <div class="col-12 col-md-9 rd-value">@Model?.RolID</div>
             </div>
 
-            <div class="pd-field row">
-                <div class="col-12 col-md-3 pd-label">Descripción:</div>
-                <div class="col-12 col-md-9 pd-value">
+            <div class="rd-field row">
+                <div class="col-12 col-md-3 rd-label">Nombre:</div>
+                <div class="col-12 col-md-9 rd-value">@Model?.Nombre</div>
+            </div>
+
+            <div class="rd-field row">
+                <div class="col-12 col-md-3 rd-label">Descripción:</div>
+                <div class="col-12 col-md-9 rd-value">
                     @Model?.Descripcion
                 </div>
             </div>
 
-            <div class="pd-field row">
-                <div class="col-12 col-md-3 pd-label">Estado*</div>
-                <div class="col-12 col-md-9 pd-value">
+            <div class="rd-field row">
+                <div class="col-12 col-md-3 rd-label">Estado:</div>
+                <div class="col-12 col-md-9 rd-value">
                     @if (Model?.Estado == true)
                     {
                         <span class="pill pill-ok">Activo</span>
@@ -120,11 +126,11 @@
                 </div>
             </div>
 
-            <div class="pd-actions mt-4 d-flex justify-content-center">
+            <div class="rd-actions mt-4 d-flex justify-content-center">
                 <a class="btn btn-primary btn-lg ajax-nav"
-                   href="/Puestos/Edit/@Model?.PuestoID"
-                   data-url="/Puestos/Edit/@Model?.PuestoID">
-                    <i class="bi bi-pencil-square me-1"></i> Editar Puesto
+                   href="/Roles/Edit/@Model?.RolID"
+                   data-url="/Roles/Edit/@Model?.RolID">
+                    <i class="bi bi-pencil-square me-1"></i> Editar Rol
                 </a>
             </div>
         </div>

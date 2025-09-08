@@ -33,16 +33,29 @@
         </div>
 
         <div class="header-right">
-            @using System.Security.Claims
+            @* @using System.Security.Claims
             @{
                 var avatar = User.FindFirst("avatar")?.Value ?? Url.Content("~/img/DefaultUsuario.png");
+                var userName = User.Identity?.Name ?? "";
+                var roleName = User.FindFirstValue(ClaimTypes.Role) ?? "";
+            } *@
+
+            @using System.Security.Claims
+            @{
+                // Id del usuario (ajusta al claim que realmente usas)
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) 
+                             ?? User.FindFirst("userid")?.Value;
+
+                var avatarUrl = !string.IsNullOrWhiteSpace(userId)
+                ? Url.Action("Avatar", "Usuarios", new { id = userId }) + "?v=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+                : Url.Content("~/img/DefaultUsuario.png");
                 var userName = User.Identity?.Name ?? "";
                 var roleName = User.FindFirstValue(ClaimTypes.Role) ?? "";
             }
             <div class="dropdown">
                 <a href="#" class="d-flex align-items-center text-decoration-none"
                    id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
-                    <img src="@avatar" class="avatar rounded-circle" alt="Usuario" />
+                    <img src="@avatarUrl" class="avatar rounded-circle" alt="Usuario" />
                     <div class="ms-2 d-none d-sm-block">
                         <div>@userName</div>
                         <div class="role">@roleName</div>
@@ -135,7 +148,7 @@
                     </a>
                     <ul class="submenu">
                         <li><a href="/Usuarios/Index" data-url="/Usuarios/Index"><span>Usuarios</span></a></li>
-                        <li><a href="/Usuarios/Roles" data-url="/Usuarios/Roles"><span>Roles</span></a></li>
+                        <li><a href="/Roles/Index" data-url="/Roles/Index"><span>Roles</span></a></li>
                     </ul>
                 </li>
 
@@ -154,6 +167,7 @@
                     <ul class="submenu">
                         <li><a href="/Configuraciones/Modulos" data-url="/Configuraciones/Modulos"><span>Módulos</span></a></li>
                         <li><a href="/Configuraciones/Permisos" data-url="/Configuraciones/Permisos"><span>Permisos</span></a></li>
+                        <li><a href="/TipoDocumentos/Index" data-url="/TipoDocumentos/Index"><span>Tipos de documento</span></a></li>
                     </ul>
                 </li>
             </ul>
@@ -242,47 +256,89 @@
           const ctype = (resp.headers.get('content-type') || '').toLowerCase();
 
           // --- Respuesta JSON (Edit/Create por AJAX)
-            if (ctype.includes('application/json')) {
-                const data = await resp.json();
+            // if (ctype.includes('application/json')) {
+            //     const data = await resp.json();
 
-                if (data.ok) {
-                // Modal de éxito
-                const okEl = host.querySelector('#saveOkModal');
-                    if (okEl) {
-                        const msgEl = okEl.querySelector('.js-msg');
-                        if (data.message && msgEl) msgEl.textContent = data.message; // <-- solo cambia el texto
-                        const m = bootstrap.Modal.getOrCreateInstance(okEl);
-                        if (data.redirectUrl) {
-                            okEl.addEventListener('hidden.bs.modal', () => loadToHost(data.redirectUrl), { once: true });
-                        }
-                        m.show();
-                    } else {
-                    // Fallback si el modal no existe
-                    alert(data.message || 'Guardado correctamente.');
-                    if (data.redirectUrl) loadToHost(data.redirectUrl);
-                }
-                return; // ¡No sustituyas el HTML!
-                }
+            //     if (data.ok) {
+            //     // Modal de éxito
+            //     const okEl = host.querySelector('#saveOkModal');
+            //         if (okEl) {
+            //             const msgEl = okEl.querySelector('.js-msg');
+            //             if (data.message && msgEl) msgEl.textContent = data.message; // <-- solo cambia el texto
+            //             const m = bootstrap.Modal.getOrCreateInstance(okEl);
+            //             if (data.redirectUrl) {
+            //                 okEl.addEventListener('hidden.bs.modal', () => loadToHost(data.redirectUrl), { once: true });
+            //             }
+            //             m.show();
+            //         } else {
+            //         // Fallback si el modal no existe
+            //         alert(data.message || 'Guardado correctamente.');
+            //         if (data.redirectUrl) loadToHost(data.redirectUrl);
+            //     }
+            //     return; // ¡No sustituyas el HTML!
+            //     }
 
-                // --- SIN CAMBIOS ---
-                if (data.reason === 'nochanges') {
-                    const warnEl = host.querySelector('#noChangesModal');
-                    if (warnEl) {
-                        if (data.message) {
-                            const msg = warnEl.querySelector('.js-msg');
-                            if (msg) msg.textContent = data.message;  // <— no toques .modal-body
+            //     // --- SIN CAMBIOS ---
+            //     if (data.reason === 'nochanges') {
+            //         const warnEl = host.querySelector('#noChangesModal');
+            //         if (warnEl) {
+            //             if (data.message) {
+            //                 const msg = warnEl.querySelector('.js-msg');
+            //                 if (msg) msg.textContent = data.message;  // <— no toques .modal-body
+            //             }
+            //             bootstrap.Modal.getOrCreateInstance(warnEl).show();
+            //         } else {
+            //             alert(data.message || 'No has modificado ningún campo.');
+            //         }
+            //         return;
+            //     }
+
+            //     // --- Otros errores
+            //     alert(data.message || 'Ocurrió un problema.');
+            //     return;
+            // }
+
+                if (ctype.includes('application/json')) {
+                    const data = await resp.json();
+
+                    if (data.ok) {
+                        const okEl = host.querySelector('#saveOkModal');
+                        if (okEl) {
+                            const msgEl = okEl.querySelector('.js-msg');
+                            if (data.message && msgEl) msgEl.textContent = data.message;
+                            const m = bootstrap.Modal.getOrCreateInstance(okEl);
+                            if (data.redirectUrl) {
+                                okEl.addEventListener('hidden.bs.modal', () => loadToHost(data.redirectUrl), { once: true });
+                            }
+                            m.show();
+                        } else {
+                            // ✅ Sin alert: solo recarga el listado si viene redirectUrl
+                            if (data.redirectUrl) await loadToHost(data.redirectUrl);
                         }
-                        bootstrap.Modal.getOrCreateInstance(warnEl).show();
-                    } else {
-                        alert(data.message || 'No has modificado ningún campo.');
+                        return;
                     }
+
+                    // Puedes dejar este otro fallback igual o también quitar alert:
+                    if (data.reason === 'nochanges') {
+                        const warnEl = host.querySelector('#noChangesModal');
+                        if (warnEl) {
+                            if (data.message) {
+                                const msg = warnEl.querySelector('.js-msg');
+                                if (msg) msg.textContent = data.message;
+                            }
+                            bootstrap.Modal.getOrCreateInstance(warnEl).show();
+                        } else {
+                            // opcional: console.warn en vez de alert
+                            console.warn(data.message || 'No has modificado ningún campo.');
+                        }
+                        return;
+                    }
+
+                    // Errores
+                    console.error(data.message || 'Ocurrió un problema.');
                     return;
                 }
 
-                // --- Otros errores
-                alert(data.message || 'Ocurrió un problema.');
-                return;
-            }
 
           // HTML normal (Index, Create, Edit con validaciones, etc.)
           if (!resp.ok) { window.location.href = url; return; }
@@ -340,26 +396,27 @@
 
           //PDF
 
-            document.getElementById('btnPrint')?.addEventListener('click', () => {
-                const qs = new URLSearchParams();
-                const cod = document.getElementById('fCodigo')?.value.trim() || '';
-                const nom = document.getElementById('fNombre')?.value.trim() || '';
-                const est = document.getElementById('fEstado')?.value ?? '';
-                if (cod) qs.set('codigo', cod);
-                if (nom) qs.set('nombre', nom);
-                if (est !== '') qs.set('estado', est);
+            // document.getElementById('btnPrint')?.addEventListener('click', () => {
+            //     const qs = new URLSearchParams();
+            //     const cod = document.getElementById('fCodigo')?.value.trim() || '';
+            //     const nom = document.getElementById('fNombre')?.value.trim() || '';
+            //     const est = document.getElementById('fEstado')?.value ?? '';
+            //     if (cod) qs.set('codigo', cod);
+            //     if (nom) qs.set('nombre', nom);
+            //     if (est !== '') qs.set('estado', est);
 
-                qs.set('descargar', 'false');               // <-- inline (preview)
-                window.open('/Puestos/ExportPdf?' + qs.toString(), '_blank');
-            });
+            //     qs.set('descargar', 'false');               // <-- inline (preview)
+            //     window.open('/Puestos/ExportPdf?' + qs.toString(), '_blank');
+            // });
 
 
         });
 
         // Delegación de formularios AJAX dentro del host (require data-ajax="true")
         host.addEventListener('submit', (ev)=>{
-          const form = ev.target.closest('form[data-ajax="true"]');
-          if (!form) return;                      // los que no tengan data-ajax navegan normal
+          // ✅ acepta forms con clase .js-ajax-form o con data-ajax="true"
+          const form = ev.target.closest('form.js-ajax-form, form[data-ajax="true"]');
+          if (!form) return;
           ev.preventDefault();
           const fd = new FormData(form);
           loadToHost(form.action, { method: form.method || 'POST', body: fd });
@@ -426,17 +483,108 @@
       //   });
       // })();
 
+        // (function () {
+            // const host = document.getElementById('contentHost');
+            // if (!host) return;
+
+            // // debounce simple
+            // const debounce = (fn, ms = 400) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+            // function buildUrl() {
+            //     const form = host.querySelector('#frmFiltros');
+            //     if (!form) return '/Puestos/Index';
+
+            //     const codigo = form.querySelector('#fCodigo')?.value.trim() || '';
+            //     const nombre = form.querySelector('#fNombre')?.value.trim() || '';
+            //     const estado = form.querySelector('#fEstado')?.value ?? '';
+
+            //     const qs = new URLSearchParams();
+            //     if (codigo) qs.set('codigo', codigo);
+            //     if (nombre) qs.set('nombre', nombre);
+            //     qs.set('estado', estado);             // siempre incluir estado; ""=Todos
+
+            //     const s = qs.toString();
+            //     return '/Puestos/Index' + (s ? '?' + s : '');
+            // }
+
+            // const run = debounce(async () => {
+            //     const url = buildUrl();
+
+            //     // guardar foco y caret
+            //     const active = document.activeElement;
+            //     const id = active?.id;
+            //     const selStart = ('selectionStart' in active) ? active.selectionStart : null;
+            //     const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
+
+            //     await window.swapInHost(url, '#printArea');              // solo grilla/pager
+            //     history.replaceState(null, '', url);                     // actualiza la URL
+            //     window.initPuestosPager(host.querySelector('#printArea'));// re-init paginación
+
+            //     // restaurar foco/caret
+            //     if (id) {
+            //         const el = host.querySelector('#' + CSS.escape(id));
+            //         if (el) {
+            //             el.focus();
+            //             if (selStart != null && selEnd != null && el.setSelectionRange) {
+            //                 el.setSelectionRange(selStart, selEnd);
+            //             }
+            //         }
+            //     }
+            // }, 400);
+
+            // // Tecla en Código/Nombre => dispara con debounce (0 o >=2 chars)
+            // host.addEventListener('input', (ev) => {
+            //     const id = ev.target?.id;
+            //     if (id === 'fCodigo' || id === 'fNombre') {
+            //         const v = ev.target.value.trim();
+            //         if (v.length === 0 || v.length >= 2) run();
+            //     }
+            // });
+
+            // // Cambio de Estado => dispara inmediato
+            // host.addEventListener('change', (ev) => {
+            //     if (ev.target?.id === 'fEstado') run();
+            // });
+
+            // Al insertar por primera vez el Index, inicializa el paginador
+        //     const mo = new MutationObserver(() => {
+        //         const area = host.querySelector('#printArea');
+        //         if (area && !area.__inited) { area.__inited = true; window.initPuestosPager(area); }
+        //     });
+        //     mo.observe(host, { childList: true, subtree: true });
+
+        //     // Click en "Limpiar filtros" del estado vacío
+        //     host.addEventListener('click', (ev) => {
+        //         const btn = ev.target.closest('.js-clear-filters');
+        //         if (!btn) return;
+        //         ev.preventDefault();
+
+        //         const form = host.querySelector('#frmFiltros');
+        //         const fCodigo = form?.querySelector('#fCodigo');
+        //         const fNombre = form?.querySelector('#fNombre');
+        //         const fEstado = form?.querySelector('#fEstado');
+
+        //         if (fCodigo) fCodigo.value = '';
+        //         if (fNombre) fNombre.value = '';
+        //         if (fEstado) fEstado.value = '';  // “Todos”
+
+        //         // dispara eventos para que tu lógica de filtros se ejecute
+        //         fCodigo?.dispatchEvent(new Event('input', { bubbles: true }));
+        //         fNombre?.dispatchEvent(new Event('input', { bubbles: true }));
+        //         fEstado?.dispatchEvent(new Event('change', { bubbles: true }));
+        //     });
+        // })();
+
         (function () {
             const host = document.getElementById('contentHost');
             if (!host) return;
 
-            // debounce simple
-            const debounce = (fn, ms = 400) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+            const debounce = (fn, ms = 400) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); } };
 
             function buildUrl() {
                 const form = host.querySelector('#frmFiltros');
-                if (!form) return '/Puestos/Index';
-
+                if (!form) return null;
+                const endpoint = form.dataset.endpoint || '/';
                 const codigo = form.querySelector('#fCodigo')?.value.trim() || '';
                 const nombre = form.querySelector('#fNombre')?.value.trim() || '';
                 const estado = form.querySelector('#fEstado')?.value ?? '';
@@ -444,38 +592,35 @@
                 const qs = new URLSearchParams();
                 if (codigo) qs.set('codigo', codigo);
                 if (nombre) qs.set('nombre', nombre);
-                qs.set('estado', estado);             // siempre incluir estado; ""=Todos
+                qs.set('estado', estado);
 
-                const s = qs.toString();
-                return '/Puestos/Index' + (s ? '?' + s : '');
+                return endpoint + (qs.toString() ? '?' + qs.toString() : '');
             }
 
             const run = debounce(async () => {
                 const url = buildUrl();
+                if (!url) return;
 
-                // guardar foco y caret
+                // guardar foco/caret
                 const active = document.activeElement;
                 const id = active?.id;
                 const selStart = ('selectionStart' in active) ? active.selectionStart : null;
                 const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
 
-                await window.swapInHost(url, '#printArea');              // solo grilla/pager
-                history.replaceState(null, '', url);                     // actualiza la URL
-                window.initPuestosPager(host.querySelector('#printArea'));// re-init paginación
+                await window.swapInHost(url, '#printArea');
+                history.replaceState(null, '', url);
+                window.initPuestosPager(host.querySelector('#printArea'));
 
-                // restaurar foco/caret
                 if (id) {
                     const el = host.querySelector('#' + CSS.escape(id));
                     if (el) {
                         el.focus();
-                        if (selStart != null && selEnd != null && el.setSelectionRange) {
-                            el.setSelectionRange(selStart, selEnd);
-                        }
+                        if (selStart != null && selEnd != null && el.setSelectionRange) el.setSelectionRange(selStart, selEnd);
                     }
                 }
             }, 400);
 
-            // Tecla en Código/Nombre => dispara con debounce (0 o >=2 chars)
+            // Delegación
             host.addEventListener('input', (ev) => {
                 const id = ev.target?.id;
                 if (id === 'fCodigo' || id === 'fNombre') {
@@ -483,38 +628,26 @@
                     if (v.length === 0 || v.length >= 2) run();
                 }
             });
+            host.addEventListener('change', (ev) => { if (ev.target?.id === 'fEstado') run(); });
 
-            // Cambio de Estado => dispara inmediato
-            host.addEventListener('change', (ev) => {
-                if (ev.target?.id === 'fEstado') run();
-            });
-
-            // Al insertar por primera vez el Index, inicializa el paginador
-            const mo = new MutationObserver(() => {
-                const area = host.querySelector('#printArea');
-                if (area && !area.__inited) { area.__inited = true; window.initPuestosPager(area); }
-            });
-            mo.observe(host, { childList: true, subtree: true });
-
-            // Click en "Limpiar filtros" del estado vacío
+            // Print genérico
             host.addEventListener('click', (ev) => {
-                const btn = ev.target.closest('.js-clear-filters');
+                const btn = ev.target.closest('#btnPrint');
                 if (!btn) return;
-                ev.preventDefault();
 
                 const form = host.querySelector('#frmFiltros');
-                const fCodigo = form?.querySelector('#fCodigo');
-                const fNombre = form?.querySelector('#fNombre');
-                const fEstado = form?.querySelector('#fEstado');
+                const endpoint = form?.dataset.report || (form?.dataset.endpoint?.replace('/Index', '/ExportPdf')) || '';
+                if (!endpoint) return;
 
-                if (fCodigo) fCodigo.value = '';
-                if (fNombre) fNombre.value = '';
-                if (fEstado) fEstado.value = '';  // “Todos”
+                const qs = new URLSearchParams();
+                const cod = form.querySelector('#fCodigo')?.value.trim() || '';
+                const nom = form.querySelector('#fNombre')?.value.trim() || '';
+                const est = form.querySelector('#fEstado')?.value ?? '';
+                if (cod) qs.set('codigo', cod);
+                if (nom) qs.set('nombre', nom);
+                qs.set('estado', est);
 
-                // dispara eventos para que tu lógica de filtros se ejecute
-                fCodigo?.dispatchEvent(new Event('input', { bubbles: true }));
-                fNombre?.dispatchEvent(new Event('input', { bubbles: true }));
-                fEstado?.dispatchEvent(new Event('change', { bubbles: true }));
+                window.open(endpoint + (qs.toString() ? '?' + qs.toString() : ''), '_blank');
             });
         })();
 
@@ -652,7 +785,149 @@
             // Inicializa el paginador si estamos en Puestos/Index
             const area = host.querySelector('#printArea');
             if (area) window.initPuestosPager(area);
+            setupPasswordUi(host);
+            setupLiveValidation(host);
         }
+
+        function setupPasswordUi(scope){
+          // Busca dentro del "scope" (el #contentHost recién pintado)
+          const pwd      = scope.querySelector('#NuevaContrasena, input[name="NuevaContrasena"]');
+          const confirm  = scope.querySelector('#ConfirmarContrasena, input[name="ConfirmarContrasena"]');
+          const list     = scope.querySelector('#pwChecklist');
+          const matchMsg = scope.querySelector('#pwMatchMsg');
+          if (!pwd || !list) return; // no estamos en la vista Create Usuarios
+
+          const req = (sel) => list?.querySelector(sel);
+
+          const setItem = (el, ok) => {
+            if (!el) return;
+            el.classList.toggle('pw-ok', ok);
+            el.classList.toggle('pw-bad', !ok);
+            const i = el.querySelector('i');
+            if (i) i.className = ok ? 'bi bi-check-circle-fill me-1' : 'bi bi-x-circle-fill me-1';
+          };
+
+          function setupLiveValidation(scope){
+              const form = scope.querySelector('#frmCreateUsuario');
+              if (!form) return;
+
+              const getMsg = (name) =>
+                form.querySelector(`[data-valmsg-for="${CSS.escape(name)}"]`);
+
+              const mark = (el, ok) => {
+                el.classList.toggle('is-valid', ok);
+                el.classList.toggle('is-invalid', !ok);
+                const msg = getMsg(el.name);
+                if (msg && ok) {
+                  msg.textContent = '';
+                  msg.classList.remove('field-validation-error','text-danger');
+                  msg.classList.add('field-validation-valid');
+                }
+              };
+
+              const requiredOk = (el) => ((el.value || '').trim().length > 0);
+
+              const pwd = form.querySelector('#NuevaContrasena');
+              const cfm = form.querySelector('#ConfirmarContrasena');
+              const matchMsg = form.querySelector('#pwMatchMsg');
+
+              const checkConfirm = () => {
+                if (!pwd || !cfm) return;
+                const a = pwd.value || '';
+                const b = cfm.value || '';
+                if (!b) {
+                  cfm.classList.remove('is-valid','is-invalid');
+                  if (matchMsg) { matchMsg.textContent = ''; matchMsg.classList.remove('text-success','text-danger'); }
+                  return;
+                }
+                const same = a === b;
+                cfm.classList.toggle('is-valid', same);
+                cfm.classList.toggle('is-invalid', !same);
+                if (matchMsg) {
+                  matchMsg.textContent = same ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
+                  matchMsg.classList.toggle('text-success', same);
+                  matchMsg.classList.toggle('text-danger', !same);
+                }
+                // Si ya había error de servidor en ConfirmarContrasena, límpialo al coincidir
+                const span = getMsg('ConfirmarContrasena');
+                if (span && same) {
+                  span.textContent = '';
+                  span.classList.remove('field-validation-error','text-danger');
+                  span.classList.add('field-validation-valid');
+                }
+              };
+
+              // Delegación: limpia el mensaje del campo en cuanto el valor sea válido
+              form.addEventListener('input', (ev) => {
+                const el = ev.target;
+                if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) return;
+
+                // Reglas “required”
+                if (el.hasAttribute('required') || ['UsuarioNombre','NuevaContrasena','ConfirmarContrasena','RolID','EmpleadoID'].includes(el.name)) {
+                  mark(el, requiredOk(el));
+                }
+
+                // Confirmación de contraseña reactiva
+                if (el === pwd || el === cfm) checkConfirm();
+              });
+
+              form.addEventListener('change', (ev) => {
+                const el = ev.target;
+                if (['RolID','EmpleadoID','Estado'].includes(el.name)) mark(el, requiredOk(el));
+              });
+
+              // Primera pasada por si hay valores precargados
+              form.querySelectorAll('input,select,textarea').forEach(el => {
+                if ((el.value || '').length) mark(el, requiredOk(el));
+              });
+            }
+
+          const checkPwd = () => {
+            const v = pwd.value || '';
+            const okLower = /[a-z]/.test(v);
+            const okUpper = /[A-Z]/.test(v);
+            const okDigit = /\d/.test(v);
+            const okLen   = v.length >= 8 && v.length <= 15;
+
+            setItem(req('[data-req="lower"]'), okLower);
+            setItem(req('[data-req="upper"]'), okUpper);
+            setItem(req('[data-req="digit"]'), okDigit);
+            setItem(req('[data-req="len"]'),   okLen);
+
+            const allOk = okLower && okUpper && okDigit && okLen;
+            pwd.classList.toggle('is-valid',   allOk && v.length > 0);
+            pwd.classList.toggle('is-invalid', !allOk && v.length > 0);
+          };
+
+          const checkMatch = () => {
+            if (!confirm || !matchMsg) return;
+            const a = pwd.value || '';
+            const b = confirm.value || '';
+
+            if (!b) {
+              confirm.classList.remove('is-valid','is-invalid');
+              matchMsg.textContent = '';
+              matchMsg.classList.remove('text-success','text-danger');
+              return;
+            }
+
+            const same = a === b;
+            confirm.classList.toggle('is-valid', same);
+            confirm.classList.toggle('is-invalid', !same);
+
+            matchMsg.textContent = same ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
+            matchMsg.classList.toggle('text-success', same);
+            matchMsg.classList.toggle('text-danger', !same);
+          };
+
+          // Eventos
+          pwd.addEventListener('input', () => { checkPwd(); checkMatch(); });
+          confirm?.addEventListener('input', checkMatch);
+
+          // Primer cálculo
+          checkPwd(); checkMatch();
+        }
+
 
         // Init de paginación para la grilla actual
         window.initPuestosPager = function initPuestosPager(rootEl) {

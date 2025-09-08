@@ -10,22 +10,41 @@ namespace PIOGHOASIS.Infraestructure.Data
 
         public DbSet<Usuario> usuarios => Set<Usuario>();
         public DbSet<Empleado> empleados => Set<Empleado>();
+        //public DbSet<Empleado> empleados { get; set; } = null!;
         public DbSet<Persona> personas => Set<Persona>();
         public DbSet<Rol> roles => Set<Rol>();
         public DbSet<Puesto> puestos => Set<Puesto>();
+
+        public DbSet<PIOGHOASIS.Models.TipoDocumento> tipoDocumentos { get; set; } = null!;
+        public DbSet<Pais> paises { get; set; } = null!;
+        public DbSet<Departamento> departamentos { get; set; } = null!;
+        public DbSet<Municipio> municipios { get; set; } = null!;
+        public DbSet<PasswordResetToken> password_reset_tokens { get; set; } = null!;
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Aplica todas las configuraciones en el ensamblado
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
             base.OnModelCreating(modelBuilder);
+            // Default de Estado en PUESTO (opcional)
+            modelBuilder.Entity<Puesto>()
+                .Property(p => p.Estado)
+                .HasDefaultValue(true);
 
-            // PERSONA 1–1 EMPLEADO (FK: Empleado.PersonalID)
+            // EMPLEADO -> PERSONA (1–1), FK: PersonalID -> PersonaID
             modelBuilder.Entity<Empleado>()
                 .HasOne(e => e.Persona)
                 .WithOne(p => p.Empleado)
                 .HasForeignKey<Empleado>(e => e.PersonalID)
-                .OnDelete(DeleteBehavior.Restrict);
+                .HasPrincipalKey<Persona>(p => p.PersonaID);
+
+            // EMPLEADO -> PUESTO (N–1), FK: PuestoID -> PuestoID
+            //modelBuilder.Entity<Empleado>()
+            //    .HasOne(e => e.Puesto)
+            //    .WithMany()  // si no tienes colección en Puesto
+            //    .HasForeignKey(e => e.PuestoID)
+            //    .HasPrincipalKey<Puesto>(p => p.PuestoID);
 
             // EMPLEADO 1–1 USUARIO (FK: Usuario.EmpleadoID)
             modelBuilder.Entity<Usuario>()
@@ -41,10 +60,29 @@ namespace PIOGHOASIS.Infraestructure.Data
                 .HasForeignKey(u => u.RolID)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Default de Estado en PUESTO (opcional)
-            modelBuilder.Entity<Puesto>()
-                .Property(p => p.Estado)
-                .HasDefaultValue(true);
+            // Relación PAIS (1) — (N) DEPARTAMENTO
+            modelBuilder.Entity<Departamento>()
+                .HasOne(d => d.Pais)
+                .WithMany(p => p.Departamentos)
+                .HasForeignKey(d => d.PaisID)
+                .HasPrincipalKey(p => p.PaisID);
+
+            modelBuilder.Entity<PasswordResetToken>(b =>
+            {
+                b.ToTable("PASSWORD_RESET_TOKENS", "dbo");
+                b.HasKey(x => x.Id);
+                b.Property(x => x.UsuarioID).HasMaxLength(20).IsRequired();
+                b.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+
+                b.HasIndex(x => new { x.UsuarioID, x.TokenHash }).IsUnique();
+                b.HasIndex(x => x.ExpiresAtUtc);
+
+                b.HasOne<Usuario>()                           // sin navegación
+                 .WithMany()
+                 .HasForeignKey(x => x.UsuarioID)
+                 .HasPrincipalKey(u => u.UsuarioID)          // PK de USUARIO es string
+                 .OnDelete(DeleteBehavior.Cascade);
+            });
 
 
             base.OnModelCreating(modelBuilder);

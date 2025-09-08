@@ -1,0 +1,184 @@
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@model PIOGHOASIS.Models.Rol
+@{
+    Layout = null; // esta vista vive dentro del Dashboard
+}
+
+<style>
+    /* ===== Fondo y layout local (idéntico a Puestos) ===== */
+    .puestos-create{
+      position:relative;
+      width:100%;
+      min-height:calc(100vh - var(--header-h));
+      padding:24px;
+      background:
+        linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)),
+        url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+      overflow:hidden;
+    }
+
+    /* tarjeta tipo "glass" */
+    .pc-card{
+      background:rgba(255,255,255,.85);
+      border:1px solid rgba(0,0,0,.06);
+      border-radius:.75rem;
+      box-shadow:0 8px 28px rgba(0,0,0,.08);
+      backdrop-filter:blur(2px);
+    }
+
+    .pc-header{
+      background:#f0a100;
+      color:#1f2a37;
+      font-weight:800;
+      padding:.75rem 1rem;
+      border-top-left-radius:.75rem;
+      border-top-right-radius:.75rem;
+      border-bottom:2px solid #d7a536;
+    }
+
+    .pc-back{
+      position:sticky; /* se mantiene visible arriba */
+      top: calc(var(--header-h) + 8px);
+      z-index:2;
+      display:inline-flex;
+      align-items:center;
+      gap:.35rem;
+      background:#4b5563;
+      color:#fff;
+      border:none;
+      border-radius:.5rem;
+      padding:.4rem .75rem;
+      text-decoration:none;
+      box-shadow:0 4px 14px rgba(0,0,0,.15);
+    }
+    .pc-back:hover{ filter:brightness(.95); color:#fff; }
+
+    .pc-save{
+      font-weight:800;
+      padding:.6rem 1.25rem;
+    }
+
+    /* Ajustes de inputs */
+    .form-label{ font-weight:700; color:#1f2a37; }
+    .form-text-muted{ color:#8a93a2; }
+
+    #imgModal{ width: 50px; height: auto; }
+    #tituloModal{ color: #009E42; font-weight: bold; }
+</style>
+
+<div class="puestos-create">
+    <!-- Volver a la lista -->
+    <div class="d-flex justify-content-end mb-2">
+        <a class="pc-back ajax-nav"
+           href="/Roles/Index"
+           data-url="/Roles/Index"
+           title="Volver a la lista">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <!-- Card formulario -->
+    <div class="pc-card">
+        <div class="pc-header">Registrar Nuevo Rol</div>
+
+        <div class="p-3 p-md-4">
+            <form asp-action="Create" method="post" data-ajax="true" novalidate>
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div class="row g-3">
+                    <!-- Código -->
+                    <div class="col-12 col-md-4">
+                        <label asp-for="RolID" class="form-label">Código*</label>
+                        <input asp-for="RolID" class="form-control" readonly />
+                        <span asp-validation-for="RolID" class="text-danger"></span>
+                    </div>
+
+                    <!-- Nombre -->
+                    <div class="col-12">
+                        <label asp-for="Nombre" class="form-label">Nombre*</label>
+                        <input asp-for="Nombre" class="form-control" placeholder="Ingresa el nombre del rol" />
+                        <span asp-validation-for="Nombre" class="text-danger"></span>
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="col-12">
+                        <label asp-for="Descripcion" class="form-label">Descripción</label>
+                        <textarea asp-for="Descripcion" class="form-control" rows="4"
+                                  placeholder="Ingresa la descripción del rol (opcional)"></textarea>
+                        <span asp-validation-for="Descripcion" class="text-danger"></span>
+                    </div>
+
+                    <!-- Estado -->
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">Estado*</label>
+                        <select asp-for="Estado" class="form-select">
+                            <option value="true" selected="@(Model?.Estado != false ? "selected" : null)">Activo</option>
+                            @* Si quisieras permitir crear inactivo desde aquí, agrega:
+                            <option value="false">Inactivo</option> *@
+                        </select>
+                        <span asp-validation-for="Estado" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary pc-save">
+                        <i class="bi bi-download me-1"></i> Guardar Rol
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de éxito (mismo id que usa tu router del Dashboard) -->
+<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white py-2">
+                <h6 class="modal-title mb-0">
+                    <i class="bi bi-check-circle me-1"></i> Rol creado
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="imgModal" src="~/img/exito.png" asp-append-version="true"
+                     class="img-fluid d-block mx-auto my-2" alt="Éxito" />
+                <p id="tituloModal">Rol Creado</p>
+                <p class="mb-0 js-msg">¡Rol creado exitosamente!</p>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        // Navegación AJAX opcional (igual que Puestos)
+        (function(){
+          const host = window.parent?.document?.getElementById?.('contentHost') || document.getElementById('contentHost');
+          document.querySelectorAll('.ajax-nav[data-url]').forEach(a=>{
+            a.addEventListener('click', async (ev)=>{
+              if(!host) return; // si no existe, navega normal
+              ev.preventDefault();
+              try{
+                const url = a.dataset.url || a.getAttribute('href');
+                const resp = await fetch(url, { headers:{'X-Requested-With':'XMLHttpRequest'} });
+                const html = await resp.text();
+                host.innerHTML = html;
+                // ocultar hero del dashboard si existe
+                const hero = window.parent?.document?.getElementById?.('hero') || document.getElementById('hero');
+                if(hero) hero.style.display = 'none';
+              }catch{
+                window.location.href = a.getAttribute('href');
+              }
+            });
+          });
+        })();
+    </script>
+}

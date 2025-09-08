@@ -13,12 +13,14 @@ namespace PIOGHOASIS.Models
         public string RolID { get; set; } = null!;
 
         [Column("Nombre"), StringLength(100)]
+        [Required(ErrorMessage = "El campo Nombre es obligatorio.")]
         public string Nombre { get; set; } = null!;
 
         [Column("Descripcion"), StringLength(300)]
         public string? Descripcion { get; set; }
 
         [Column("Estado")]
+        [Required]
         public bool Estado { get; set; }
 
         // navegación inversa

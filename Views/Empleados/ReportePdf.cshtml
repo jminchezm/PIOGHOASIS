@@ -1,0 +1,223 @@
+﻿@model IEnumerable<PIOGHOASIS.Models.Empleado>
+@{
+    Layout = null;
+
+    // Logo absoluto (wkhtmltopdf)
+    var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var logoUrl = baseUrl + Url.Content("~/img/login/logo-oasis.png");
+
+    // Filtros desde la query (para mostrarlos en el PDF)
+    string Q(string k) => Context.Request.Query[k].FirstOrDefault();
+    var qCodigo = Q("codigo");
+    var qPersona = Q("persona");
+    var qPuesto = Q("puesto");
+    var qEstado = Q("estado");
+    var qFIni = Q("fIni");
+    var qFFin = Q("fFin");
+
+    string EstadoTxt = qEstado switch { "1" => "Activo", "0" => "Inactivo", _ => "Todos" };
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Reporte de Empleados</title>
+    <style>
+        /* ===== Tipografía y layout general (seguro para wkhtmltopdf) ===== */
+        html, body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 17px;
+            color: #1f2a37;
+        }
+
+        .container {
+            padding: 14mm 12mm;
+        }
+
+        /* ===== Encabezado con marca ===== */
+        .brand {
+            display: table;
+            width: 100%;
+            border-bottom: 3px solid #d7a536;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+            .brand .left {
+                display: table-cell;
+                vertical-align: middle;
+                width: 1%;
+            }
+
+            .brand .right {
+                display: table-cell;
+                vertical-align: middle;
+                padding-left: 10px;
+            }
+
+        .logo {
+            width: 150px;
+            height: auto;
+        }
+
+        .title {
+            margin: 0;
+            font-size: 30px;
+            line-height: 1.2;
+            font-weight: 800;
+            color: #1f2a37;
+        }
+
+        .meta {
+            margin-top: 2px;
+            color: #6b7280;
+            font-size: 17px;
+        }
+
+        /* ===== Caja de filtros ===== */
+        .filters {
+            margin-top: 8px;
+            margin-bottom: 10px;
+            background: #fff8e6;
+            border: 1px solid #f3c259;
+            border-left: 5px solid #F0A100;
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+
+            .filters b {
+                color: #1f2a37;
+            }
+
+            .filters .chip {
+                margin-right: 14px;
+                white-space: nowrap;
+            }
+
+        /* ===== Tabla ===== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            background: #f3c259;
+            color: #222;
+            border: 1px solid #d7a536;
+            padding: 7px 8px;
+            text-align: left;
+            font-weight: 800;
+        }
+
+        tbody td {
+            border: 1px solid #e8e5e5;
+            padding: 7px 8px;
+            vertical-align: top;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fffaf0;
+        }
+        /* zebra */
+        tbody tr:hover {
+            background: #fff4d6;
+        }
+        /* highlight leve */
+
+        /* ===== Pills ===== */
+        .pill {
+            font-weight: 700;
+        }
+
+        .pill-ok {
+            color: #16803d;
+        }
+
+        .pill-off {
+            color: #b42318;
+        }
+
+        /* ===== Vacío ===== */
+        .empty {
+            padding: 14mm 0;
+            text-align: center;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="brand">
+            <div class="left"><img class="logo" src="@logoUrl" alt="Hotel Oasis" /></div>
+            <div class="right">
+                <h1 class="title">Reporte de Empleados</h1>
+                <div class="meta">Generado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+            </div>
+        </div>
+
+        <!-- Filtros (se muestran si vino algo en la query) -->
+        @if (!string.IsNullOrWhiteSpace(qCodigo) || !string.IsNullOrWhiteSpace(qPersona) ||
+        !string.IsNullOrWhiteSpace(qPuesto) || !string.IsNullOrWhiteSpace(qEstado) ||
+        !string.IsNullOrWhiteSpace(qFIni) || !string.IsNullOrWhiteSpace(qFFin))
+        {
+            <div class="filters">
+                <span class="chip"><b>Código:</b> @(string.IsNullOrWhiteSpace(qCodigo) ? "—" : qCodigo)</span>
+                <span class="chip"><b>Empleado:</b> @(string.IsNullOrWhiteSpace(qPersona) ? "—" : qPersona)</span>
+                <span class="chip"><b>Puesto:</b> @(string.IsNullOrWhiteSpace(qPuesto) ? "—" : qPuesto)</span>
+                <span class="chip"><b>Estado:</b> @EstadoTxt</span>
+                <span class="chip"><b>Ingreso (ini):</b> @(string.IsNullOrWhiteSpace(qFIni) ? "—" : qFIni)</span>
+                <span class="chip"><b>Ingreso (fin):</b> @(string.IsNullOrWhiteSpace(qFFin) ? "—" : qFFin)</span>
+            </div>
+        }
+
+        <!-- Tabla -->
+        @if (!Model.Any())
+        {
+            <div class="empty">No se encontró ningún registro con los filtros seleccionados.</div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:120px;">Código</th>
+                        <th style="width:260px;">Empleado</th>
+                        <th style="width:230px;">Puesto</th>
+                        <th style="width:140px;">Fecha contratación</th>
+                        <th style="width:90px;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var e in Model)
+                    {
+                        var nombre = string.Join(" ", new[] {
+                e.Persona?.PrimerNombre,
+                e.Persona?.SegundoNombre,
+                e.Persona?.PrimerApellido,
+                e.Persona?.SegundoApellido
+                }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+                        <tr>
+                            <td>@e.EmpleadoID</td>
+                            <td>
+                                @(string.IsNullOrWhiteSpace(nombre) ? "—" : nombre)
+                                @(string.IsNullOrWhiteSpace(e.PersonalID) ? "" : $" ({e.PersonalID})")
+                            </td>
+                            <td>
+                                @((e.Puesto?.Nombre ?? "—") + (string.IsNullOrWhiteSpace(e.PuestoID) ? "" : $" ({e.PuestoID})"))
+                            </td>
+                            <td>@(e.FechaContratacion?.ToString("dd/MM/yyyy") ?? "—")</td>
+                            <td>
+                                @Html.Raw(e.Estado
+                                         ? "<span class='pill pill-ok'>Activo</span>"
+                                         : "<span class='pill pill-off'>Inactivo</span>")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</body>
+</html>

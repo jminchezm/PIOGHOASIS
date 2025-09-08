@@ -1,0 +1,164 @@
+﻿@model PIOGHOASIS.Models.Entities.Usuario
+@{
+    if (ViewBag.IsPartial == true) { Layout = null; }
+    var accion = Model.Estado ? "Desactivar" : "Reactivar";
+
+    var p = Model.Empleado?.Persona;
+    var empleadoNombre = string.Join(" ", new[] { p?.PrimerNombre, p?.SegundoNombre, p?.PrimerApellido, p?.SegundoApellido }
+                                        .Where(x => !string.IsNullOrWhiteSpace(x)));
+    var empleadoLine = (Model.Empleado?.EmpleadoID != null ? (Model.Empleado.EmpleadoID + " - ") : "") + empleadoNombre;
+}
+
+<style>
+    /* Mismo look&feel que Create/Edit/Details */
+    .usr-form {
+        position: relative;
+        margin-top: 0;
+        width: 100%;
+        background: linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)), url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+    }
+
+    .usr-card {
+        background: rgba(255,255,255,.90);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 6px 22px rgba(0,0,0,.08);
+    }
+
+    .usr-title {
+        background: #f3c259;
+        color: #222;
+        font-weight: 800;
+        font-size: 1.25rem;
+        padding: .75rem 1rem;
+        border-radius: .75rem .75rem 0 0;
+    }
+
+    /* Pills de estado (como en Index/Details) */
+    .pill {
+        display: inline-block;
+        padding: .15rem .5rem;
+        border-radius: 999px;
+        font-size: .84rem;
+        font-weight: 700;
+        vertical-align: middle
+    }
+
+    .pill-ok {
+        background: #e8f7e9;
+        color: #16803d;
+        border: 1px solid #bfe8c2
+    }
+
+    .pill-off {
+        background: #fff0f0;
+        color: #b42318;
+        border: 1px solid #f5c2c7
+    }
+
+    /* Cabecera local */
+    .usr-head .avatar {
+        width: 56px;
+        height: 56px;
+        object-fit: cover;
+        border-radius: 50%;
+        box-shadow: 0 4px 14px rgba(0,0,0,.12)
+    }
+
+    .usr-head .name {
+        font-weight: 800;
+        margin-bottom: .15rem
+    }
+
+    .usr-head .meta {
+        color: #6b7280
+    }
+
+    .warn {
+        color: #9a3412;
+        background: #fff7ed;
+        border: 1px solid #fed7aa;
+        border-radius: .5rem;
+        padding: .75rem
+    }
+</style>
+
+<div class="usr-form">
+    <div class="d-flex justify-content-end mb-2">
+        <a class="btn btn-secondary ajax-nav" href="/Usuarios/Index" data-url="/Usuarios/Index">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <div class="usr-card">
+        <div class="usr-title">@accion Usuario</div>
+
+        <div class="p-3 p-md-4">
+            <!-- Encabezado con avatar y metadatos -->
+            <div class="d-flex align-items-center mb-3 usr-head">
+                <img class="avatar me-3" src="/Usuarios/Avatar/@Model.UsuarioID" alt="Avatar" />
+                <div>
+                    <div class="name">@Model.UsuarioNombre</div>
+                    <div class="meta small">
+                        Código: <strong>@Model.UsuarioID</strong>
+                        &nbsp;·&nbsp; Rol: <strong>@(Model.Rol?.Nombre ?? "—")</strong>
+                        &nbsp;·&nbsp; Estado:
+                        @if (Model.Estado)
+                        {
+                            <span class="pill pill-ok">Activo</span>
+                        }
+                        else
+                        {
+                            <span class="pill pill-off">Inactivo</span>
+                        }
+                    </div>
+                    @* Si te interesa mostrar empleado también (opcional): *@
+                    @if (!string.IsNullOrWhiteSpace(empleadoLine))
+                    {
+                        <div class="meta small">Empleado: @empleadoLine</div>
+                    }
+                </div>
+            </div>
+
+            <div class="warn mb-3">
+                ¿Seguro que deseas <strong>@accion.ToLower()</strong> este usuario?
+            </div>
+
+            <div class="mt-3">
+                <a href="#" id="btnAsk" class="btn @(Model.Estado ? "btn-danger" : "btn-success")">
+                    <i class="bi @(Model.Estado ? "bi-trash" : "bi-check-circle")"></i> @accion
+                </a>
+                <a class="btn btn-outline-secondary ms-2 ajax-nav" href="/Usuarios/Index" data-url="/Usuarios/Index">Cancelar</a>
+            </div>
+
+            <!-- Formulario oculto para ToggleEstado (lo envía el router al confirmar) -->
+            <form id="frmDelete" asp-action="ToggleEstado" asp-controller="Usuarios" method="post" class="d-none" data-ajax="true">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.UsuarioID" />
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación (lo abre el router al click en #btnAsk) -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header @(Model.Estado ? "bg-danger" : "bg-success") text-white py-2">
+                <h6 class="modal-title mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Confirmar
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                ¿Deseas @accion.ToLower() el usuario <strong>@Model.UsuarioNombre</strong>?
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirm" class="btn @(Model.Estado ? "btn-danger" : "btn-success")">@accion</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -5,6 +5,7 @@ using PIOGHOASIS.Infraestructure.Data;
 using Rotativa.AspNetCore;
 using System.IO;
 using System;
+using PIOGHOASIS.Infraestructure.Email;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,6 +46,15 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+//--------------------------------
+//builder.Services.AddDbContext<AppDbContext>(opt =>
+//    opt.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+
+//builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+//builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+//--------------------------------
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
