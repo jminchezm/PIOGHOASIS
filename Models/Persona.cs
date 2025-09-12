@@ -28,15 +28,20 @@ namespace PIOGHOASIS.Models
         [Column("ApellidoCasada"), StringLength(50)]
         public string? ApellidoCasada { get; set; }
 
-        [Column("Email"), StringLength(100)]
+        [Column("Email")]
+        [StringLength(100, ErrorMessage = "El correo no puede superar los 100 caracteres")]
+        [EmailAddress(ErrorMessage = "Debe ingresar un correo válido")]
         public string? Email { get; set; }
 
+        [Column("Telefono1")]
         [RegularExpression(@"^\d{8}$", ErrorMessage = "El Teléfono 1 debe tener 8 dígitos.")]
-        [StringLength(8)]
+        [StringLength(8, ErrorMessage = "El Teléfono 1 debe tener máximo 8 dígitos.")]
         [Required(ErrorMessage = "El campo Teléfono 1 es obligatorio.")]
         public string? Telefono1 { get; set; }
 
-        [Column("Telefono2"), StringLength(8)]
+        [Column("Telefono2")]
+        [RegularExpression(@"^\d{8}$", ErrorMessage = "El Teléfono 2 debe tener 8 dígitos.")]
+        [StringLength(8, ErrorMessage = "El Teléfono 2 debe tener máximo 8 dígitos.")]
         public string? Telefono2 { get; set; }
 
         [Column("Direccion"), StringLength(250)]
@@ -47,7 +52,9 @@ namespace PIOGHOASIS.Models
         [Required(ErrorMessage = "El campo Tipo Documento es obligatorio.")]
         public string? TipoDocumentoID { get; set; }
 
-        [Column("NumeroDocumento"), StringLength(20)]
+        [Column("NumeroDocumento")]
+        [RegularExpression(@"^\d{13}$", ErrorMessage = "El No. Documento debe tener 13 dígitos.")]
+        [StringLength(13, ErrorMessage = "El No. Documento debe tener máximo 13 dígitos.")]
         [Required(ErrorMessage = "El campo Número Documento es obligatorio.")]
         public string? NumeroDocumento { get; set; }
 

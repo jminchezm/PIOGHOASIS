@@ -537,6 +537,18 @@ namespace PIOGHOASIS.Controllers
         }
 
         // ====== DETAILS ======
+        //public async Task<IActionResult> Details(string id)
+        //{
+        //    var model = await _context.empleados
+        //        .AsNoTracking()
+        //        .Include(e => e.Persona)
+        //        .Include(e => e.Puesto)
+        //        .FirstOrDefaultAsync(e => e.EmpleadoID == id);
+        //    if (model == null) return NotFound();
+        //    return IsAjax ? PartialView(model) : View(model);
+        //}
+
+        [HttpGet]
         public async Task<IActionResult> Details(string id)
         {
             var model = await _context.empleados
@@ -545,10 +557,14 @@ namespace PIOGHOASIS.Controllers
                 .Include(e => e.Puesto)
                 .FirstOrDefaultAsync(e => e.EmpleadoID == id);
             if (model == null) return NotFound();
+
+            ViewBag.IsPartial = IsAjax; // <- igual que Clientes
             return IsAjax ? PartialView(model) : View(model);
         }
 
+
         // ====== DELETE (activar/desactivar) ======
+        [HttpGet]
         public async Task<IActionResult> Delete(string id)
         {
             var model = await _context.empleados
@@ -557,8 +573,22 @@ namespace PIOGHOASIS.Controllers
                 .Include(e => e.Puesto)
                 .FirstOrDefaultAsync(e => e.EmpleadoID == id);
             if (model == null) return NotFound();
+
+            ViewBag.IsPartial = IsAjax; // igual que en Clientes
             return IsAjax ? PartialView(model) : View(model);
         }
+
+
+        //public async Task<IActionResult> Delete(string id)
+        //{
+        //    var model = await _context.empleados
+        //        .AsNoTracking()
+        //        .Include(e => e.Persona)
+        //        .Include(e => e.Puesto)
+        //        .FirstOrDefaultAsync(e => e.EmpleadoID == id);
+        //    if (model == null) return NotFound();
+        //    return IsAjax ? PartialView(model) : View(model);
+        //}
 
         // ====== ToggleEstado ======
         [HttpPost, ValidateAntiForgeryToken]
@@ -655,5 +685,39 @@ namespace PIOGHOASIS.Controllers
             }
             catch { /* ignora errores de IO */ }
         }
+
+        [HttpGet]
+        [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Client)]
+        public async Task<IActionResult> Avatar(string id)
+        {
+            var data = await _context.empleados
+                .AsNoTracking()
+                .Include(e => e.Persona)
+                .Where(e => e.EmpleadoID == id)
+                .Select(e => new { e.EmpleadoID, e.Persona.FotoPath })
+                .FirstOrDefaultAsync();
+
+            string defaultPath = Path.Combine(_env.WebRootPath, "img", "DefaultUsuario.png");
+            string filePath = defaultPath;
+
+            if (data?.FotoPath is string rel && !string.IsNullOrWhiteSpace(rel))
+            {
+                var safeRel = rel.TrimStart('/', '\\');
+                var abs = Path.Combine(_env.WebRootPath, safeRel);
+                if (System.IO.File.Exists(abs)) filePath = abs;
+            }
+
+            var contentType = Path.GetExtension(filePath).ToLowerInvariant() switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "application/octet-stream"
+            };
+
+            return PhysicalFile(filePath, contentType);
+        }
+
     }
 }

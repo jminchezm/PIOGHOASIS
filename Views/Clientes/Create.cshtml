@@ -82,6 +82,11 @@
         display: block;
         color: #dc3545;
     }
+
+    #tituloModal {
+        color: #009E42;
+        font-weight: bold;
+    }
 </style>
 
 <div class="cli-create">
@@ -105,56 +110,85 @@
                 @Html.AntiForgeryToken()
 
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-
                 <!-- ===== Datos de la Persona ===== -->
-                <h6 class="cc-subtitle">Datos de la Persona</h6>
+                <h6 class="cc-subtitle">Datos del Cliente</h6>
+                
                 <div class="row g-3">
+
+                    <!-- ===== Datos del Cliente ===== -->
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Cliente.ClienteID" class="form-label">Código*</label>
+                            <input asp-for="Cliente.ClienteID" class="form-control" readonly />
+                            <span asp-validation-for="Cliente.ClienteID" class="text-danger"></span>
+                        </div>
+
+                        @* <div class="col-12 col-md-4">
+                            <label asp-for="Persona.PersonaID" class="form-label">PersonaID</label>
+                            <input asp-for="Persona.PersonaID" class="form-control" readonly />
+                            <span asp-validation-for="Persona.PersonaID" class="text-danger"></span>
+                        </div> *@
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">Estado*</label>
+                            <select asp-for="Cliente.Estado" class="form-select">
+                                <option value="true">Activo</option>
+                                @* <option value="false">Inactivo</option> *@
+                            </select>
+                            <span asp-validation-for="Cliente.Estado" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    @* <hr class="my-4" /> *@
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.PrimerNombre" class="form-label">Primer nombre*</label>
-                        <input asp-for="Persona.PrimerNombre" class="form-control" />
+                        <input asp-for="Persona.PrimerNombre" placeholder="Ingresa primer nombre" class="form-control" />
                         <span asp-validation-for="Persona.PrimerNombre" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.SegundoNombre" class="form-label">Segundo nombre</label>
-                        <input asp-for="Persona.SegundoNombre" class="form-control" />
+                        <input asp-for="Persona.SegundoNombre" placeholder="Ingresa segundo nombre" class="form-control" />
                         <span asp-validation-for="Persona.SegundoNombre" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.PrimerApellido" class="form-label">Primer apellido*</label>
-                        <input asp-for="Persona.PrimerApellido" class="form-control" />
+                        <input asp-for="Persona.PrimerApellido" placeholder="Ingresa primer apellido"  class="form-control" />
                         <span asp-validation-for="Persona.PrimerApellido" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.SegundoApellido" class="form-label">Segundo apellido</label>
-                        <input asp-for="Persona.SegundoApellido" class="form-control" />
+                        <input asp-for="Persona.SegundoApellido" placeholder="Ingresa segundo apellido" class="form-control" />
                         <span asp-validation-for="Persona.SegundoApellido" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.Email" class="form-label">Email</label>
-                        <input asp-for="Persona.Email" type="email" class="form-control" />
+                        <input asp-for="Persona.Email" placeholder="Ingresa el correo Ej: ejemplo@gmail.com" type="email" class="form-control" />
                         <span asp-validation-for="Persona.Email" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.Telefono1" class="form-label">Teléfono 1*</label>
-                        <input asp-for="Persona.Telefono1" class="form-control" />
+@*                         <input asp-for="Persona.Telefono1" placeholder="Digita el teléfono" class="form-control" />
+ *@                        <input asp-for="Persona.Telefono1" maxlength="8"
+                               onkeypress="return event.charCode >= 48 && event.charCode <= 57"
+                               placeholder="Digita el teléfono" class="form-control" />
                         <span asp-validation-for="Persona.Telefono1" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.Telefono2" class="form-label">Teléfono 2</label>
-                        <input asp-for="Persona.Telefono2" class="form-control" />
+                        <input asp-for="Persona.Telefono2" maxlength="8" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Digita el teléfono" class="form-control" />
                         <span asp-validation-for="Persona.Telefono2" class="text-danger"></span>
                     </div>
 
                     <div class="col-12">
                         <label asp-for="Persona.Direccion" class="form-label">Dirección*</label>
-                        <textarea asp-for="Persona.Direccion" class="form-control" rows="2"></textarea>
+                        <textarea asp-for="Persona.Direccion" placeholder="Ingresa la dirección" class="form-control" rows="2"></textarea>
                         <span asp-validation-for="Persona.Direccion" class="text-danger"></span>
                     </div>
 
@@ -173,14 +207,14 @@
                     <!-- Número de documento -->
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.NumeroDocumento" class="form-label">Número de documento*</label>
-                        <input asp-for="Persona.NumeroDocumento" class="form-control" />
+                        <input asp-for="Persona.NumeroDocumento" maxlength="13" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Ingresa el No. de documento" class="form-control" />
                         <span asp-validation-for="Persona.NumeroDocumento" class="text-danger"></span>
                     </div>
 
                     <!-- NIT -->
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.Nit" class="form-label">NIT</label>
-                        <input asp-for="Persona.Nit" class="form-control" />
+                        <input asp-for="Persona.Nit" placeholder="Ingresa el NIT" class="form-control" />
                         <span asp-validation-for="Persona.Nit" class="text-danger"></span>
                     </div>
 
@@ -244,10 +278,10 @@
                     </div>
                 </div>
 
-                <hr class="my-4" />
+                @* <hr class="my-4" /> *@
 
                 <!-- ===== Datos del Cliente ===== -->
-                <h6 class="cc-subtitle">Datos del Cliente</h6>
+                @* <h6 class="cc-subtitle">Datos del Cliente</h6>
                 <div class="row g-3">
                     <div class="col-12 col-md-4">
                         <label asp-for="Cliente.ClienteID" class="form-label">Código*</label>
@@ -269,7 +303,7 @@
                         </select>
                         <span asp-validation-for="Cliente.Estado" class="text-danger"></span>
                     </div>
-                </div>
+                </div> *@
 
                 <div class="mt-4 d-flex justify-content-end">
                     <button type="submit" class="btn btn-primary cc-save">
@@ -291,7 +325,8 @@
             </div>
             <div class="modal-body text-center">
                 <img src="~/img/exito.png" asp-append-version="true" class="img-fluid d-block mx-auto my-2" alt="ok" style="width:50px" />
-                <p class="fw-bold mb-0">¡Cliente creado correctamente!</p>
+                <p id="tituloModal">Cliente Creado</p>
+                <p class="mb-0 js-msg">¡Guardado correctamente!</p>
             </div>
             <div class="modal-footer py-2">
                 <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>

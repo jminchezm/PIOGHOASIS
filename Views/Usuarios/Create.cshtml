@@ -66,7 +66,7 @@
 
                     <div class="col-12">
                         <label class="form-label fw-semibold">Contraseña*</label>
-                        <input asp-for="NuevaContrasena" type="password" class="form-control" autocomplete="new-password" required/>
+                        <input asp-for="NuevaContrasena" type="password" placeholder="Ingresa la contraseña" class="form-control" autocomplete="new-password" required/>
                         <span asp-validation-for="NuevaContrasena" class="text-danger"></span>
                         
 
@@ -83,7 +83,7 @@
 
                     <div class="col-12">
                         <label class="form-label fw-semibold">Confirmar Contraseña*</label>
-                        <input asp-for="ConfirmarContrasena" type="password" class="form-control" autocomplete="new-password" required/>
+                        <input asp-for="ConfirmarContrasena" type="password" placeholder="Ingresa confirmación de contraseña" class="form-control" autocomplete="new-password" required/>
                         <span asp-validation-for="ConfirmarContrasena" class="text-danger"></span>
 
                         <!-- Mensaje reactivo de coincidencia -->
@@ -143,7 +143,7 @@
                 <img id="imgModal" src="~/img/exito.png" asp-append-version="true"
                      class="img-fluid d-block mx-auto my-2" alt="Éxito" />
                 <p id="tituloModal" style="color:#009E42;font-weight:700;">Usuario Creado</p>
-                <p class="mb-0 js-msg">¡Usuario creado exitosamente!</p>
+                <p class="mb-0 js-msg">¡Guardado exitosamente!</p>
             </div>
             <div class="modal-footer py-2">
                 <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>

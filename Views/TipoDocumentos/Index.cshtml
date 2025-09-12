@@ -113,7 +113,7 @@
             <div class="col-12 col-md-4">
                 <label class="form-label fw-semibold">Código</label>
                 <div class="clearable">
-                    <input type="text" class="form-control" id="fCodigo" placeholder=" " value="@qCodigo" />
+                    <input type="text" class="form-control" id="fCodigo" placeholder="Buscar por código" value="@qCodigo" />
                     <button type="button" class="btn-clear" aria-label="Limpiar"
                             onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));"><i class="bi bi-x-circle"></i></button>
                 </div>
@@ -122,7 +122,7 @@
             <div class="col-12 col-md-4">
                 <label class="form-label fw-semibold">Nombre</label>
                 <div class="clearable">
-                    <input type="text" class="form-control" id="fNombre" placeholder=" " value="@qNombre" />
+                    <input type="text" class="form-control" id="fNombre" placeholder="Buscar por nombre" value="@qNombre" />
                     <button type="button" class="btn-clear" aria-label="Limpiar"
                             onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));"><i class="bi bi-x-circle"></i></button>
                 </div>
@@ -162,7 +162,8 @@
         else
         {
             <div class="table-responsive">
-                <table id="tblPuestos" class="table table-hover mb-0"><!-- reuso id para el paginador -->
+                <table id="tblNumPaginador" class="table table-hover mb-0">
+                    <!-- reuso id para el paginador -->
                     <thead>
                         <tr>
                             <th style="width:140px">Código</th>

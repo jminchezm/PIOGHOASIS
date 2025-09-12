@@ -203,7 +203,7 @@
             <div class="col-12 col-md-4">
                 <label class="form-label fw-semibold">Código</label>
                 <div class="clearable">
-                    <input type="text" class="form-control" id="fCodigo" placeholder=" " value="@qCodigo" />
+                    <input type="text" class="form-control" placeholder="Buscar por código" id="fCodigo" value="@qCodigo" />
                     <button type="button" class="btn-clear" aria-label="Limpiar"
                             onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));">
                         <i class="bi bi-x-circle"></i>
@@ -214,7 +214,7 @@
             <div class="col-12 col-md-4">
                 <label class="form-label fw-semibold">Nombre</label>
                 <div class="clearable">
-                    <input type="text" class="form-control" id="fNombre" placeholder=" " value="@qNombre" />
+                    <input type="text" class="form-control" id="fNombre" placeholder="Buscar por nombre" value="@qNombre" />
                     <button type="button" class="btn-clear" aria-label="Limpiar"
                             onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));">
                         <i class="bi bi-x-circle"></i>
@@ -267,7 +267,7 @@
         else
         {
             <div class="table-responsive">
-                <table id="tblPuestos" class="table table-hover mb-0">
+                <table id="tblNumPaginador" class="table table-hover mb-0">
                     <thead>
                         <tr>
                             <th style="width:140px">Código</th>
@@ -414,23 +414,6 @@
         fCodigo?.addEventListener('input', onTextInput);
         fNombre?.addEventListener('input', onTextInput);
         fEstado?.addEventListener('change', go);
-
-        @* function pdfUrl() {
-            const qs = new URLSearchParams();
-            const cod = (fCodigo?.value || '').trim();
-            const nom = (fNombre?.value || '').trim();
-            const est = (fEstado?.value ?? '');
-
-            if (cod) qs.set('codigo', cod);
-            if (nom) qs.set('nombre', nom);
-            if (est !== '') qs.set('estado', est);
-
-            return '/Puestos/ExportPdf' + (qs.toString() ? '?' + qs.toString() : '');
-        }
-
-        document.getElementById('btnPrint')?.addEventListener('click', () => {
-            window.open(pdfUrl(), '_blank');  // abre/descarga el PDF con los filtros actuales
-        }); *@
 
     })();
 

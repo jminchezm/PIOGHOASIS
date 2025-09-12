@@ -35,9 +35,9 @@
     }
 </style>
 
-<script src="~/lib/jquery/jquery.min.js"></script>
+@* <script src="~/lib/jquery/jquery.min.js"></script>
 <script src="~/lib/jquery-validation/jquery.validate.min.js"></script>
-<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script> *@
 @* <script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js"></script> *@
 
 
@@ -67,9 +67,44 @@
         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
         <!-- ===== Datos de la Persona ===== -->
-        <h6 class="pc-subtitle">Datos de la Persona</h6>
+        <h6 class="pc-subtitle">Datos del Empleado</h6>
         <div class="row g-3">
-          @* Si deseas mostrar el código, descomenta:
+
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label asp-for="Empleado.EmpleadoID" class="form-label">Código*</label>
+                    <input asp-for="Empleado.EmpleadoID" class="form-control" readonly />
+                    <span asp-validation-for="Empleado.EmpleadoID" class="text-danger"></span>
+                </div>
+
+                <div class="col-12 col-md-4"></div>
+
+                <div class="col-12 col-md-4"></div>
+
+                <div class="col-12 col-md-4">
+                    <label asp-for="Empleado.PuestoID" class="form-label">Puesto*</label>
+                    <select asp-for="Empleado.PuestoID" class="form-select" asp-items="ViewBag.Puestos">
+                        <option value="">Seleccione un puesto</option>
+                    </select>
+                    <span asp-validation-for="Empleado.PuestoID" class="text-danger"></span>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label asp-for="Empleado.FechaContratacion" class="form-label">Fecha de contratación</label>
+                    <input asp-for="Empleado.FechaContratacion" class="form-control" type="date" />
+                    <span asp-validation-for="Empleado.FechaContratacion" class="text-danger"></span>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Estado*</label>
+                    <select asp-for="Empleado.Estado" class="form-select">
+                        <option value="true">Activo</option>
+                        @* <option value="false">Inactivo</option> *@
+                    </select>
+                    <span asp-validation-for="Empleado.Estado" class="text-danger"></span>
+                </div>
+            </div>
+                    @* Si deseas mostrar el código, descomenta:
           <div class="col-12 col-md-4">
             <label asp-for="Persona.PersonaID" class="form-label">Código Persona</label>
             <input asp-for="Persona.PersonaID" class="form-control" readonly />
@@ -79,55 +114,55 @@
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.PrimerNombre" class="form-label">Primer nombre*</label>
-            <input asp-for="Persona.PrimerNombre" class="form-control" />
+            <input asp-for="Persona.PrimerNombre" placeholder="Ingresa el primer nombre" class="form-control" />
             <span asp-validation-for="Persona.PrimerNombre" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.SegundoNombre" class="form-label">Segundo nombre</label>
-            <input asp-for="Persona.SegundoNombre" class="form-control" />
+            <input asp-for="Persona.SegundoNombre" placeholder="Ingresa el segundo nombre" class="form-control" />
             <span asp-validation-for="Persona.SegundoNombre" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.PrimerApellido" class="form-label">Primer apellido*</label>
-            <input asp-for="Persona.PrimerApellido" class="form-control" />
+            <input asp-for="Persona.PrimerApellido" placeholder="Ingresa el primer apellido" class="form-control" />
             <span asp-validation-for="Persona.PrimerApellido" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.SegundoApellido" class="form-label">Segundo apellido</label>
-            <input asp-for="Persona.SegundoApellido" class="form-control" />
+            <input asp-for="Persona.SegundoApellido" placeholder="Ingresa el segundo apellido" class="form-control" />
             <span asp-validation-for="Persona.SegundoApellido" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.ApellidoCasada" class="form-label">Apellido de casada</label>
-            <input asp-for="Persona.ApellidoCasada" class="form-control" />
+            <input asp-for="Persona.ApellidoCasada" placeholder="Ingresa el apellido de casada" class="form-control" />
             <span asp-validation-for="Persona.ApellidoCasada" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.Email" class="form-label">Email</label>
-            <input asp-for="Persona.Email" class="form-control" type="email" />
+            <input asp-for="Persona.Email" placeholder="Ingresa el correo Ej: ejemplo@gmail.com" class="form-control" type="email" />
             <span asp-validation-for="Persona.Email" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.Telefono1" class="form-label">Teléfono 1*</label>
-            <input asp-for="Persona.Telefono1" class="form-control" />
+            <input asp-for="Persona.Telefono1" maxlength="8" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Digita el teléfono" class="form-control" />
             <span asp-validation-for="Persona.Telefono1" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.Telefono2" class="form-label">Teléfono 2</label>
-            <input asp-for="Persona.Telefono2" class="form-control" />
+            <input asp-for="Persona.Telefono2" maxlength="8" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Digita el teléfono" class="form-control" />
             <span asp-validation-for="Persona.Telefono2" class="text-danger"></span>
           </div>
 
           <div class="col-12">
             <label asp-for="Persona.Direccion" class="form-label">Dirección*</label>
-            <textarea asp-for="Persona.Direccion" class="form-control" rows="2"></textarea>
+            <textarea asp-for="Persona.Direccion" placeholder="Ingresa la dirección" class="form-control" rows="2"></textarea>
             <span asp-validation-for="Persona.Direccion" class="text-danger"></span>
           </div>
 
@@ -143,14 +178,14 @@
           <!-- Número de documento -->
           <div class="col-12 col-md-4">
             <label asp-for="Persona.NumeroDocumento" class="form-label">Número de documento*</label>
-            <input asp-for="Persona.NumeroDocumento" class="form-control" />
+            <input asp-for="Persona.NumeroDocumento" maxlength="13" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Ingresa el No. de documento" class="form-control" />
             <span asp-validation-for="Persona.NumeroDocumento" class="text-danger"></span>
           </div>
 
           <!-- NIT -->
           <div class="col-12 col-md-4">
             <label asp-for="Persona.Nit" class="form-label">NIT</label>
-            <input asp-for="Persona.Nit" class="form-control" />
+            <input asp-for="Persona.Nit" placeholder="Ingresa el NIT" class="form-control" />
             <span asp-validation-for="Persona.Nit" class="text-danger"></span>
           </div>
 
@@ -263,17 +298,17 @@
             <!-- donde pintar errores del servidor para 'Foto' -->
             <span data-valmsg-for="Foto" class="text-danger"></span>
 
-            <div class="mt-2">
+            @* <div class="mt-2">
                 <img id="fotoPreview" src="~/img/user-placeholder.png" class="img-thumbnail" style="max-height:140px" alt="preview" />
-            </div>
+            </div> *@
         </div>
 
          </div>
 
-        <hr class="my-4" />
+        @* <hr class="my-4" /> *@
 
         <!-- ===== Datos del Empleado ===== -->
-        <h6 class="pc-subtitle">Datos del Empleado</h6>
+        @* <h6 class="pc-subtitle">Datos del Empleado</h6>
         <div class="row g-3">
           <div class="col-12 col-md-4">
             <label asp-for="Empleado.EmpleadoID" class="form-label">Código*</label>
@@ -298,12 +333,12 @@
           <div class="col-12 col-md-4">
             <label class="form-label">Estado*</label>
             <select asp-for="Empleado.Estado" class="form-select">
-              <option value="true">Activo</option>
+              <option value="true">Activo</option> *@
               @* <option value="false">Inactivo</option> *@
-            </select>
+            @* </select>
             <span asp-validation-for="Empleado.Estado" class="text-danger"></span>
           </div>
-        </div>  
+        </div>   *@
 
         <div class="mt-4 d-flex justify-content-end">
           <button type="submit" class="btn btn-primary pc-save">
@@ -325,8 +360,8 @@
       </div>
       <div class="modal-body text-center">
         <img id="imgModal" src="~/img/exito.png" asp-append-version="true" class="img-fluid d-block mx-auto my-2" alt="ok" />
-        <p id="tituloModal">Operación exitosa</p>
-        <p class="mb-0 js-msg">¡Persona y Empleado creados!</p>
+        <p id="tituloModal">Empleado Creado</p>
+        <p class="mb-0 js-msg">¡Guardado exitosamente!</p>
       </div>
       <div class="modal-footer py-2">
         <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
@@ -373,78 +408,78 @@
     }
 
     // —— Manejador GLOBAL del submit —— //
-    window.handleEmpSubmit = async function handleEmpSubmit(ev, form){
-      // corta CUALQUIER submit/handler adicional
-      if (ev) { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); }
+    // window.handleEmpSubmit = async function handleEmpSubmit(ev, form){
+    //   // corta CUALQUIER submit/handler adicional
+    //   if (ev) { ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation(); }
 
-      // anti-doble click
-      if (form.dataset.busy === '1') return false;
-      form.dataset.busy = '1';
+    //   // anti-doble click
+    //   if (form.dataset.busy === '1') return false;
+    //   form.dataset.busy = '1';
 
-      clearErrors();
-      document.querySelector('.pc-save')?.setAttribute('disabled','disabled');
+    //   clearErrors();
+    //   document.querySelector('.pc-save')?.setAttribute('disabled','disabled');
 
-      // habilita selects dependientes
-      const d = document.getElementById('Persona_DepartamentoID');
-      const m = document.getElementById('Persona_MunicipioID');
-      if (d) d.removeAttribute('disabled');
-      if (m) m.removeAttribute('disabled');
+    //   // habilita selects dependientes
+    //   const d = document.getElementById('Persona_DepartamentoID');
+    //   const m = document.getElementById('Persona_MunicipioID');
+    //   if (d) d.removeAttribute('disabled');
+    //   if (m) m.removeAttribute('disabled');
 
-      try{
-        const fd = new FormData(form); // incluye AntiForgery
-        const resp = await fetch(form.action, {
-          method: 'POST',
-          body: fd,
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
+    //   try{
+    //     const fd = new FormData(form); // incluye AntiForgery
+    //     const resp = await fetch(form.action, {
+    //       method: 'POST',
+    //       body: fd,
+    //       headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    //     });
 
-        const ct = (resp.headers.get('content-type')||'').toLowerCase();
-        if (!ct.includes('application/json')) {
-          // si algo más interceptó el submit, evita navegar
-          const text = await resp.text();
-          console.error('Respuesta no JSON:', text);
-          alert('Ocurrió un error inesperado.');
-          form.dataset.busy = '0';
-          document.querySelector('.pc-save')?.removeAttribute('disabled');
-          return false;
-        }
+    //     const ct = (resp.headers.get('content-type')||'').toLowerCase();
+    //     if (!ct.includes('application/json')) {
+    //       // si algo más interceptó el submit, evita navegar
+    //       const text = await resp.text();
+    //       console.error('Respuesta no JSON:', text);
+    //       alert('Ocurrió un error inesperado.');
+    //       form.dataset.busy = '0';
+    //       document.querySelector('.pc-save')?.removeAttribute('disabled');
+    //       return false;
+    //     }
 
-        const res = await resp.json();
-        document.querySelector('.pc-save')?.removeAttribute('disabled');
-        form.dataset.busy = '0';
+    //     const res = await resp.json();
+    //     document.querySelector('.pc-save')?.removeAttribute('disabled');
+    //     form.dataset.busy = '0';
 
-        if (res.ok) {
-          const modal = new bootstrap.Modal(document.getElementById('saveOkModal'));
-          modal.show();
-          document.getElementById('saveOkModal')
-            .addEventListener('hidden.bs.modal', function(){
-              window.location.href = res.redirectUrl || '/Empleados/Index';
-            }, { once:true });
-        } else if (res.errors) {
-          showErrors(res.errors);
-        } else {
-          alert(res.message || 'No se pudo guardar.');
-        }
-      } catch (err) {
-        console.error(err);
-        form.dataset.busy = '0';
-        document.querySelector('.pc-save')?.removeAttribute('disabled');
-        alert('Error al enviar el formulario.');
-      }
+    //     if (res.ok) {
+    //       const modal = new bootstrap.Modal(document.getElementById('saveOkModal'));
+    //       modal.show();
+    //       document.getElementById('saveOkModal')
+    //         .addEventListener('hidden.bs.modal', function(){
+    //           window.location.href = res.redirectUrl || '/Empleados/Index';
+    //         }, { once:true });
+    //     } else if (res.errors) {
+    //       showErrors(res.errors);
+    //     } else {
+    //       alert(res.message || 'No se pudo guardar.');
+    //     }
+    //   } catch (err) {
+    //     console.error(err);
+    //     form.dataset.busy = '0';
+    //     document.querySelector('.pc-save')?.removeAttribute('disabled');
+    //     alert('Error al enviar el formulario.');
+    //   }
 
-      return false; // IMPIDE la navegación del form
-    };
+    //   return false; // IMPIDE la navegación del form
+    // };
 
     // Fallback por si el atributo onsubmit fuese removido por algún render dinámico
-    (function(){
-      const f = document.getElementById('empForm');
-      if (!f) return;
-      f.addEventListener('submit', function(e){
-        // si ya está nuestro onsubmit no duplicamos
-        if (e.defaultPrevented) return;
-        window.handleEmpSubmit(e, this);
-      });
-    })();
+    // (function(){
+    //   const f = document.getElementById('empForm');
+    //   if (!f) return;
+    //   f.addEventListener('submit', function(e){
+    //     // si ya está nuestro onsubmit no duplicamos
+    //     if (e.defaultPrevented) return;
+    //     window.handleEmpSubmit(e, this);
+    //   });
+    // })();
 
     // preview de imagen
     (function () {

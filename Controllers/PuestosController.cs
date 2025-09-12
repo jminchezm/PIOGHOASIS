@@ -121,7 +121,7 @@ namespace PIOGHOASIS.Controllers
                 return Json(new
                 {
                     ok = true,
-                    message = "¡Puesto creado exitosamente!",
+                    message = "¡Guardado exitosamente!",
                     redirectUrl = Url.Action("Index", "Puestos")
                 });
 

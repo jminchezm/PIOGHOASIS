@@ -6,6 +6,8 @@ using PIOGHOASIS.Infraestructure.Data;
 using PIOGHOASIS.Models;
 using PIOGHOASIS.Models.Entities;
 using PIOGHOASIS.Models.ViewModels;
+using Rotativa.AspNetCore.Options;
+using Rotativa.AspNetCore;
 
 namespace PIOGHOASIS.Controllers
 {
@@ -359,34 +361,57 @@ namespace PIOGHOASIS.Controllers
             if (id != vm?.Cliente?.ClienteID)
                 return BadRequest(new { ok = false, message = "El id de la ruta no coincide con el del formulario." });
 
-            // Navegaciones que no vienen en el post
             ModelState.Remove("Cliente.Persona");
             ModelState.Remove("Persona.Empleado");
             ModelState.Remove("Cliente.PersonaID");
-
-            // ⚠️ Igual que en Create: estos dos los tratamos como opcionales SIEMPRE
             ModelState.Remove("Persona.DepartamentoID");
             ModelState.Remove("Persona.MunicipioID");
-
-            // ⚠️ Suele causar 400 si queda vacío o no viaja
             ModelState.Remove("Persona.FechaRegistro");
-            // Si en tu modelo es [Required] y no viaja, conserva el valor actual
-            // (lo hacemos abajo al mapear con la entidad de BD)
 
-            // Foto (valida tamaño/extension)
             if (Foto is { Length: > 0 }) ValidarFotoCliente(Foto);
 
             if (!ModelState.IsValid)
-            {
-                // 👇 Devuelve 400 con el diccionario de errores (tu JS ya lo muestra por campo)
                 return BadRequest(new { ok = false, errors = ModelStateErrors() });
-            }
 
             var db = await _db.clientes
                 .Include(c => c.Persona)
                 .FirstOrDefaultAsync(c => c.ClienteID == vm.Cliente.ClienteID);
-
             if (db == null) return NotFound();
+
+            // ======== NUEVO: detección de cambios (igual enfoque que Empleados) ========
+            bool hadChanges =
+                db.Estado != vm.Cliente.Estado ||
+                !string.Equals(db.Persona.PrimerNombre, vm.Persona.PrimerNombre, StringComparison.Ordinal) ||
+                !string.Equals(db.Persona.SegundoNombre, vm.Persona.SegundoNombre, StringComparison.Ordinal) ||
+                !string.Equals(db.Persona.PrimerApellido, vm.Persona.PrimerApellido, StringComparison.Ordinal) ||
+                !string.Equals(db.Persona.SegundoApellido, vm.Persona.SegundoApellido, StringComparison.Ordinal) ||
+                !string.Equals(db.Persona.Email, vm.Persona.Email, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(db.Persona.Telefono1, vm.Persona.Telefono1, StringComparison.Ordinal) ||
+                !string.Equals(db.Persona.Telefono2, vm.Persona.Telefono2, StringComparison.Ordinal) ||
+                !string.Equals(db.Persona.Direccion, vm.Persona.Direccion, StringComparison.Ordinal) ||
+                !string.Equals(db.Persona.TipoDocumentoID, vm.Persona.TipoDocumentoID, StringComparison.Ordinal) ||
+                !string.Equals(db.Persona.NumeroDocumento, vm.Persona.NumeroDocumento, StringComparison.Ordinal) ||
+                !string.Equals(db.Persona.Nit, vm.Persona.Nit, StringComparison.Ordinal) ||
+                db.Persona.FechaNacimiento != vm.Persona.FechaNacimiento ||
+                !string.Equals(db.Persona.PaisID, vm.Persona.PaisID, StringComparison.OrdinalIgnoreCase) ||
+                db.Persona.DepartamentoID != vm.Persona.DepartamentoID ||
+                db.Persona.MunicipioID != vm.Persona.MunicipioID
+                || (Foto is { Length: > 0 })
+                || (QuitarFoto && !string.IsNullOrWhiteSpace(db.Persona.FotoPath));
+
+            if (!hadChanges)
+            {
+                if (IsAjax)
+                    return Ok(new { ok = false, reason = "nochanges", message = "Realiza un cambio antes de guardar." });
+
+                TempData["NoChanges"] = true;
+                await CargarCombosCreateAsync(
+                    db.Persona?.TipoDocumentoID, db.Persona?.PaisID, db.Persona?.DepartamentoID, db.Persona?.MunicipioID
+                );
+                var vmBack = new ClienteFormVm { Cliente = db, Persona = db.Persona };
+                return View(nameof(Edit), vmBack);
+            }
+            // ======== FIN NUEVO ========
 
             using var tx = await _db.Database.BeginTransactionAsync();
             try
@@ -452,6 +477,105 @@ namespace PIOGHOASIS.Controllers
         }
 
 
+        //[HttpPost, ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Edit(string id, ClienteFormVm vm, IFormFile? Foto, bool QuitarFoto = false)
+        //{
+        //    if (id != vm?.Cliente?.ClienteID)
+        //        return BadRequest(new { ok = false, message = "El id de la ruta no coincide con el del formulario." });
+
+        //    // Navegaciones que no vienen en el post
+        //    ModelState.Remove("Cliente.Persona");
+        //    ModelState.Remove("Persona.Empleado");
+        //    ModelState.Remove("Cliente.PersonaID");
+
+        //    // ⚠️ Igual que en Create: estos dos los tratamos como opcionales SIEMPRE
+        //    ModelState.Remove("Persona.DepartamentoID");
+        //    ModelState.Remove("Persona.MunicipioID");
+
+        //    // ⚠️ Suele causar 400 si queda vacío o no viaja
+        //    ModelState.Remove("Persona.FechaRegistro");
+        //    // Si en tu modelo es [Required] y no viaja, conserva el valor actual
+        //    // (lo hacemos abajo al mapear con la entidad de BD)
+
+        //    // Foto (valida tamaño/extension)
+        //    if (Foto is { Length: > 0 }) ValidarFotoCliente(Foto);
+
+        //    if (!ModelState.IsValid)
+        //    {
+        //        // 👇 Devuelve 400 con el diccionario de errores (tu JS ya lo muestra por campo)
+        //        return BadRequest(new { ok = false, errors = ModelStateErrors() });
+        //    }
+
+        //    var db = await _db.clientes
+        //        .Include(c => c.Persona)
+        //        .FirstOrDefaultAsync(c => c.ClienteID == vm.Cliente.ClienteID);
+
+        //    if (db == null) return NotFound();
+
+        //    using var tx = await _db.Database.BeginTransactionAsync();
+        //    try
+        //    {
+        //        // Persona
+        //        var p = db.Persona;
+        //        p.PrimerNombre = vm.Persona.PrimerNombre;
+        //        p.SegundoNombre = vm.Persona.SegundoNombre;
+        //        p.PrimerApellido = vm.Persona.PrimerApellido;
+        //        p.SegundoApellido = vm.Persona.SegundoApellido;
+        //        p.Email = vm.Persona.Email;
+        //        p.Telefono1 = vm.Persona.Telefono1;
+        //        p.Telefono2 = vm.Persona.Telefono2;
+        //        p.Direccion = vm.Persona.Direccion;
+        //        p.TipoDocumentoID = vm.Persona.TipoDocumentoID;
+        //        p.NumeroDocumento = vm.Persona.NumeroDocumento;
+        //        p.Nit = vm.Persona.Nit;
+        //        p.FechaNacimiento = vm.Persona.FechaNacimiento;
+        //        p.PaisID = vm.Persona.PaisID;
+        //        p.DepartamentoID = vm.Persona.DepartamentoID;   // pueden venir null
+        //        p.MunicipioID = vm.Persona.MunicipioID;
+
+        //        // Si por validación cliente no viajó FechaRegistro, conserva la que está en BD
+        //        if (vm.Persona.FechaRegistro == null)
+        //            vm.Persona.FechaRegistro = p.FechaRegistro;
+
+        //        // Foto
+        //        if (QuitarFoto && !string.IsNullOrWhiteSpace(p.FotoPath))
+        //        {
+        //            BorrarFotoFisicaCliente(p.FotoPath);
+        //            p.FotoPath = null;
+        //        }
+        //        else if (Foto is { Length: > 0 })
+        //        {
+        //            var nueva = await SaveClienteFotoAsync(db.ClienteID, Foto);
+        //            if (!string.IsNullOrWhiteSpace(p.FotoPath))
+        //                BorrarFotoFisicaCliente(p.FotoPath);
+        //            p.FotoPath = nueva;
+        //        }
+        //        else
+        //        {
+        //            // Conservar la que venía en el hidden (si la agregas en la vista)
+        //            p.FotoPath = vm.Persona.FotoPath;
+        //        }
+
+        //        // Cliente
+        //        db.Estado = vm.Cliente.Estado;
+
+        //        await _db.SaveChangesAsync();
+        //        await tx.CommitAsync();
+
+        //        return IsAjax
+        //            ? Ok(new { ok = true, message = "Cliente actualizado correctamente.", redirectUrl = Url.Action(nameof(Index)) })
+        //            : RedirectToAction(nameof(Index));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await tx.RollbackAsync();
+        //        return IsAjax
+        //            ? StatusCode(500, new { ok = false, message = "Error al actualizar: " + ex.Message })
+        //            : Problem("Error al actualizar: " + ex.Message);
+        //    }
+        //}
+
+
 
 
 
@@ -502,6 +626,39 @@ namespace PIOGHOASIS.Controllers
                 return PartialView(nameof(Index), list);
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        // === EXPORT PDF ===
+        [HttpGet]
+        public async Task<IActionResult> ExportPdf(string? codigo, string? nombre, string? estado, bool descargar = false)
+        {
+            // En Index pones Activo por defecto cuando NO viene "estado".
+            // Para PDF haremos lo mismo que en Puestos: si NO viene, tratamos como "Todos".
+            var tieneEstado = Request.Query.ContainsKey("estado");
+            if (!tieneEstado) estado = ""; // Todos
+
+            // Usa tu mismo filtro reutilizable
+            var q = Filtrar(BaseQuery(), codigo, nombre, estado);
+            var model = await q.OrderBy(c => c.ClienteID).ToListAsync();
+
+            // La vista ReportePdf lee los filtros directamente de la QueryString,
+            // así que no es obligatorio pasar ViewBag; pero no estorba:
+            ViewBag.Codigo = codigo;
+            ViewBag.Nombre = nombre;
+            ViewBag.Estado = estado;
+
+            var pdf = new ViewAsPdf("ReportePdf", model)
+            {
+                PageSize = Size.A4,
+                PageOrientation = Orientation.Portrait,
+                CustomSwitches = "--footer-center \"Página [page] de [toPage]\" --footer-font-size 8 --footer-spacing 5",
+                ContentDisposition = descargar ? ContentDisposition.Attachment : ContentDisposition.Inline
+            };
+
+            if (descargar)
+                pdf.FileName = $"Clientes_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
+
+            return pdf;
         }
     }
 }

@@ -1,0 +1,323 @@
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@model PIOGHOASIS.Models.TipoHabitacion
+@{
+    Layout = null; // se incrusta dentro del Dashboard (contentHost)
+}
+
+<style>
+    /* ===== Fondo y layout ===== */
+    .th-edit {
+        position: relative;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)), url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+    }
+
+    /* Tarjeta “glass” y encabezado */
+    .te-card {
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 8px 28px rgba(0,0,0,.08);
+        backdrop-filter: blur(2px);
+    }
+
+    .te-header {
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .75rem 1rem;
+        border-top-left-radius: .75rem;
+        border-top-right-radius: .75rem;
+        border-bottom: 2px solid #d7a536;
+    }
+
+    .te-back {
+        position: sticky;
+        top: calc(var(--header-h) + 8px);
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        background: #4b5563;
+        color: #fff;
+        border: none;
+        border-radius: .5rem;
+        padding: .4rem .75rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.15);
+    }
+
+        .te-back:hover {
+            filter: brightness(.95);
+            color: #fff;
+        }
+
+    .te-save {
+        font-weight: 800;
+        padding: .6rem 1.25rem;
+    }
+
+    .form-label {
+        font-weight: 700;
+        color: #1f2a37;
+    }
+
+    /* Switch encendido */
+    .form-check.form-switch .form-check-input:checked {
+        background-color: #16a34a;
+        border-color: #16a34a;
+    }
+    /* Texto Activo/Inactivo */
+    #estadoText.active {
+        color: #16803d;
+        font-weight: 700;
+    }
+
+    #estadoText.inactive {
+        color: #b42318;
+        font-weight: 700;
+    }
+
+    #imgOk {
+        width: 50px;
+        height: auto;
+    }
+
+    #okTitle {
+        color: #009E42;
+        font-weight: bold;
+    }
+
+    #imgWarn {
+        width: 50px;
+        height: auto;
+    }
+
+    #warnTitle {
+        color: #F0A100;
+        font-weight: bold;
+    }
+</style>
+
+<div class="th-edit">
+    <!-- Volver -->
+    <div class="d-flex justify-content-end mb-2">
+        <a class="te-back ajax-nav"
+           href="/TiposHabitacion/Index" data-url="/TiposHabitacion/Index"
+           title="Volver a la lista">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <!-- Card -->
+    <div class="te-card">
+        <div class="te-header">Editar tipo de habitación</div>
+
+        <div class="p-3 p-md-4">
+            <form id="frmEditTipo" asp-action="Edit" method="post" data-ajax="true" novalidate>
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div class="row g-3">
+                    <!-- Código -->
+                    <div class="col-12 col-md-4">
+                        <label asp-for="TipoHabitacionID" class="form-label">Código*</label>
+                        <input asp-for="TipoHabitacionID" class="form-control" readonly />
+                        <span asp-validation-for="TipoHabitacionID" class="text-danger"></span>
+                    </div>
+
+                    <!-- Nombre -->
+                    <div class="col-12">
+                        <label asp-for="Nombre" class="form-label">Nombre*</label>
+                        <input asp-for="Nombre" class="form-control" placeholder="Nombre del tipo" />
+                        <span asp-validation-for="Nombre" class="text-danger"></span>
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="col-12">
+                        <label asp-for="Descripcion" class="form-label">Descripción</label>
+                        <textarea asp-for="Descripcion" class="form-control" rows="4"
+                                  placeholder="Descripción del tipo (opcional)"></textarea>
+                        <span asp-validation-for="Descripcion" class="text-danger"></span>
+                    </div>
+
+                    <!-- Estado (switch) -->
+                    <div class="col-12 col-md-4">
+                        <label class="form-label d-block">Estado*</label>
+                        <div class="form-check form-switch align-items-center">
+                            <!-- asp-for genera el hidden para false automáticamente -->
+                            <input asp-for="Estado" class="form-check-input" role="switch" id="chkEstado" />
+                            <label class="form-check-label ms-2" for="chkEstado">
+                                <span id="estadoText" class="@(Model?.Estado == true ? "active" : "inactive")">
+                                    @((Model?.Estado ?? false) ? "Activo" : "Inactivo")
+                                </span>
+                            </label>
+                        </div>
+                        <span asp-validation-for="Estado" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end gap-2">
+                    <a class="btn btn-outline-secondary ajax-nav"
+                       href="/TiposHabitacion/Index" data-url="/TiposHabitacion/Index">
+                        Cancelar
+                    </a>
+                    <button id="btnSave" type="submit" class="btn btn-primary te-save">
+                        <i class="bi bi-save2 me-1"></i> Guardar cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal éxito -->
+<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white py-2">
+                <h6 class="modal-title mb-0">
+                    <i class="bi bi-check-circle me-1"></i> Cambios guardados
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="imgOk" src="~/img/exito.png" asp-append-version="true"
+                     class="img-fluid d-block mx-auto my-2" alt="ok" />
+                <p id="okTitle">Tipo de habitación actualizado</p>
+                <p class="mb-0 js-msg">¡Actualizado exitosamente!</p>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal sin cambios -->
+<div class="modal fade" id="noChangesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark py-2">
+                <h6 class="modal-title mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Sin cambios
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="imgWarn" src="~/img/advertencia.png" asp-append-version="true"
+                     class="img-fluid d-block mx-auto my-2" alt="Advertencia" />
+                <p id="warnTitle">¡No has modificado ningún campo!</p>
+                <p class="mb-0 js-msg">Realiza un cambio antes de guardar.</p>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Entendido</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        // Actualiza el texto y color del estado cuando se cambia el switch
+        (function(){
+          const chk = document.getElementById('chkEstado');
+          const txt = document.getElementById('estadoText');
+          if (!chk || !txt) return;
+          const refresh = () => {
+            const on = !!chk.checked;
+            txt.textContent = on ? 'Activo' : 'Inactivo';
+            txt.classList.toggle('active', on);
+            txt.classList.toggle('inactive', !on);
+          };
+          chk.addEventListener('change', refresh);
+        })();
+
+        // Navegación AJAX del botón “Volver/Cancelar” cuando existe #contentHost
+        (function(){
+          const host = window.parent?.document?.getElementById?.('contentHost')
+                    || document.getElementById('contentHost');
+          const hero = window.parent?.document?.getElementById?.('hero')
+                    || document.getElementById('hero');
+          document.querySelectorAll('.ajax-nav[data-url]').forEach(a=>{
+            a.addEventListener('click', async (ev)=>{
+              if(!host) return; // deja navegación normal si no hay host
+              ev.preventDefault();
+              try{
+                const url = a.dataset.url || a.href;
+                const resp = await fetch(url, { headers:{'X-Requested-With':'XMLHttpRequest'} });
+                const html = await resp.text();
+                if (hero) hero.style.display = 'none';
+                host.innerHTML = html;
+                window.parent?.scrollTo?.(0, 0);
+              }catch{ window.location.href = a.href; }
+            });
+          });
+        })();
+    </script>
+}
+
+
+
+
+
+@* @model PIOGHOASIS.Models.TipoHabitacion
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Edit</title>
+</head>
+<body>
+
+<h4>TipoHabitacion</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="TipoHabitacionID" />
+            <div class="form-group">
+                <label asp-for="Nombre" class="control-label"></label>
+                <input asp-for="Nombre" class="form-control" />
+                <span asp-validation-for="Nombre" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Descripcion" class="control-label"></label>
+                <input asp-for="Descripcion" class="form-control" />
+                <span asp-validation-for="Descripcion" class="text-danger"></span>
+            </div>
+            <div class="form-group form-check">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="Estado" /> @Html.DisplayNameFor(model => model.Estado)
+                </label>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+</body>
+</html>
+ *@

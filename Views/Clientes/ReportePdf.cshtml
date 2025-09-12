@@ -1,0 +1,212 @@
+﻿@model IEnumerable<PIOGHOASIS.Models.Cliente>
+@{
+    Layout = null;
+
+    // Logo absoluto (para wkhtmltopdf)
+    var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var logoUrl = baseUrl + Url.Content("~/img/login/logo-oasis.png");
+
+    // Filtros (como en Index de Clientes)
+    string Q(string k) => Context.Request.Query[k].FirstOrDefault();
+    var qCodigo = Q("codigo");
+    var qNombre = Q("nombre");   // en tu controlador este filtra por nombre o documento
+    var qEstado = Q("estado");
+
+    string EstadoTxt = qEstado switch { "1" => "Activo", "0" => "Inactivo", _ => "Todos" };
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Reporte de Clientes</title>
+    <style>
+        /* ===== Tipografía y layout general (seguro para wkhtmltopdf) ===== */
+        html, body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 17px;
+            color: #1f2a37;
+        }
+
+        .container {
+            padding: 14mm 12mm;
+        }
+
+        /* ===== Encabezado con marca ===== */
+        .brand {
+            display: table;
+            width: 100%;
+            border-bottom: 3px solid #d7a536;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+            .brand .left {
+                display: table-cell;
+                vertical-align: middle;
+                width: 1%;
+            }
+
+            .brand .right {
+                display: table-cell;
+                vertical-align: middle;
+                padding-left: 10px;
+            }
+
+        .logo {
+            width: 150px;
+            height: auto;
+        }
+
+        .title {
+            margin: 0;
+            font-size: 30px;
+            line-height: 1.2;
+            font-weight: 800;
+            color: #1f2a37;
+        }
+
+        .meta {
+            margin-top: 2px;
+            color: #6b7280;
+            font-size: 17px;
+        }
+
+        /* ===== Caja de filtros ===== */
+        .filters {
+            margin-top: 8px;
+            margin-bottom: 10px;
+            background: #fff8e6;
+            border: 1px solid #f3c259;
+            border-left: 5px solid #F0A100;
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+
+            .filters b {
+                color: #1f2a37;
+            }
+
+            .filters .chip {
+                margin-right: 14px;
+                white-space: nowrap;
+            }
+
+        /* ===== Tabla ===== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            background: #f3c259;
+            color: #222;
+            border: 1px solid #d7a536;
+            padding: 7px 8px;
+            text-align: left;
+            font-weight: 800;
+        }
+
+        tbody td {
+            border: 1px solid #e8e5e5;
+            padding: 7px 8px;
+            vertical-align: top;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fffaf0;
+        }
+        /* zebra */
+        tbody tr:hover {
+            background: #fff4d6;
+        }
+        /* highlight leve */
+
+        /* ===== Pills ===== */
+        .pill {
+            font-weight: 700;
+        }
+
+        .pill-ok {
+            color: #16803d;
+        }
+
+        .pill-off {
+            color: #b42318;
+        }
+
+        /* ===== Vacío ===== */
+        .empty {
+            padding: 14mm 0;
+            text-align: center;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="brand">
+            <div class="left"><img class="logo" src="@logoUrl" alt="Hotel Oasis" /></div>
+            <div class="right">
+                <h1 class="title">Reporte de Clientes</h1>
+                <div class="meta">Generado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+            </div>
+        </div>
+
+        <!-- Filtros (se muestran si vino algo en la query) -->
+        @if (!string.IsNullOrWhiteSpace(qCodigo) || !string.IsNullOrWhiteSpace(qNombre) || !string.IsNullOrWhiteSpace(qEstado))
+        {
+            <div class="filters">
+                <span class="chip"><b>Código:</b> @(string.IsNullOrWhiteSpace(qCodigo) ? "—" : qCodigo)</span>
+                <span class="chip"><b>Cliente / Documento:</b> @(string.IsNullOrWhiteSpace(qNombre) ? "—" : qNombre)</span>
+                <span class="chip"><b>Estado:</b> @EstadoTxt</span>
+            </div>
+        }
+
+        <!-- Tabla -->
+        @if (!(Model?.Any() ?? false))
+        {
+            <div class="empty">No se encontró ningún registro con los filtros seleccionados.</div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:120px;">Código</th>
+                        <th style="width:300px;">Cliente</th>
+                        <th style="width:260px;">Documento</th>
+                        <th style="width:140px;">Teléfono</th>
+                        <th style="width:90px;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                        var p = c.Persona;
+                        var nombre = string.Join(" ", new[] {
+                p?.PrimerNombre, p?.SegundoNombre, p?.PrimerApellido, p?.SegundoApellido
+                }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+                        var documento = string.Join(" ", new[] {
+                p?.TipoDocumentoID, p?.NumeroDocumento
+                }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+                        <tr>
+                            <td>@c.ClienteID</td>
+                            <td>@(string.IsNullOrWhiteSpace(nombre) ? "—" : nombre)</td>
+                            <td>@(string.IsNullOrWhiteSpace(documento) ? "—" : documento)</td>
+                            <td>@(string.IsNullOrWhiteSpace(p?.Telefono1) ? "—" : p.Telefono1)</td>
+                            <td>
+                                @Html.Raw(c.Estado
+                                         ? "<span class='pill pill-ok'>Activo</span>"
+                                         : "<span class='pill pill-off'>Inactivo</span>")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</body>
+</html>

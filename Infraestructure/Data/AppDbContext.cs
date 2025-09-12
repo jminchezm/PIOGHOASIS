@@ -25,9 +25,13 @@ namespace PIOGHOASIS.Infraestructure.Data
         //public DbSet<Cliente> clientes { get; set; } = null!;
         public DbSet<Cliente> clientes => Set<Cliente>();
 
+        public DbSet<TipoHabitacion> tiposHabitacion { get; set; } = default!;
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+
+            base.OnModelCreating(modelBuilder);
             // Aplica todas las configuraciones en el ensamblado
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
             //base.OnModelCreating(modelBuilder);
@@ -112,8 +116,15 @@ namespace PIOGHOASIS.Infraestructure.Data
                   .OnDelete(DeleteBehavior.Cascade);
             });
 
-            base.OnModelCreating(modelBuilder);
-
+            modelBuilder.Entity<TipoHabitacion>(e =>
+            {
+                e.ToTable("TIPO_HABITACION");
+                e.HasKey(x => x.TipoHabitacionID);
+                e.Property(x => x.TipoHabitacionID).HasMaxLength(10).IsUnicode(true);
+                e.Property(x => x.Nombre).HasMaxLength(100).IsUnicode(true).IsRequired();
+                e.Property(x => x.Descripcion).HasMaxLength(300).IsUnicode(true);
+                // Estado -> bit, mapeo por convención
+            });
         }
     }
 }

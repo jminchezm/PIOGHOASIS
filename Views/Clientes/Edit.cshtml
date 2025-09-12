@@ -5,8 +5,8 @@
     var avatarUrl = Url.Action("Avatar", "Clientes", new { id = Model.Cliente.ClienteID }) + "?v=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 }
 
-<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
-<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+@* <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" /> *@
+@* <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script> *@
 
 <style>
   .cli-create{position:relative;width:100%;min-height:calc(100vh - var(--header-h));padding:24px;background:linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;overflow:hidden}
@@ -49,7 +49,7 @@
         <input type="hidden" asp-for="Persona.FechaRegistro" />
 
         <!-- ===== Persona ===== -->
-        <h6 class="cc-subtitle">Datos de la Persona</h6>
+        <h6 class="cc-subtitle">Datos del Cliente</h6>
         <div class="row g-3">
           @* <div class="mb-2" id="fotoPreviewEdit">
             <img id="fotoPreview" src="@avatarUrl" class="img-thumbnail" style="max-height:140px" alt="foto-actual" />
@@ -73,51 +73,74 @@
                 </div>
             </div>
 
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label asp-for="Cliente.ClienteID" class="form-label"></label>
+                    <input asp-for="Cliente.ClienteID" class="form-control" readonly />
+                    <span asp-validation-for="Cliente.ClienteID" class="text-danger"></span>
+                </div>
+
+                @* <div class="col-12 col-md-4">
+                    <label asp-for="Persona.PersonaID" class="form-label"></label>
+                    <input asp-for="Persona.PersonaID" class="form-control" readonly />
+                    <span asp-validation-for="Persona.PersonaID" class="text-danger"></span>
+                </div> *@
+
+                <div class="col-12 col-md-4">
+                    <label asp-for="Cliente.Estado" class="form-label"></label>
+                    <select asp-for="Cliente.Estado" class="form-select">
+                        <option value="true">Activo</option>
+                        <option value="false">Inactivo</option>
+                    </select>
+                    <span asp-validation-for="Cliente.Estado" class="text-danger"></span>
+                </div>
+            </div>
+
           <div class="col-12 col-md-4">
             <label asp-for="Persona.PrimerNombre" class="form-label"></label>
-            <input asp-for="Persona.PrimerNombre" class="form-control" />
+            <input asp-for="Persona.PrimerNombre" placeholder="Ingresa primer nombre" class="form-control" />
             <span asp-validation-for="Persona.PrimerNombre" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.SegundoNombre" class="form-label"></label>
-            <input asp-for="Persona.SegundoNombre" class="form-control" />
+            <input asp-for="Persona.SegundoNombre" placeholder="Ingresa segundo nombre" class="form-control" />
             <span asp-validation-for="Persona.SegundoNombre" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.PrimerApellido" class="form-label"></label>
-            <input asp-for="Persona.PrimerApellido" class="form-control" />
+            <input asp-for="Persona.PrimerApellido" placeholder="Ingresa primer apellido" class="form-control" />
             <span asp-validation-for="Persona.PrimerApellido" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.SegundoApellido" class="form-label"></label>
-            <input asp-for="Persona.SegundoApellido" class="form-control" />
+            <input asp-for="Persona.SegundoApellido" placeholder="Ingresa segundo apellido" class="form-control" />
             <span asp-validation-for="Persona.SegundoApellido" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.Email" class="form-label"></label>
-            <input asp-for="Persona.Email" type="email" class="form-control" />
+            <input asp-for="Persona.Email" placeholder="Ingresa el correo Ej: ejemplo@gmail.com" type="email" class="form-control" />
             <span asp-validation-for="Persona.Email" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.Telefono1" class="form-label"></label>
-            <input asp-for="Persona.Telefono1" class="form-control" />
+            <input asp-for="Persona.Telefono1" maxlength="8" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Digita el teléfono" class="form-control" />
             <span asp-validation-for="Persona.Telefono1" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.Telefono2" class="form-label"></label>
-            <input asp-for="Persona.Telefono2" class="form-control" />
+            <input asp-for="Persona.Telefono2" maxlength="8" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Digita el teléfono" class="form-control" />
             <span asp-validation-for="Persona.Telefono2" class="text-danger"></span>
           </div>
 
           <div class="col-12">
             <label asp-for="Persona.Direccion" class="form-label"></label>
-            <textarea asp-for="Persona.Direccion" class="form-control" rows="2"></textarea>
+            <textarea asp-for="Persona.Direccion" placeholder="Ingresa la dirección" class="form-control" rows="2"></textarea>
             <span asp-validation-for="Persona.Direccion" class="text-danger"></span>
           </div>
 
@@ -131,13 +154,13 @@
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.NumeroDocumento" class="form-label"></label>
-            <input asp-for="Persona.NumeroDocumento" class="form-control" />
+            <input asp-for="Persona.NumeroDocumento" maxlength="13" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Ingresa el No. de documento" class="form-control" />
             <span asp-validation-for="Persona.NumeroDocumento" class="text-danger"></span>
           </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.Nit" class="form-label"></label>
-            <input asp-for="Persona.Nit" class="form-control" />
+            <input asp-for="Persona.Nit" placeholder="Ingresa el NIT" class="form-control" />
             <span asp-validation-for="Persona.Nit" class="text-danger"></span>
           </div>
 
@@ -192,10 +215,10 @@
           </div> *@
         </div>
 
-        <hr class="my-4" />
+        @* <hr class="my-4" /> *@
 
         <!-- ===== Cliente ===== -->
-        <h6 class="cc-subtitle">Datos del Cliente</h6>
+        @* <h6 class="cc-subtitle">Datos del Cliente</h6>
         <div class="row g-3">
           <div class="col-12 col-md-4">
             <label asp-for="Cliente.ClienteID" class="form-label"></label>
@@ -217,7 +240,7 @@
             </select>
             <span asp-validation-for="Cliente.Estado" class="text-danger"></span>
           </div>
-        </div>
+        </div> *@
 
         <div class="mt-4 d-flex justify-content-end">
           <button type="submit" class="btn btn-primary cc-save">
@@ -239,7 +262,8 @@
       </div>
       <div class="modal-body text-center">
         <img src="~/img/exito.png" asp-append-version="true" class="img-fluid d-block mx-auto my-2" alt="ok" style="width:50px" />
-        <p class="fw-bold mb-0">¡Cliente actualizado correctamente!</p>
+        <p style="color:#009E42;font-weight:bold;">Cliente Actualizado</p>
+        <p class="mb-0 js-msg">¡Actualizado exitosamente!</p>
       </div>
       <div class="modal-footer py-2">
         <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
@@ -257,7 +281,8 @@
       </div>
       <div class="modal-body text-center">
         <img src="~/img/advertencia.png" asp-append-version="true" class="img-fluid d-block mx-auto my-2" alt="Advertencia" style="width:50px" />
-        <p class="mb-0 js-msg">No has modificado ningún campo.</p>
+                <p style="color:#F0A100;font-weight:bold;">¡No has modificado ningún campo!</p>
+                <p class="mb-0 js-msg"></p>
       </div>
       <div class="modal-footer py-2">
         <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Entendido</button>
@@ -340,4 +365,87 @@
     if (pais && pais.value) cargarDepartamentos(pais.value);
     if (dpto && dpto.value) cargarMunicipios(parseInt(dpto.value, 10) || 0);
   })();
+
+      (function () {
+      const form = document.getElementById('cliForm');
+      if (!form) return;
+
+      function showServerErrors(errors) {
+        // Limpia errores previos
+        document.querySelectorAll('#cliForm [data-valmsg-for]').forEach(sp => { sp.textContent=''; sp.classList.remove('text-danger','invalid-feedback','d-block'); });
+        document.querySelectorAll('#cliForm .is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+        let first = null;
+        for (const k in errors) {
+          const msgs = errors[k] || [];
+          const sp = document.querySelector('#cliForm [data-valmsg-for="' + k + '"]');
+          if (sp) { sp.textContent = msgs.join(' '); sp.classList.add('text-danger','invalid-feedback','d-block'); }
+          const ctrl = document.querySelector('#cliForm [name="' + k + '"]');
+          if (ctrl) { ctrl.classList.add('is-invalid'); if (!first) first = ctrl; }
+        }
+        if (first) first.focus({ preventScroll: false });
+      }
+
+      // form.addEventListener('submit', async (e) => {
+      //   e.preventDefault();
+
+      //   const fd = new FormData(form);
+      //   try {
+      //     const resp = await fetch(form.action, {
+      //       method: 'POST',
+      //       body: fd,
+      //       headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      //     });
+
+      //     const ct = (resp.headers.get('content-type') || '').toLowerCase();
+
+      //     if (ct.includes('application/json')) {
+      //       const res = await resp.json();
+
+      //       if (res.ok) {
+      //         const m = new bootstrap.Modal(document.getElementById('saveOkModal'));
+      //         m.show();
+      //         document.getElementById('saveOkModal').addEventListener('hidden.bs.modal', function () {
+      //           window.location.href = res.redirectUrl || '/Clientes/Index';
+      //         }, { once: true });
+      //       } else if (res.reason === 'nochanges') {
+      //         new bootstrap.Modal(document.getElementById('noChangesModal')).show();
+      //       } else if (res.errors) {
+      //         showServerErrors(res.errors);
+      //       } else {
+      //         alert(res.message || 'No se pudo guardar.');
+      //       }
+      //     } else {
+      //       // Si el servidor devolvió HTML (fallback), inyecta en el host del dashboard si existe
+      //       const html = await resp.text();
+      //       const host = window.parent?.document?.getElementById?.('contentHost') || document.getElementById('contentHost');
+      //       if (host) {
+      //         host.innerHTML = html;
+      //         window.parent?.scrollTo?.(0, 0);
+      //       } else {
+      //         document.open(); document.write(html); document.close();
+      //       }
+      //     }
+      //   } catch (err) {
+      //     console.error(err);
+      //     alert('Error al enviar el formulario.');
+      //   }
+      // });
+    })();
+
+    document.addEventListener('DOMContentLoaded', function () {
+    ['noChangesModal','saveOkModal'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (!el) return;
+
+      el.addEventListener('hidden.bs.modal', function () {
+        // elimina cualquier backdrop “huérfana”
+        document.querySelectorAll('.modal-backdrop').forEach(function(b){ b.remove(); });
+        // restaura el body
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+        document.body.style.removeProperty('overflow');
+      });
+    });
+  });
 </script>

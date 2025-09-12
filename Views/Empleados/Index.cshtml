@@ -61,7 +61,7 @@
       <div class="col-12 col-md-3">
         <label class="form-label fw-semibold">Código</label>
         <div class="clearable">
-          <input type="text" class="form-control" id="fCodigo" placeholder=" " value="@qCodigo" />
+          <input type="text" class="form-control" id="fCodigo" placeholder="Buscar por código" value="@qCodigo" />
           <button type="button" class="btn-clear" aria-label="Limpiar"
                   onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));"><i class="bi bi-x-circle"></i></button>
         </div>
@@ -70,7 +70,7 @@
       <div class="col-12 col-md-4">
         <label class="form-label fw-semibold">Empleado</label>
         <div class="clearable">
-          <input type="text" class="form-control" id="fPersona" placeholder="Nombre o PersonaID" value="@qPersona" />
+          <input type="text" class="form-control" id="fPersona" placeholder="Busca por Nombre o PersonaID" value="@qPersona" />
           <button type="button" class="btn-clear" aria-label="Limpiar"
                   onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));"><i class="bi bi-x-circle"></i></button>
         </div>
@@ -79,7 +79,7 @@
       <div class="col-12 col-md-3">
         <label class="form-label fw-semibold">Puesto</label>
         <div class="clearable">
-          <input type="text" class="form-control" id="fPuesto" placeholder="Nombre o código" value="@qPuesto" />
+          <input type="text" class="form-control" id="fPuesto" placeholder="Busca por Nombre o código" value="@qPuesto" />
           <button type="button" class="btn-clear" aria-label="Limpiar"
                   onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));"><i class="bi bi-x-circle"></i></button>
         </div>
@@ -128,7 +128,7 @@
     else
     {
       <div class="table-responsive">
-        <table id="tblPuestos" class="table table-hover mb-0">
+        <table id="tblNumPaginador" class="table table-hover mb-0">
           <thead>
             <tr>
               <th style="width:140px">Código</th>

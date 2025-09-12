@@ -1,219 +1,171 @@
 ﻿@model PIOGHOASIS.Models.Empleado
 @{
-    Layout = null;
+    if (ViewBag.IsPartial == true) { Layout = null; }
 
-    var isActive   = Model?.Estado == true;
-    var actionText = isActive ? "Desactivar" : "Activar";
-    var question   = isActive
-        ? $"¿Estás seguro que deseas desactivar al empleado {Model?.EmpleadoID}?"
-        : $"¿Estás seguro que deseas activar al empleado {Model?.EmpleadoID}?";
+    var isActive = Model?.Estado == true;
+    var accion = isActive ? "Desactivar" : "Reactivar";
 
     string NombreCompleto(params string?[] parts)
         => string.Join(" ", parts.Where(x => !string.IsNullOrWhiteSpace(x)));
 
-    var fotoSrc = (Model?.Persona != null && !string.IsNullOrWhiteSpace(Model.Persona.FotoPath))
-        ? Url.Content("~/" + Model.Persona.FotoPath)
-        : Url.Content("~/img/DefaultUsuario.png");
+    // Usa el endpoint Avatar de Empleados (ya lo tienes en el controller)
+    var avatarSrc = $"/Empleados/Avatar/{Model?.EmpleadoID}";
 }
 
 <style>
-    /* ===== Fondo y contenedor ===== */
-    .puestos-details{
-      position:relative;width:100%;
-      min-height:calc(100vh - var(--header-h));
-      padding:24px;
-      background:
-        linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)),
-        url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
-      overflow:hidden;
+    .usr-form {
+        position: relative;
+        margin-top: 0;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
     }
 
-    /* Tarjeta y encabezado (mismo Details Empleados) */
-    .pd-card{background:rgba(255,255,255,.85);border:1px solid rgba(0,0,0,.06);
-      border-radius:.75rem;box-shadow:0 8px 28px rgba(0,0,0,.08);backdrop-filter:blur(2px);}
-    .pd-header{background:#f0a100;color:#1f2a37;font-weight:800;padding:.75rem 1rem;
-      border-top-left-radius:.75rem;border-top-right-radius:.75rem;border-bottom:2px solid #d7a536;
-      font-size:clamp(1.05rem,1.6vw,1.25rem);}
-    .pd-field{padding:1rem .25rem;border-bottom:1px solid rgba(0,0,0,.08);}
-    .pd-label{font-weight:800;color:#1f2a37;}
-    .pd-value{color:#111827;}
+    .usr-card {
+        background: rgba(255,255,255,.90);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 6px 22px rgba(0,0,0,.08);
+    }
 
-    .pill{display:inline-block;padding:.15rem .5rem;border-radius:999px;font-size:.9rem;font-weight:700;border:1px solid transparent;}
-    .pill-ok{background:#e8f7e9;color:#16803d;border-color:#bfe8c2;}
-    .pill-off{background:#fff0f0;color:#b42318;border-color:#f5c2c7;}
+    .usr-title {
+        background: #f3c259;
+        color: #222;
+        font-weight: 800;
+        font-size: 1.25rem;
+        padding: .75rem 1rem;
+        border-radius: .75rem .75rem 0 0;
+    }
 
-    .pd-actions .btn-danger-soft{background:#fce2e2;color:#b42318;border:1px solid #f5c2c7;
-      font-weight:800;padding:.7rem 1.25rem;box-shadow:0 10px 22px rgba(220,53,69,.15);}
-    .pd-actions .btn-danger-soft:hover{filter:brightness(.98);}
+    .dl-row dt {
+        font-weight: 700;
+        color: #1f2a37;
+    }
 
-    .pd-back{position:sticky;top:calc(var(--header-h) + 8px);z-index:2;display:inline-flex;align-items:center;gap:.35rem;
-      background:#4b5563;color:#fff;border:none;border-radius:.5rem;padding:.45rem .85rem;text-decoration:none;
-      box-shadow:0 4px 14px rgba(0,0,0,.15);}
-    .pd-back:hover{filter:brightness(.95);color:#fff;}
-
-    /* Foto (igual que Details Empleados) */
-    .emp-photo-box{width:250px;height:250px;border-radius:.5rem;background:#fff;border:1px solid rgba(0,0,0,.08);
-      box-shadow:0 4px 16px rgba(0,0,0,.06);overflow:hidden;display:flex;align-items:center;justify-content:center;}
-    .emp-photo-box img{max-width:100%;max-height:100%;object-fit:contain;}
-
-    /* print solo tarjeta */
-    @@media print{
-      body *{visibility:hidden;}
-      #delCard,#delCard *{visibility:visible;}
-      #delCard{position:fixed;inset:0;margin:0;}
+    .dl-row dd {
+        color: #111827;
     }
 </style>
 
-<div class="puestos-details">
-    <!-- Volver -->
+<div class="usr-form">
     <div class="d-flex justify-content-end mb-2">
-        <a class="pd-back ajax-nav" href="/Empleados/Index" data-url="/Empleados/Index">
+        <a class="btn btn-secondary ajax-nav" href="/Empleados/Index" data-url="/Empleados/Index">
             <i class="bi bi-arrow-left"></i> Volver a la lista
         </a>
     </div>
 
-    <div id="delCard" class="pd-card">
-        <div class="pd-header">@question</div>
+    <div class="usr-card">
+        <div class="usr-title">@accion Empleado</div>
 
         <div class="p-3 p-md-4">
-            <div class="row g-3">
-                <!-- Datos a la izquierda -->
-                <div class="col-12 col-lg-9">
-                    <div class="pd-field row">
-                        <div class="col-12 col-md-3 pd-label">Empleado:</div>
-                        <div class="col-12 col-md-9 pd-value">
-                            @NombreCompleto(Model?.Persona?.PrimerNombre, Model?.Persona?.SegundoNombre, Model?.Persona?.PrimerApellido, Model?.Persona?.SegundoApellido)
-                            (@Model?.EmpleadoID)
-                        </div>
+            <!-- Cabecera compacta como Clientes -->
+            <div class="d-flex align-items-center mb-3">
+                <img class="rounded me-3" style="width:56px;height:56px;object-fit:cover" src="@avatarSrc" alt="Avatar" />
+                <div>
+                    <div class="fw-bold">
+                        @NombreCompleto(Model?.Persona?.PrimerNombre, Model?.Persona?.SegundoNombre, Model?.Persona?.PrimerApellido, Model?.Persona?.SegundoApellido)
                     </div>
-
-                    <div class="pd-field row">
-                        <div class="col-12 col-md-3 pd-label">Puesto:</div>
-                        <div class="col-12 col-md-9 pd-value">@((Model?.Puesto?.Nombre ?? Model?.PuestoID) ?? "-")</div>
-                    </div>
-
-                    <div class="pd-field row">
-                        <div class="col-12 col-md-3 pd-label">Fecha de creación:</div>
-                        <div class="col-12 col-md-9 pd-value">@(Model?.Persona?.FechaRegistro?.ToString("dd/MM/yyyy") ?? "-")</div>
-                    </div>
-
-                    <div class="pd-field row">
-                        <div class="col-12 col-md-3 pd-label">Estado:</div>
-                        <div class="col-12 col-md-9 pd-value">
-                            @(isActive ? Html.Raw("<span class='pill pill-ok'>Activo</span>")
-                                       : Html.Raw("<span class='pill pill-off'>Inactivo</span>"))
-                        </div>
-                    </div>
-
-                    <div class="pd-field row">
-                        <div class="col-12 col-md-3 pd-label">No. Documento:</div>
-                        <div class="col-12 col-md-9 pd-value">@(string.IsNullOrWhiteSpace(Model?.Persona?.NumeroDocumento) ? "-" : Model.Persona.NumeroDocumento)</div>
-                    </div>
-
-                    <div class="pd-field row" style="border-bottom:none;">
-                        <div class="col-12 col-md-3 pd-label">Correo electrónico:</div>
-                        <div class="col-12 col-md-9 pd-value">@(string.IsNullOrWhiteSpace(Model?.Persona?.Email) ? "-" : Model.Persona.Email)</div>
-                    </div>
-
-                    <div class="pd-actions mt-4 d-flex justify-content-center">
-                        <form id="frmDelete" asp-action="ToggleEstado" data-ajax="true" method="post" class="m-0">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model?.EmpleadoID" />
-                            <button id="btnAsk" type="button" class="btn btn-danger-soft">
-                                <i class="bi bi-trash3 me-1"></i> @actionText
-                            </button>
-                        </form>
-                    </div>
+                    <small class="text-muted">Código: @Model?.EmpleadoID</small>
                 </div>
+            </div>
+            <hr />
 
-                <!-- Foto a la derecha -->
-                <div class="col-12 col-lg-3 d-flex align-items-start justify-content-center justify-content-lg-end">
-                    <div class="emp-photo-box">
-                        <img src="@fotoSrc" alt="Foto del empleado" />
-                    </div>
-                </div>
+            <!-- Todos los datos que mostrabas en tu Delete actual -->
+            <dl class="row dl-row mb-3">
+                <dt class="col-sm-3">Puesto</dt>
+                <dd class="col-sm-9">@((Model?.Puesto?.Nombre ?? Model?.PuestoID) ?? "-")</dd>
+
+                <dt class="col-sm-3">Fecha de creación</dt>
+                <dd class="col-sm-9">@((Model?.Persona?.FechaRegistro)?.ToString("dd/MM/yyyy") ?? "-")</dd>
+
+                <dt class="col-sm-3">Estado</dt>
+                <dd class="col-sm-9">@((Model?.Estado ?? false) ? "Activo" : "Inactivo")</dd>
+
+                <dt class="col-sm-3">No. Documento</dt>
+                <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model?.Persona?.NumeroDocumento) ? Model.Persona.NumeroDocumento : "-")</dd>
+
+                <dt class="col-sm-3">Correo electrónico</dt>
+                <dd class="col-sm-9">@(!string.IsNullOrWhiteSpace(Model?.Persona?.Email) ? Model.Persona.Email : "-")</dd>
+            </dl>
+
+            <p>¿Seguro que deseas <strong>@accion.ToLower()</strong> este empleado?</p>
+
+            <div class="mt-3">
+                <a href="#" id="btnAsk" class="btn @(isActive ? "btn-danger" : "btn-success")">
+                    <i class="bi @(isActive ? "bi-power" : "bi-check-circle")"></i> @accion
+                </a>
+                <a class="btn btn-outline-secondary ms-2 ajax-nav" href="/Empleados/Index" data-url="/Empleados/Index">Cancelar</a>
+            </div>
+
+            <form id="frmDelete" asp-action="ToggleEstado" asp-controller="Empleados" method="post" class="d-none" data-ajax="true">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model?.EmpleadoID" />
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación (igual patrón que Clientes) -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header @(isActive ? "bg-danger" : "bg-success") text-white py-2">
+                <h6 class="modal-title mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Confirmar
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                ¿Deseas @accion.ToLower() al empleado <strong>
+                    @NombreCompleto(Model?.Persona?.PrimerNombre, Model?.Persona?.PrimerApellido)
+                </strong> (@Model?.EmpleadoID)?
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirm" class="btn @(isActive ? "btn-danger" : "btn-success")">@accion</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal confirmación -->
-<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white py-2">
-        <h6 class="modal-title mb-0">
-          <i class="bi bi-exclamation-octagon me-1"></i> Confirmar @actionText
-        </h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        @if (isActive){
-            <span>Esta acción <strong>desactivará</strong> al empleado <strong>@Model?.EmpleadoID</strong>. ¿Deseas continuar?</span>
-        } else {
-            <span>Esta acción <strong>activará</strong> al empleado <strong>@Model?.EmpleadoID</strong>. ¿Deseas continuar?</span>
-        }
-      </div>
-      <div class="modal-footer py-2">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-danger" id="btnConfirm">
-            <i class="bi bi-trash3 me-1"></i> @actionText
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 @section Scripts {
-<script>
-(() => {
-  const form     = document.getElementById('frmDelete');
-  const btnAsk   = document.getElementById('btnAsk');
-  const btnOk    = document.getElementById('btnConfirm');
-  const modalEl  = document.getElementById('confirmDeleteModal');
-  const modal    = bootstrap.Modal.getOrCreateInstance(modalEl);
+    <script>
+        (() => {
+            const form = document.getElementById('frmDelete');
+            const btnAsk = document.getElementById('btnAsk');
+            const btnOk = document.getElementById('btnConfirm');
+            const modalEl = document.getElementById('confirmDeleteModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
 
-  btnAsk?.addEventListener('click', () => modal.show());
+            btnAsk?.addEventListener('click', (e) => { e.preventDefault(); modal.show(); });
 
-  // Intercepta el submit y lo envía por fetch para soportar Dashboard (#contentHost) o navegación normal
-  form?.addEventListener('submit', async (ev) => {
-    ev.preventDefault();
-    const fd = new FormData(form);
+            form?.addEventListener('submit', async (ev) => {
+                ev.preventDefault();
+                const fd = new FormData(form);
+                try {
+                    const resp = await fetch(form.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                    // Si el action devuelve Partial directamente, recargamos Index en el host
+                    const host = window.parent?.document?.getElementById?.('contentHost') || document.getElementById('contentHost');
+                    const hero = window.parent?.document?.getElementById?.('hero') || document.getElementById('hero');
+                    const redirectUrl = '/Empleados/Index';
+                    if (host) {
+                        const htmlResp = await fetch(redirectUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                        const html = await htmlResp.text();
+                        if (hero) hero.style.display = 'none';
+                        host.innerHTML = html;
+                        window.parent?.scrollTo?.(0, 0);
+                    } else {
+                        window.location.assign(redirectUrl);
+                    }
+                } catch {
+                    window.location.assign('/Empleados/Index');
+                }
+            });
 
-    try {
-      const resp = await fetch(form.action, {
-        method: 'POST',
-        body: fd,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      });
-
-      // Puede venir JSON con redirectUrl (EmpleadosController.ToggleEstado)
-      let data;
-      try { data = await resp.json(); } catch { data = null; }
-
-      const redirectUrl = data?.redirectUrl || '/Empleados/Index';
-      const host = window.parent?.document?.getElementById?.('contentHost') || document.getElementById('contentHost');
-      const hero = window.parent?.document?.getElementById?.('hero') || document.getElementById('hero');
-
-      if (host) {
-        const htmlResp = await fetch(redirectUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        const html = await htmlResp.text();
-        if (hero) hero.style.display = 'none';
-        host.innerHTML = html;
-        window.parent?.scrollTo?.(0,0);
-      } else {
-        window.location.assign(redirectUrl);
-      }
-    } catch (e) {
-      // Fallback: redirect duro
-      window.location.assign('/Empleados/Index');
-    }
-  });
-
-  btnOk?.addEventListener('click', () => {
-    if (form.requestSubmit) form.requestSubmit();
-    else form.submit();
-  });
-})();
-</script>
+            btnOk?.addEventListener('click', () => {
+                if (form.requestSubmit) form.requestSubmit(); else form.submit();
+            });
+        })();
+    </script>
 }

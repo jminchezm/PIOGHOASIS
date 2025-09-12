@@ -24,6 +24,16 @@
 
     #imgModal{ width:50px; height:auto; }
     #tituloModal{ color:#009E42; font-weight:bold; }
+
+    #imgAdvertenciaModal {
+        width: 50px;
+        height: auto;
+    }
+
+    #tituloAdvertenciaModal {
+        color: #F0A100;
+        font-weight: bold;
+    }
 </style>
 
 <div class="usr-form">
@@ -49,7 +59,7 @@
 
                     <div class="col-12 col-md-8">
                         <label class="form-label fw-semibold">Nombre de Usuario*</label>
-                        <input asp-for="UsuarioNombre" class="form-control" required />
+                        <input asp-for="UsuarioNombre" placeholder="Ingresa el nombre de usuario" class="form-control" required />
                         <span asp-validation-for="UsuarioNombre" class="text-danger"></span>
                     </div>
 
@@ -71,16 +81,18 @@
 
                     <div class="col-12">
                         <label class="form-label fw-semibold">Empleado*</label>
-                        <select asp-for="EmpleadoID" asp-items="empleados" class="form-select" required>
+@*                         <input asp-for="Empleado.Persona." asp-items="empleados" class="form-select" readonly />
+ *@                        <select asp-for="EmpleadoID" asp-items="empleados" class="form-select" disabled>
                             <option value="">Selecciona al empleado</option>
                         </select>
+                        <input type="hidden" asp-for="EmpleadoID" />
                         <span asp-validation-for="EmpleadoID" class="text-danger"></span>
                     </div>
 
                     <!-- Cambio de contraseña OPCIONAL -->
                     <div class="col-12">
                         <label class="form-label fw-semibold">Nueva contraseña (opcional)</label>
-                        <input asp-for="NuevaContrasena" type="password" class="form-control" autocomplete="new-password" />
+                        <input asp-for="NuevaContrasena" placeholder="Ingresa Nueva Contraseña" type="password" class="form-control" autocomplete="new-password" />
                         <span asp-validation-for="NuevaContrasena" class="text-danger"></span>
 
                         <div class="note mt-2">
@@ -96,7 +108,7 @@
 
                     <div class="col-12">
                         <label class="form-label fw-semibold">Confirmar nueva contraseña</label>
-                        <input asp-for="ConfirmarContrasena" type="password" class="form-control" autocomplete="new-password" />
+                        <input asp-for="ConfirmarContrasena" placeholder="Ingresa confirmación de nueva contraseña" type="password" class="form-control" autocomplete="new-password" />
                         <span asp-validation-for="ConfirmarContrasena" class="text-danger"></span>
                         <small id="pwMatchMsg" class="form-text"></small>
                     </div>
@@ -125,10 +137,34 @@
             </div>
             <div class="modal-body text-center">
                 <img id="imgModal" src="~/img/exito.png" asp-append-version="true" class="img-fluid d-block mx-auto my-2" alt="Éxito" />
-                <p class="mb-0 js-msg">¡Cambios guardados!</p>
+                <p id="tituloModal" style="color:#009E42;font-weight:700;">Usuario Actualizado</p>
+                <p class="mb-0 js-msg">¡Actualizado exitosamente!</p>
             </div>
             <div class="modal-footer py-2">
                 <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: sin cambios -->
+<div class="modal fade" id="noChangesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark py-2">
+                <h6 class="modal-title mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Sin cambios
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="imgAdvertenciaModal" src="~/img/advertencia.png" asp-append-version="true"
+                     class="img-fluid d-block mx-auto my-2" alt="Advertencia" />
+                <p id="tituloAdvertenciaModal">¡No has modificado ningún campo!</p>
+                <p class="mb-0 js-msg">Realiza un cambio antes de guardar.</p>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Entendido</button>
             </div>
         </div>
     </div>

@@ -107,7 +107,7 @@
                 <input type="hidden" asp-for="Persona.FechaRegistro" />
 
                 <!-- ===== Datos Persona ===== -->
-                <h6 class="pc-subtitle">Datos de la Persona</h6>
+                <h6 class="pc-subtitle">Datos del Cliente</h6>
                 <div class="row g-3">
                     @* <div class="mb-2">
                         <img id="fotoPreviewEdit"
@@ -140,58 +140,93 @@
                         </div>
                     </div>
 
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Empleado.EmpleadoID" class="form-label">Código</label>
+                            <input asp-for="Empleado.EmpleadoID" class="form-control" readonly />
+                            <span asp-validation-for="Empleado.EmpleadoID" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12 col-md-4"></div>
+
+                        <div class="col-12 col-md-4"></div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Empleado.PuestoID" class="form-label">Puesto*</label>
+                            <select asp-for="Empleado.PuestoID" class="form-select" asp-items="ViewBag.Puestos">
+                                <option value="">Seleccione un puesto</option>
+                            </select>
+                            <span asp-validation-for="Empleado.PuestoID" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label asp-for="Empleado.FechaContratacion" class="form-label">Fecha de contratación</label>
+                            <input asp-for="Empleado.FechaContratacion" class="form-control" type="date" />
+                            <span asp-validation-for="Empleado.FechaContratacion" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">Estado*</label>
+                            <select asp-for="Empleado.Estado" class="form-select">
+                                <option value="true">Activo</option>
+                                <option value="false">Inactivo</option>
+                            </select>
+                            <span asp-validation-for="Empleado.Estado" class="text-danger"></span>
+                        </div>
+                    </div>
+
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.PrimerNombre" class="form-label">Primer nombre*</label>
-                        <input asp-for="Persona.PrimerNombre" class="form-control" />
+                        <input asp-for="Persona.PrimerNombre" placeholder="Ingresa el primer nombre" class="form-control" />
                         <span asp-validation-for="Persona.PrimerNombre" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.SegundoNombre" class="form-label">Segundo nombre</label>
-                        <input asp-for="Persona.SegundoNombre" class="form-control" />
+                        <input asp-for="Persona.SegundoNombre" placeholder="Ingresa el segundo nombre" class="form-control" />
                         <span asp-validation-for="Persona.SegundoNombre" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.PrimerApellido" class="form-label">Primer apellido*</label>
-                        <input asp-for="Persona.PrimerApellido" class="form-control" />
+                        <input asp-for="Persona.PrimerApellido" placeholder="Ingresa el primer apellido"  class="form-control" />
                         <span asp-validation-for="Persona.PrimerApellido" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.SegundoApellido" class="form-label">Segundo apellido</label>
-                        <input asp-for="Persona.SegundoApellido" class="form-control" />
+                        <input asp-for="Persona.SegundoApellido" placeholder="Ingresa el segundo apellido" class="form-control" />
                         <span asp-validation-for="Persona.SegundoApellido" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.ApellidoCasada" class="form-label">Apellido de casada</label>
-                        <input asp-for="Persona.ApellidoCasada" class="form-control" />
+                        <input asp-for="Persona.ApellidoCasada" placeholder="Ingresa el apellido de casada" class="form-control" />
                         <span asp-validation-for="Persona.ApellidoCasada" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.Email" class="form-label">Email</label>
-                        <input asp-for="Persona.Email" class="form-control" type="email" />
+                        <input asp-for="Persona.Email" placeholder="Ingresa el correo Ej: ejemplo@gmail.com" class="form-control" type="email" />
                         <span asp-validation-for="Persona.Email" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.Telefono1" class="form-label">Teléfono 1*</label>
-                        <input asp-for="Persona.Telefono1" class="form-control" />
+                        <input asp-for="Persona.Telefono1" maxlength="8" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Digita el teléfono" class="form-control" />
                         <span asp-validation-for="Persona.Telefono1" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.Telefono2" class="form-label">Teléfono 2</label>
-                        <input asp-for="Persona.Telefono2" class="form-control" />
+                        <input asp-for="Persona.Telefono2" maxlength="8" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Digita el teléfono" class="form-control" />
                         <span asp-validation-for="Persona.Telefono2" class="text-danger"></span>
                     </div>
 
                     <div class="col-12">
                         <label asp-for="Persona.Direccion" class="form-label">Dirección*</label>
-                        <textarea asp-for="Persona.Direccion" class="form-control" rows="2"></textarea>
+                        <textarea asp-for="Persona.Direccion" placeholder="Ingresa la dirección" class="form-control" rows="2"></textarea>
                         <span asp-validation-for="Persona.Direccion" class="text-danger"></span>
                     </div>
 
@@ -205,13 +240,13 @@
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.NumeroDocumento" class="form-label">Número de documento*</label>
-                        <input asp-for="Persona.NumeroDocumento" class="form-control" />
+                        <input asp-for="Persona.NumeroDocumento" maxlength="13" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Ingresa el No. de documento" class="form-control" />
                         <span asp-validation-for="Persona.NumeroDocumento" class="text-danger"></span>
                     </div>
 
                     <div class="col-12 col-md-4">
                         <label asp-for="Persona.Nit" class="form-label">NIT</label>
-                        <input asp-for="Persona.Nit" class="form-control" />
+                        <input asp-for="Persona.Nit" placeholder="Ingresa el NIT" class="form-control" />
                         <span asp-validation-for="Persona.Nit" class="text-danger"></span>
                     </div>
 
@@ -285,10 +320,10 @@
 
                 </div>
 
-                <hr class="my-4" />
+                @* <hr class="my-4" /> *@
 
                 <!-- ===== Datos del Empleado ===== -->
-                <h6 class="pc-subtitle">Datos del Empleado</h6>
+                @* <h6 class="pc-subtitle">Datos del Empleado</h6>
                 <div class="row g-3">
                     <div class="col-12 col-md-4">
                         <label asp-for="Empleado.EmpleadoID" class="form-label">Código</label>
@@ -318,7 +353,7 @@
                         </select>
                         <span asp-validation-for="Empleado.Estado" class="text-danger"></span>
                     </div>
-                </div>
+                </div> *@
 
                 <div class="mt-4 d-flex justify-content-end">
                     <button type="submit" class="btn btn-primary pc-save">
@@ -340,8 +375,8 @@
             </div>
             <div class="modal-body text-center">
                 <img src="~/img/exito.png" asp-append-version="true" class="img-fluid d-block mx-auto my-2" alt="ok" style="width:50px;height:auto;" />
-                <p style="color:#009E42;font-weight:bold;">Empleado actualizado</p>
-                <p class="mb-0 js-msg">¡Los cambios se guardaron correctamente!</p>
+                <p style="color:#009E42;font-weight:bold;">Empleado Actualizado</p>
+                <p class="mb-0 js-msg">¡Actualizado exitosamente!</p>
             </div>
             <div class="modal-footer py-2">
                 <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>

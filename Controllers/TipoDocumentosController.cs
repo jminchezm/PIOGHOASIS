@@ -121,7 +121,7 @@ namespace PIOGHOASIS.Controllers
 
             if (!hadChanges)
             {
-                return Json(new { ok = false, reason = "nochanges", message = "No has modificado ningún campo." });
+                return Json(new { ok = false, reason = "nochanges", message = "Realiza un cambio antes de guardar." });
             }
 
             await _context.SaveChangesAsync();

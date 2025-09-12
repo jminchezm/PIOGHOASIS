@@ -183,7 +183,7 @@
             <div class="col-12 col-md-3">
                 <label class="form-label fw-semibold">Código</label>
                 <div class="clearable">
-                    <input type="text" class="form-control" id="fCodigo" placeholder=" " value="@qCodigo" />
+                    <input type="text" class="form-control" id="fCodigo" placeholder="Buscar por código" value="@qCodigo" />
                     <button type="button" class="btn-clear" aria-label="Limpiar"
                             onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));">
                         <i class="bi bi-x-circle"></i>
@@ -194,7 +194,7 @@
             <div class="col-12 col-md-3">
                 <label class="form-label fw-semibold">Nombre</label>
                 <div class="clearable">
-                    <input type="text" class="form-control" id="fNombre" placeholder="Usuario o nombre completo" value="@qNombre" />
+                    <input type="text" class="form-control" id="fNombre" placeholder="Buscar por usuario o nombre completo" value="@qNombre" />
                     <button type="button" class="btn-clear" aria-label="Limpiar"
                             onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));">
                         <i class="bi bi-x-circle"></i>
@@ -205,7 +205,7 @@
             <div class="col-12 col-md-3">
                 <label class="form-label fw-semibold">Rol</label>
                 <div class="clearable">
-                    <input type="text" class="form-control" id="fRol" placeholder="Nombre o código de rol" value="@qRol" list="rolesList" />
+                    <input type="text" class="form-control" id="fRol" placeholder="Buscar por nombre del rol" value="@qRol" list="rolesList" />
                     <button type="button" class="btn-clear" aria-label="Limpiar"
                             onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));">
                         <i class="bi bi-x-circle"></i>
@@ -253,7 +253,7 @@
         else
         {
             <div class="table-responsive">
-                <table id="tblUsuarios" class="table table-hover mb-0">
+                <table id="tblNumPaginador" class="table table-hover mb-0">
                     <thead>
                         <tr>
                             <th style="width:140px">Código</th>

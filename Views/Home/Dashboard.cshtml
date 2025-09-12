@@ -89,7 +89,7 @@
         <nav id="appSidebar" class="sidebar">
             <ul class="menu">
                 <li class="active">
-                    <a href="/Home/Index" data-url="/Dashboard/Inicio">
+                    <a href="/Home/Dashboard" data-url="/Home/Dashboard" data-home="1">
                         <i class="bi bi-house-door"></i> <span>Inicio</span>
                     </a>
                 </li>
@@ -121,7 +121,7 @@
                     </a>
                     <ul class="submenu">
                         <li><a href="/Habitaciones/Index" data-url="/Habitaciones/Index"><span>Habitaciones</span></a></li>
-                        <li><a href="/Habitaciones/Tipos" data-url="/Habitaciones/Tipos"><span>Tipo de Habitación</span></a></li>
+                        <li><a href="/TiposHabitacion/Index" data-url="/TiposHabitacion/Index"><span>Tipo de Habitación</span></a></li>
                     </ul>
                 </li>
 
@@ -373,11 +373,31 @@ document.querySelectorAll('.menu .has-children > a[data-toggle="submenu"]').forE
 
   // Menú lateral: enlaces con data-url
   document.querySelectorAll('.menu a[data-url]').forEach(a => {
-    a.addEventListener('click', (ev) => {
-      ev.preventDefault();
-      loadToHost(a.dataset.url || a.href);
-    });
+  a.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    const url = a.dataset.url || a.href;
+
+    // --- Inicio: mostrar hero y limpiar el host ---
+    if (a.dataset.home === '1' || url.endsWith('/Home/Index')) {
+      const host = document.getElementById('contentHost');
+      const hero = document.getElementById('hero');
+      if (host) host.innerHTML = '';
+      if (hero) hero.style.display = '';  // vuelve a mostrar el hero
+      history.replaceState(null, '', url); // opcional: actualiza la URL
+      return; // importante: no llames a loadToHost
+    }
+
+    // Resto de opciones: carga parcial por AJAX
+    loadToHost(url);
   });
+});
+
+  // document.querySelectorAll('.menu a[data-url]').forEach(a => {
+  //   a.addEventListener('click', (ev) => {
+  //     ev.preventDefault();
+  //     loadToHost(a.dataset.url || a.href);
+  //   });
+  // });
 
   // Delegación de CLICS dentro del host
   host.addEventListener('click', (ev) => {
@@ -537,22 +557,51 @@ document.querySelectorAll('.menu .has-children > a[data-toggle="submenu"]').forE
 
     if (data) {
       if (data.ok) {
+
+        // // 1) si hay URL de retorno, SIEMPRE recarga el parcial por AJAX
+        // if (data.redirectUrl) {
+        //     await loadToHost(data.redirectUrl);
+        // }
+        // // 2) opcional: muestra modal de éxito si existe
+        // const okEl = document.getElementById('saveOkModal');
+        // if (okEl && window.bootstrap) {
+        //     bootstrap.Modal.getOrCreateInstance(okEl).show();
+        // }
+
+        // lo que debe ocurrir DESPUÉS del modal
+        const doReload = async () => {
+        if (data.redirectUrl) {
+            cleanupModals();              // por si quedó algún backdrop
+            await loadToHost(data.redirectUrl);  // recarga el parcial en #contentHost
+        }
+        };
+
+        // si existe un modal de éxito, muéstralo y recarga al cerrarlo
         const okEl = document.getElementById('saveOkModal');
         if (okEl && window.bootstrap) {
-          const inst = bootstrap.Modal.getOrCreateInstance(okEl);
-          inst.show();
-          if (data.redirectUrl) okEl.addEventListener('hidden.bs.modal', () => {
-            const host = document.getElementById('contentHost');
-            if (host) {
-              fetch(data.redirectUrl, { headers: { 'X-Requested-With':'XMLHttpRequest' } })
-                .then(r => r.text()).then(html => { host.innerHTML = html; wireUpValidation(host); initPageFeatures(host); });
-            } else {
-              window.location.href = data.redirectUrl;
-            }
-          }, { once: true });
-        } else if (data.redirectUrl) {
-          window.location.href = data.redirectUrl;
+        okEl.addEventListener('hidden.bs.modal', () => { doReload(); }, { once: true });
+        bootstrap.Modal.getOrCreateInstance(okEl).show();
+        } else {
+        // si no hay modal de éxito, recarga directo
+        await doReload();
         }
+
+        // const okEl = document.getElementById('saveOkModal');
+        // if (okEl && window.bootstrap) {
+        //   const inst = bootstrap.Modal.getOrCreateInstance(okEl);
+        //   inst.show();
+        //   if (data.redirectUrl) okEl.addEventListener('hidden.bs.modal', () => {
+        //     const host = document.getElementById('contentHost');
+        //     if (host) {
+        //       fetch(data.redirectUrl, { headers: { 'X-Requested-With':'XMLHttpRequest' } })
+        //         .then(r => r.text()).then(html => { host.innerHTML = html; wireUpValidation(host); initPageFeatures(host); });
+        //     } else {
+        //       window.location.href = data.redirectUrl;
+        //     }
+        //   }, { once: true });
+        // } else if (data.redirectUrl) {
+        //   window.location.href = data.redirectUrl;
+        // }
         return;
       }
       if (data.reason === 'nochanges') {
@@ -783,7 +832,8 @@ window.initPuestosPager = function initPuestosPager(rootEl) {
   if (!wrap) return;
 
   const pageSize = 9;
-  const $tbody = wrap.querySelector('#tblPuestos tbody');
+  // const $tbody = wrap.querySelector('#tblPuestos tbody');
+  const $tbody = wrap.querySelector('#tblNumPaginador tbody');
   const rows = Array.from($tbody?.querySelectorAll('tr') || []);
   const $pager = wrap.querySelector('#pager');
   const $info = wrap.querySelector('#infoRows');

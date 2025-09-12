@@ -1,0 +1,151 @@
+﻿@model PIOGHOASIS.Models.TipoHabitacion
+@{
+    Layout = null;
+
+    var isActive  = Model?.Estado == true;
+    var actionText = isActive ? "Desactivar" : "Activar";
+    var question   = isActive
+        ? $"¿Estás seguro que deseas desactivar el Tipo de Habitación: {Model?.TipoHabitacionID}?"
+        : $"¿Estás seguro que deseas activar el Tipo de Habitación: {Model?.TipoHabitacionID}?";
+}
+
+<style>
+  .th-delete{
+      position:relative;width:100%;
+      min-height:calc(100vh - var(--header-h));
+      padding:24px;
+      background:linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)),
+                 url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+      overflow:hidden;
+  }
+  .del-card{ background:rgba(255,255,255,.85); border:1px solid rgba(0,0,0,.06);
+             border-radius:.75rem; box-shadow:0 8px 28px rgba(0,0,0,.08); backdrop-filter:blur(2px); }
+  .del-header{ background:#f0a100; color:#1f2a37; font-weight:800; padding:.9rem 1rem;
+               border-top-left-radius:.75rem; border-top-right-radius:.75rem; border-bottom:2px solid #d7a536;
+               font-size:clamp(1.05rem,1.7vw,1.35rem); }
+  .del-body{ padding:1.25rem; }
+  .del-row{ display:grid; grid-template-columns:180px 1fr; gap:1rem; padding:1rem 0;
+            border-bottom:1px solid rgba(0,0,0,.08); }
+  @@media (max-width:768px){ .del-row{ grid-template-columns:1fr; } }
+  .del-label{ font-weight:800; color:#1f2a37; }
+  .del-val{ color:#111827; white-space:pre-wrap; }
+
+  .pill{ display:inline-block; padding:.15rem .5rem; border-radius:999px; font-weight:700; border:1px solid transparent; }
+  .pill-ok{  background:#e8f7e9; color:#16803d; border-color:#bfe8c2; }
+  .pill-off{ background:#fff0f0; color:#b42318; border-color:#f5c2c7; }
+
+  .del-footer{ padding:1rem 1.25rem 1.5rem; display:flex; justify-content:center; }
+
+  .btn-danger-soft{ background:#fce2e2; color:#b42318; border:1px solid #f5c2c7; font-weight:800;
+                    padding:.7rem 1.25rem; box-shadow:0 10px 22px rgba(220,53,69,.15); }
+  .btn-danger-soft:hover{ filter:brightness(.98); }
+
+  /* imprimir solo la tarjeta */
+  @@media print{
+    body *{ visibility:hidden; }
+    #delPrint, #delPrint *{ visibility:visible; }
+    #delPrint{ position:fixed; inset:0; margin:0; }
+  }
+
+  /* botón volver (reutiliza estilo de Edit/Create) */
+  .pe-back{
+      position:sticky; top:calc(var(--header-h) + 8px); z-index:2;
+      display:inline-flex; align-items:center; gap:.35rem;
+      background:#4b5563; color:#fff; border:none; border-radius:.5rem;
+      padding:.4rem .75rem; text-decoration:none; box-shadow:0 4px 14px rgba(0,0,0,.15);
+  }
+  .pe-back:hover{ filter:brightness(.95); color:#fff; }
+</style>
+
+<div class="th-delete">
+  <!-- volver -->
+  <div class="d-flex justify-content-end mb-2">
+    <a class="pe-back ajax-nav" href="/TiposHabitacion/Index" data-url="/TiposHabitacion/Index" title="Volver a la lista">
+      <i class="bi bi-arrow-left"></i> Volver a la lista
+    </a>
+  </div>
+
+  <!-- tarjeta -->
+  <div id="delPrint" class="del-card">
+    <div class="del-header">@question</div>
+
+    <div class="del-body">
+      <div class="del-row">
+        <div class="del-label">Nombre:</div>
+        <div class="del-val">@Model?.Nombre</div>
+      </div>
+      <div class="del-row">
+        <div class="del-label">Descripción:</div>
+        <div class="del-val">@Model?.Descripcion</div>
+      </div>
+      <div class="del-row" style="border-bottom:none;">
+        <div class="del-label">Estado</div>
+        <div class="del-val">
+          @(isActive
+              ? Html.Raw("<span class='pill pill-ok'>Activo</span>")
+              : Html.Raw("<span class='pill pill-off'>Inactivo</span>"))
+        </div>
+      </div>
+    </div>
+
+    <div class="del-footer">
+      <form id="frmDelete" asp-action="ToggleEstado" method="post" class="m-0" data-ajax="true">
+        @Html.AntiForgeryToken()
+        <!-- IMPORTANTE: el nombre debe ser 'id' para casar con la acción -->
+        <input type="hidden" name="id" value="@Model.TipoHabitacionID" />
+        <button id="btnAsk" type="button" class="btn btn-danger-soft">
+          <i class="bi bi-trash3 me-1"></i> @actionText
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal confirmación -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white py-2">
+        <h6 class="modal-title mb-0">
+          <i class="bi bi-exclamation-octagon me-1"></i> Confirmar @actionText
+        </h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        @if (isActive)
+        {
+            <span>Esta acción <strong>desactivará</strong> el tipo <strong>@Model?.TipoHabitacionID</strong>. ¿Deseas continuar?</span>
+        }
+        else
+        {
+            <span>Esta acción <strong>activará</strong> el tipo <strong>@Model?.TipoHabitacionID</strong>. ¿Deseas continuar?</span>
+        }
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirm">
+          <i class="bi bi-trash3 me-1"></i> @actionText
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+  <script>
+    (function () {
+      const form = document.getElementById('frmDelete');
+      const btnAsk = document.getElementById('btnAsk');
+      const btnConfirm = document.getElementById('btnConfirm');
+      const modalEl = document.getElementById('confirmDeleteModal');
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+      btnAsk?.addEventListener('click', () => modal.show());
+      btnConfirm?.addEventListener('click', () => {
+        if (!form) return;
+        if (form.requestSubmit) form.requestSubmit();
+        else form.submit();
+      });
+    })();
+  </script>
+}

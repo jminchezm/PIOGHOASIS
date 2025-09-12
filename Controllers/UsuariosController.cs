@@ -133,7 +133,7 @@ namespace PIOGHOASIS.Controllers
                 var term = rol.Trim();
                 q = q.Where(u =>
                     //EF.Functions.Like(EF.Functions.Collate(u.Rol.Nombre ?? "", SqlCollation), $"%{term}%") ||
-                    EF.Functions.Like(EF.Functions.Collate(u.RolID ?? "", SqlCollation), $"%{term}%")
+                    EF.Functions.Like(EF.Functions.Collate(u.Rol.Nombre ?? "", SqlCollation), $"%{term}%")
                 );
             }
 
@@ -265,6 +265,67 @@ namespace PIOGHOASIS.Controllers
             return IsAjax ? PartialView(u) : View(u);
         }
 
+        //[HttpPost, ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Edit(Usuario form)
+        //{
+        //    ModelState.Remove(nameof(Usuario.Rol));
+        //    ModelState.Remove(nameof(Usuario.Empleado));
+
+        //    var db = await _db.usuarios.FirstOrDefaultAsync(x => x.UsuarioID == form.UsuarioID);
+        //    if (db == null) return NotFound();
+
+        //    var nombreTrim = (form.UsuarioNombre ?? "").Trim();
+        //    if (await _db.usuarios.AnyAsync(u => u.UsuarioNombre == nombreTrim && u.UsuarioID != form.UsuarioID))
+        //        ModelState.AddModelError(nameof(Usuario.UsuarioNombre), "Ya existe un usuario con ese nombre.");
+
+        //    // Si NO quieren cambiar contraseña, omite validaciones de esos campos
+        //    var pwVacia = string.IsNullOrWhiteSpace(form.NuevaContrasena) && string.IsNullOrWhiteSpace(form.ConfirmarContrasena);
+        //    if (pwVacia)
+        //    {
+        //        ModelState.Remove(nameof(Usuario.NuevaContrasena));
+        //        ModelState.Remove(nameof(Usuario.ConfirmarContrasena));
+        //    }
+        //    else
+        //    {
+        //        // Validar sólo si escribieron algo
+        //        if (string.IsNullOrWhiteSpace(form.NuevaContrasena))
+        //            ModelState.AddModelError(nameof(Usuario.NuevaContrasena), "Ingresa la nueva contraseña.");
+        //        else if (form.NuevaContrasena != form.ConfirmarContrasena)
+        //            ModelState.AddModelError(nameof(Usuario.ConfirmarContrasena), "La confirmación no coincide.");
+        //        // (Opcional) aquí puedes verificar reglas de complejidad si las necesitas
+        //    }
+
+        //    // Valida el empleado único también (si cambian EmpleadoID)
+        //    if (!string.IsNullOrWhiteSpace(form.EmpleadoID))
+        //    {
+        //        var ocupado = await _db.usuarios
+        //            .AnyAsync(u => u.EmpleadoID == form.EmpleadoID && u.UsuarioID != form.UsuarioID);
+        //        if (ocupado)
+        //            ModelState.AddModelError(nameof(Usuario.EmpleadoID), "El empleado ya tiene un usuario.");
+        //    }
+
+        //    if (!ModelState.IsValid)
+        //    {
+        //        await CargarCombosAsync(form.RolID, form.EmpleadoID);
+        //        return IsAjax ? PartialView(nameof(Edit), form) : View(nameof(Edit), form);
+        //    }
+
+        //    // Actualiza campos normales
+        //    db.UsuarioNombre = nombreTrim;
+        //    db.RolID = form.RolID;
+        //    db.EmpleadoID = form.EmpleadoID;
+        //    db.Estado = form.Estado;
+
+        //    // Sólo cambia contraseña si se escribió una nueva
+        //    if (!pwVacia)
+        //        db.Contrasena = Pbkdf2.HashPassword(form.NuevaContrasena!);
+
+        //    await _db.SaveChangesAsync();
+
+        //    if (IsAjax) return Ok(new { ok = true, redirectUrl = Url.Action(nameof(Index)) });
+        //    return RedirectToAction(nameof(Index));
+        //}
+
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(Usuario form)
         {
@@ -278,8 +339,9 @@ namespace PIOGHOASIS.Controllers
             if (await _db.usuarios.AnyAsync(u => u.UsuarioNombre == nombreTrim && u.UsuarioID != form.UsuarioID))
                 ModelState.AddModelError(nameof(Usuario.UsuarioNombre), "Ya existe un usuario con ese nombre.");
 
-            // Si NO quieren cambiar contraseña, omite validaciones de esos campos
-            var pwVacia = string.IsNullOrWhiteSpace(form.NuevaContrasena) && string.IsNullOrWhiteSpace(form.ConfirmarContrasena);
+            // Contraseña opcional
+            var pwVacia = string.IsNullOrWhiteSpace(form.NuevaContrasena) &&
+                          string.IsNullOrWhiteSpace(form.ConfirmarContrasena);
             if (pwVacia)
             {
                 ModelState.Remove(nameof(Usuario.NuevaContrasena));
@@ -287,19 +349,16 @@ namespace PIOGHOASIS.Controllers
             }
             else
             {
-                // Validar sólo si escribieron algo
                 if (string.IsNullOrWhiteSpace(form.NuevaContrasena))
                     ModelState.AddModelError(nameof(Usuario.NuevaContrasena), "Ingresa la nueva contraseña.");
                 else if (form.NuevaContrasena != form.ConfirmarContrasena)
                     ModelState.AddModelError(nameof(Usuario.ConfirmarContrasena), "La confirmación no coincide.");
-                // (Opcional) aquí puedes verificar reglas de complejidad si las necesitas
             }
 
-            // Valida el empleado único también (si cambian EmpleadoID)
+            // Empleado único
             if (!string.IsNullOrWhiteSpace(form.EmpleadoID))
             {
-                var ocupado = await _db.usuarios
-                    .AnyAsync(u => u.EmpleadoID == form.EmpleadoID && u.UsuarioID != form.UsuarioID);
+                var ocupado = await _db.usuarios.AnyAsync(u => u.EmpleadoID == form.EmpleadoID && u.UsuarioID != form.UsuarioID);
                 if (ocupado)
                     ModelState.AddModelError(nameof(Usuario.EmpleadoID), "El empleado ya tiene un usuario.");
             }
@@ -310,13 +369,31 @@ namespace PIOGHOASIS.Controllers
                 return IsAjax ? PartialView(nameof(Edit), form) : View(nameof(Edit), form);
             }
 
-            // Actualiza campos normales
+            // ===== Detección de cambios =====
+            var hadChanges =
+                db.UsuarioNombre != nombreTrim ||
+                db.RolID != form.RolID ||
+                db.EmpleadoID != form.EmpleadoID ||
+                db.Estado != form.Estado ||
+                !pwVacia; // si escribió una nueva contraseña, cuenta como cambio
+
+            if (!hadChanges)
+            {
+                if (IsAjax)
+                    return Ok(new { ok = false, reason = "nochanges", message = "No has modificado ningún campo." });
+
+                // Fallback no-AJAX
+                ModelState.AddModelError(string.Empty, "No has modificado ningún campo.");
+                await CargarCombosAsync(form.RolID, form.EmpleadoID);
+                return View(nameof(Edit), form);
+            }
+
+            // ===== Aplicar cambios y guardar =====
             db.UsuarioNombre = nombreTrim;
             db.RolID = form.RolID;
             db.EmpleadoID = form.EmpleadoID;
             db.Estado = form.Estado;
 
-            // Sólo cambia contraseña si se escribió una nueva
             if (!pwVacia)
                 db.Contrasena = Pbkdf2.HashPassword(form.NuevaContrasena!);
 
@@ -326,63 +403,6 @@ namespace PIOGHOASIS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        //[HttpPost, ValidateAntiForgeryToken]
-        //public async Task<IActionResult> Edit(Usuario form, string? NuevaContrasena, string? ConfirmarContrasena)
-        //{
-        //    ModelState.Remove(nameof(Usuario.Rol));
-        //    ModelState.Remove(nameof(Usuario.Empleado));
-
-        //    var db = await _db.usuarios.FirstOrDefaultAsync(x => x.UsuarioID == form.UsuarioID);
-        //    if (db == null) return NotFound();
-
-        //    var nombreTrim = (form.UsuarioNombre ?? "").Trim();
-        //    if (await _db.usuarios.AnyAsync(u => u.UsuarioNombre == nombreTrim && u.UsuarioID != form.UsuarioID))
-        //        ModelState.AddModelError(nameof(Usuario.UsuarioNombre), "Ya existe un usuario con ese nombre.");
-
-        //    if (!string.IsNullOrEmpty(NuevaContrasena) || !string.IsNullOrEmpty(ConfirmarContrasena))
-        //    {
-        //        if (string.IsNullOrEmpty(NuevaContrasena))
-        //            ModelState.AddModelError("NuevaContrasena", "Ingresa la nueva contraseña.");
-        //        else if (NuevaContrasena != ConfirmarContrasena)
-        //            ModelState.AddModelError("ConfirmarContrasena", "La confirmación no coincide.");
-        //    }
-
-        //    if (!ModelState.IsValid)
-        //    {
-        //        await CargarCombosAsync(form.RolID, form.EmpleadoID);
-        //        return IsAjax ? PartialView(nameof(Edit), form) : View(nameof(Edit), form);
-        //    }
-
-        //    if (!string.IsNullOrWhiteSpace(form.EmpleadoID))
-        //    {
-        //        var ocupado = await _db.usuarios
-        //            .AnyAsync(u => u.EmpleadoID == form.EmpleadoID && u.UsuarioID != form.UsuarioID);
-        //        if (ocupado)
-        //            ModelState.AddModelError(nameof(Usuario.EmpleadoID), "El empleado ya tiene un usuario.");
-        //    }
-
-        //    try
-        //    {
-        //        db.UsuarioNombre = nombreTrim;
-        //        db.RolID = form.RolID;
-        //        db.EmpleadoID = form.EmpleadoID;
-        //        db.Estado = form.Estado;
-
-        //        if (!string.IsNullOrWhiteSpace(NuevaContrasena))
-        //            db.Contrasena = Pbkdf2.HashPassword(NuevaContrasena);
-
-        //        await _db.SaveChangesAsync();
-
-        //        if (IsAjax) return Ok(new { ok = true, redirectUrl = Url.Action(nameof(Index)) });
-        //        return RedirectToAction(nameof(Index));
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        ModelState.AddModelError(string.Empty, "Error al actualizar: " + ex.Message);
-        //        await CargarCombosAsync(form.RolID, form.EmpleadoID);
-        //        return IsAjax ? PartialView(nameof(Edit), form) : View(nameof(Edit), form);
-        //    }
-        //}
 
         // ========= DETAILS =========
         [HttpGet]
@@ -428,27 +448,6 @@ namespace PIOGHOASIS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        //[HttpPost, ValidateAntiForgeryToken]
-        //public async Task<IActionResult> ToggleEstado(string id)
-        //{
-        //    if (string.IsNullOrWhiteSpace(id)) return NotFound();
-
-        //    var u = await _db.usuarios.FirstOrDefaultAsync(x => x.UsuarioID == id);
-        //    if (u == null) return NotFound();
-
-        //    u.Estado = !u.Estado;
-        //    await _db.SaveChangesAsync();
-
-        //    if (IsAjax)
-        //    {
-        //        await CargarCombosAsync();
-        //        var list = await BaseQuery().OrderBy(x => x.UsuarioID).ToListAsync();
-        //        return PartialView(nameof(Index), list);
-        //    }
-
-        //    return RedirectToAction(nameof(Index));
-        //}
-
         // ========= AVATAR =========
         // GET /Usuarios/Avatar/USU0000001
         [HttpGet("/Usuarios/Avatar/{id}")]
@@ -489,42 +488,5 @@ namespace PIOGHOASIS.Controllers
 
             return PhysicalFile(full, contentType);
         }
-
-        //// ========= AVATAR =========
-        //// GET /Usuarios/Avatar/USU0000001
-        //[HttpGet]
-        //[ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Client)]
-        //public async Task<IActionResult> Avatar(string id)
-        //{
-        //    var data = await _db.usuarios
-        //        .AsNoTracking()
-        //        .Include(u => u.Empleado).ThenInclude(e => e.Persona)
-        //        .Where(u => u.UsuarioID == id)
-        //        .Select(u => new { u.UsuarioID, FotoPath = u.Empleado.Persona.FotoPath })
-        //        .FirstOrDefaultAsync();
-
-        //    string filePath;
-        //    if (data?.FotoPath is string rel && !string.IsNullOrWhiteSpace(rel))
-        //    {
-        //        var safeRel = rel.TrimStart('/', '\\');
-        //        filePath = Path.Combine(_env.WebRootPath, safeRel);
-        //        if (!System.IO.File.Exists(filePath))
-        //            filePath = Path.Combine(_env.WebRootPath, "img", "DefaultUsuario.png");
-        //    }
-        //    else
-        //    {
-        //        filePath = Path.Combine(_env.WebRootPath, "img", "DefaultUsuario.png");
-        //    }
-
-        //    var contentType = Path.GetExtension(filePath).ToLowerInvariant() switch
-        //    {
-        //        ".jpg" or ".jpeg" => "image/jpeg",
-        //        ".png" => "image/png",
-        //        ".gif" => "image/gif",
-        //        ".webp" => "image/webp",
-        //        _ => "application/octet-stream"
-        //    };
-        //    return PhysicalFile(filePath, contentType);
-        //}
     }
 }

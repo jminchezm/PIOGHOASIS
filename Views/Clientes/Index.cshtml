@@ -180,7 +180,7 @@
             <div class="col-12 col-md-3">
                 <label class="form-label fw-semibold">Código</label>
                 <div class="clearable">
-                    <input type="text" class="form-control" id="fCodigo" placeholder=" " value="@qCodigo" />
+                    <input type="text" class="form-control" placeholder="Buscar por código" id="fCodigo" placeholder=" " value="@qCodigo" />
                     <button type="button" class="btn-clear" aria-label="Limpiar"
                             onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));">
                         <i class="bi bi-x-circle"></i>
@@ -191,7 +191,7 @@
             <div class="col-12 col-md-6">
                 <label class="form-label fw-semibold">Cliente / Documento</label>
                 <div class="clearable">
-                    <input type="text" class="form-control" id="fNombre" placeholder="Nombre o No. documento" value="@qNombre" />
+                    <input type="text" class="form-control" id="fNombre" placeholder="Buscar por nombre o No. documento" value="@qNombre" />
                     <button type="button" class="btn-clear" aria-label="Limpiar"
                             onclick="this.previousElementSibling.value='';this.previousElementSibling.dispatchEvent(new Event('input'));">
                         <i class="bi bi-x-circle"></i>
@@ -232,7 +232,7 @@
         else
         {
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table id="tblNumPaginador" class="table table-hover mb-0">
                     <thead>
                         <tr>
                             <th style="width:140px">Código</th>
@@ -271,10 +271,17 @@
                                            href="/Clientes/Details/@c.ClienteID" data-url="/Clientes/Details/@c.ClienteID" title="Detalles">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <a class="btn btn-sm btn-outline-danger btn-icon btn-delete ajax-nav"
-                                           href="/Clientes/Delete/@c.ClienteID" data-url="/Clientes/Delete/@c.ClienteID" title="Activar/Desactivar">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
+
+                                        @if (c.Estado)
+                                        {
+
+                                            <a class="btn btn-sm btn-outline-danger btn-icon btn-delete ajax-nav"
+                                               href="/Clientes/Delete/@c.ClienteID" data-url="/Clientes/Delete/@c.ClienteID" title="Activar/Desactivar">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+
+                                        }
+
                                     </div>
                                 </td>
                             </tr>
@@ -283,8 +290,15 @@
                 </table>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center p-2">
+            @* <div class="d-flex justify-content-between align-items-center p-2">
                 <div class="small text-muted"><span id="infoRows"></span></div>
+                <nav><ul id="pager" class="pagination mb-0"></ul></nav>
+            </div> *@
+            <!-- Paginación -->
+            <div class="d-flex justify-content-between align-items-center p-2">
+                <div class="small text-muted">
+                    <span id="infoRows"></span>
+                </div>
                 <nav><ul id="pager" class="pagination mb-0"></ul></nav>
             </div>
         }
