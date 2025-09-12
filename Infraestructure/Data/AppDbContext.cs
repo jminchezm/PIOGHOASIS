@@ -19,14 +19,18 @@ namespace PIOGHOASIS.Infraestructure.Data
         public DbSet<Pais> paises { get; set; } = null!;
         public DbSet<Departamento> departamentos { get; set; } = null!;
         public DbSet<Municipio> municipios { get; set; } = null!;
-        public DbSet<PasswordResetToken> password_reset_tokens { get; set; } = null!;
+        //public DbSet<PasswordResetToken> password_reset_tokens { get; set; } = null!;
+        public DbSet<PasswordResetToken> password_reset_tokens => Set<PasswordResetToken>();
+
+        //public DbSet<Cliente> clientes { get; set; } = null!;
+        public DbSet<Cliente> clientes => Set<Cliente>();
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // Aplica todas las configuraciones en el ensamblado
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-            base.OnModelCreating(modelBuilder);
+            //base.OnModelCreating(modelBuilder);
             // Default de Estado en PUESTO (opcional)
             modelBuilder.Entity<Puesto>()
                 .Property(p => p.Estado)
@@ -67,23 +71,46 @@ namespace PIOGHOASIS.Infraestructure.Data
                 .HasForeignKey(d => d.PaisID)
                 .HasPrincipalKey(p => p.PaisID);
 
-            modelBuilder.Entity<PasswordResetToken>(b =>
+            //modelBuilder.Entity<PasswordResetToken>(b =>
+            //{
+            //    b.ToTable("PASSWORD_RESET_TOKENS", "dbo");
+            //    b.HasKey(x => x.Id);
+            //    b.Property(x => x.UsuarioID).HasMaxLength(20).IsRequired();
+            //    b.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+
+            //    b.HasIndex(x => new { x.UsuarioID, x.TokenHash }).IsUnique();
+            //    b.HasIndex(x => x.ExpiresAtUtc);
+
+            //    b.HasOne<Usuario>()                           // sin navegación
+            //     .WithMany()
+            //     .HasForeignKey(x => x.UsuarioID)
+            //     .HasPrincipalKey(u => u.UsuarioID)          // PK de USUARIO es string
+            //     .OnDelete(DeleteBehavior.Cascade);
+            //});
+
+            // PASSWORD_RESET_TOKENS
+            modelBuilder.Entity<PasswordResetToken>(eb =>
             {
-                b.ToTable("PASSWORD_RESET_TOKENS", "dbo");
-                b.HasKey(x => x.Id);
-                b.Property(x => x.UsuarioID).HasMaxLength(20).IsRequired();
-                b.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
+                eb.ToTable("PASSWORD_RESET_TOKENS", "dbo");
 
-                b.HasIndex(x => new { x.UsuarioID, x.TokenHash }).IsUnique();
-                b.HasIndex(x => x.ExpiresAtUtc);
+                eb.HasKey(t => t.Id);
 
-                b.HasOne<Usuario>()                           // sin navegación
-                 .WithMany()
-                 .HasForeignKey(x => x.UsuarioID)
-                 .HasPrincipalKey(u => u.UsuarioID)          // PK de USUARIO es string
-                 .OnDelete(DeleteBehavior.Cascade);
+                eb.Property(t => t.UsuarioID)
+                  .HasColumnName("UsuarioID")
+                  .HasMaxLength(10)
+                  .IsRequired();
+
+                eb.Property(t => t.TokenHash)
+                  .HasMaxLength(64)
+                  .IsRequired();
+
+                // Relación clara: t.UsuarioID ---> u.UsuarioID
+                eb.HasOne(t => t.Usuario)
+                  .WithMany()                              // (o .WithMany(u => u.PasswordResetTokens) si agregas la colección)
+                  .HasForeignKey(t => t.UsuarioID)         // FK en PasswordResetToken
+                  .HasPrincipalKey(u => u.UsuarioID)       // PK en Usuario
+                  .OnDelete(DeleteBehavior.Cascade);
             });
-
 
             base.OnModelCreating(modelBuilder);
 

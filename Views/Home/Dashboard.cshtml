@@ -14,7 +14,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
-    
+    <script src="/lib/jquery/jquery.min.js"></script>
+    <script src="/lib/jquery-validation/jquery.validate.min.js"></script>
+    <script src="/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
     <link rel="stylesheet" href="~/css/dashboard.css" />
 
 </head>
@@ -192,801 +195,662 @@
 
     <script>
 
-      /* ================= Sidebar & Layout ================= */
-      const sidebar   = document.getElementById('appSidebar');
-      const backdrop  = document.getElementById('menuBackdrop');
-      const btnSidebar= document.getElementById('btnSidebar');
+        // ---- Cerrar y limpiar cualquier modal/backdrop de Bootstrap ----
+function cleanupModals() {
+  try {
+    document.querySelectorAll('.modal.show').forEach(el => {
+      try { bootstrap.Modal.getInstance(el)?.hide(); } catch {}
+    });
+    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+  } catch {}
+}
 
-      function openSidebar() {
-        sidebar?.classList.add('open');
-        if (window.matchMedia('(max-width: 991.98px)').matches) backdrop?.classList.add('show');
-        document.body.classList.add('sidebar-open');
-        localStorage.setItem('sidebar-open','1');
+
+/* ======= jQuery Validate: defaults globales ======= */
+(function () {
+  if (!(window.jQuery && $.validator)) return;
+
+  $.validator.setDefaults({
+    onkeyup: function (element) { $(element).valid(); },
+    onclick: function (element) { $(element).valid(); },
+    onfocusout: function (element) { $(element).valid(); },
+
+    highlight: function (element) {
+      $(element).addClass('is-invalid input-validation-error').removeClass('is-valid');
+    },
+    unhighlight: function (element) {
+      $(element).removeClass('is-invalid input-validation-error is-valid');
+      const $c = $(element.form).find('[data-valmsg-for="' + element.name + '"]');
+      $c.text('').removeClass('field-validation-error text-danger d-block').addClass('field-validation-valid');
+    },
+    errorClass: 'text-danger',
+    errorPlacement: function (error, element) {
+      const $c = $(element.form).find('[data-valmsg-for="' + element.attr('name') + '"]');
+      if ($c.length) { $c.addClass('d-block').html('').append(error); }
+      else { error.insertAfter(element); }
+    }
+  });
+})();
+
+/* Re-parsea unobtrusive en formularios dinámicos */
+function wireUpValidation(scope) {
+  if (!(window.jQuery && $.validator && $.validator.unobtrusive)) return;
+  $(scope).find('form').each(function () {
+    const $f = $(this);
+    $f.removeData('validator').removeData('unobtrusiveValidation');
+    $.validator.unobtrusive.parse($f);
+  });
+}
+
+/* Utilidad: limpiar mensaje/clases de UN campo */
+function clearOneField(el) {
+  if (!el || !el.form) return;
+  el.classList.remove('is-invalid', 'input-validation-error', 'is-valid');
+  const span = el.form.querySelector('[data-valmsg-for="' + CSS.escape(el.name) + '"]');
+  if (span) {
+    span.textContent = '';
+    span.classList.remove('field-validation-error', 'text-danger', 'd-block');
+    span.classList.add('field-validation-valid');
+  }
+}
+
+/* ================= Sidebar & Layout ================= */
+const sidebar = document.getElementById('appSidebar');
+const backdrop = document.getElementById('menuBackdrop');
+const btnSidebar = document.getElementById('btnSidebar');
+
+function openSidebar() {
+  sidebar?.classList.add('open');
+  if (window.matchMedia('(max-width: 991.98px)').matches) backdrop?.classList.add('show');
+  document.body.classList.add('sidebar-open');
+  localStorage.setItem('sidebar-open', '1');
+}
+function closeSidebar() {
+  sidebar?.classList.remove('open');
+  backdrop?.classList.remove('show');
+  document.body.classList.remove('sidebar-open');
+  localStorage.setItem('sidebar-open', '0');
+}
+function toggleSidebar() { sidebar?.classList.contains('open') ? closeSidebar() : openSidebar(); }
+
+(function restoreSidebar() {
+  const saved = localStorage.getItem('sidebar-open');
+  if (saved === '1' && window.matchMedia('(min-width: 992px)').matches) openSidebar();
+  else document.body.classList.remove('sidebar-open');
+})();
+
+btnSidebar?.addEventListener('click', toggleSidebar);
+backdrop?.addEventListener('click', closeSidebar);
+
+// Submenús en acordeón
+document.querySelectorAll('.menu .has-children > a[data-toggle="submenu"]').forEach(tg => {
+  tg.addEventListener('click', (e) => {
+    e.preventDefault();
+    const li = tg.closest('.has-children');
+    const isOpen = li.classList.contains('open');
+    document.querySelectorAll('.menu .has-children.open').forEach(o => { if (o !== li) o.classList.remove('open'); });
+    li.classList.toggle('open', !isOpen);
+  });
+});
+
+/* ================= Router ÚNICO para #contentHost ================= */
+(function () {
+  const host = document.getElementById('contentHost');
+  const hero = document.getElementById('hero');
+  if (!host) return;
+
+  function showModalFromHost(modalEl, fallbackMsg) {
+    try {
+      if (!modalEl) { if (fallbackMsg) alert(fallbackMsg); return; }
+      if (!window.bootstrap || typeof bootstrap.Modal !== 'function') {
+        if (fallbackMsg) alert(fallbackMsg);
+        return;
       }
-      function closeSidebar() {
-        sidebar?.classList.remove('open');
-        backdrop?.classList.remove('show');
-        document.body.classList.remove('sidebar-open');
-        localStorage.setItem('sidebar-open','0');
+      const inst = bootstrap.Modal.getOrCreateInstance(modalEl);
+      inst.show();
+    } catch (err) {
+      console.error('showModalFromHost error:', err);
+      if (fallbackMsg) alert(fallbackMsg);
+    }
+  }
+
+  async function loadToHost(url, opts) {
+    const resp = await fetch(url, Object.assign({
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin'
+    }, opts || {}));
+
+    const ctype = (resp.headers.get('content-type') || '').toLowerCase();
+
+    if (ctype.includes('application/json')) {
+      const data = await resp.json();
+
+      if (data.ok) {
+        const okEl = host.querySelector('#saveOkModal');
+        if (okEl) {
+          showModalFromHost(okEl);
+          if (data.redirectUrl) okEl.addEventListener('hidden.bs.modal', () => { loadToHost(data.redirectUrl); }, { once: true });
+        } else if (data.redirectUrl) {
+          await loadToHost(data.redirectUrl);
+        }
+        return;
       }
-      function toggleSidebar(){ sidebar?.classList.contains('open') ? closeSidebar() : openSidebar(); }
 
-      (function restoreSidebar(){
-        const saved = localStorage.getItem('sidebar-open');
-        if (saved === '1' && window.matchMedia('(min-width: 992px)').matches) openSidebar();
-        else document.body.classList.remove('sidebar-open');
-      })();
+      if (data.reason === 'nochanges') {
+        const warnEl = host.querySelector('#noChangesModal');
+        if (warnEl) {
+          const msg = warnEl.querySelector('.js-msg');
+          if (msg && data.message) msg.textContent = data.message;
+          showModalFromHost(warnEl);
+        } else {
+          showModalFromHost(warnEl, data.message || 'No has modificado ningún campo.');
+        }
+        return;
+      }
 
-      btnSidebar?.addEventListener('click', toggleSidebar);
-      backdrop?.addEventListener('click', closeSidebar);
+      if (data.errors) {
+        const anyForm = host.querySelector('form');
+        if (anyForm) showFieldErrors(anyForm, data.errors);
+        return;
+      }
 
-      // Submenús en acordeón
-      document.querySelectorAll('.menu .has-children > a[data-toggle="submenu"]').forEach(tg=>{
-        tg.addEventListener('click', (e)=>{
-          e.preventDefault();
-          const li = tg.closest('.has-children');
-          const isOpen = li.classList.contains('open');
-          document.querySelectorAll('.menu .has-children.open').forEach(o=>{ if(o!==li) o.classList.remove('open'); });
-          li.classList.toggle('open', !isOpen);
-        });
-      });
+      console.error(data.message || 'Ocurrió un problema.');
+      return;
+    }
 
-      /* ================= Router ÚNICO para #contentHost ================= */
-      (function () {
+    if (!resp.ok) { window.location.href = url; return; }
+    const html = await resp.text();
+    if (hero) hero.style.display = 'none';
+
+    if (window.swapContentIntoHost) window.swapContentIntoHost(html);
+    else host.innerHTML = html;
+
+    wireUpValidation(host);
+    initPageFeatures(host);
+  }
+
+  // Menú lateral: enlaces con data-url
+  document.querySelectorAll('.menu a[data-url]').forEach(a => {
+    a.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      loadToHost(a.dataset.url || a.href);
+    });
+  });
+
+  // Delegación de CLICS dentro del host
+  host.addEventListener('click', (ev) => {
+    const askBtn = ev.target.closest('#btnAsk');
+    if (askBtn) {
+      ev.preventDefault();
+      const modalEl = host.querySelector('#confirmDeleteModal');
+      if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+      return;
+    }
+    // const confirmBtn = ev.target.closest('#btnConfirm');
+    // if (confirmBtn) {
+    //   ev.preventDefault();
+    //   const form = host.querySelector('#frmDelete');
+    //   if (form?.requestSubmit) form.requestSubmit(); else form?.submit();
+    //   return;
+    // }
+    const confirmBtn = ev.target.closest('#btnConfirm');
+    if (confirmBtn) {
+      ev.preventDefault();
+      // Cierra el modal ANTES de enviar
+      const modalEl = host.querySelector('#confirmDeleteModal');
+      if (modalEl && window.bootstrap) {
+        try { bootstrap.Modal.getOrCreateInstance(modalEl).hide(); } catch {}
+      }
+      cleanupModals();
+
+      const form = host.querySelector('#frmDelete');
+      if (form?.requestSubmit) form.requestSubmit(); else form?.submit();
+      return;
+    }
+    const a = ev.target.closest('a[data-url], a.ajax-nav[data-url]');
+    if (a) { ev.preventDefault(); loadToHost(a.dataset.url || a.href); }
+  });
+
+  /* ----- Helpers errores por campo (para respuestas JSON con errors) ----- */
+  function clearFieldErrors(form) {
+    form.querySelectorAll('[data-valmsg-for]').forEach(sp => {
+      sp.textContent = '';
+      sp.classList.remove('field-validation-error', 'text-danger', 'invalid-feedback', 'd-block');
+      sp.classList.add('field-validation-valid');
+    });
+    form.querySelectorAll('.is-invalid, .input-validation-error').forEach(el => el.classList.remove('is-invalid', 'input-validation-error'));
+  }
+  function showFieldErrors(form, errors) {
+    let first = null;
+    for (const key in errors) {
+      const msgs = errors[key];
+      const span = form.querySelector('[data-valmsg-for="' + key + '"]');
+      if (span) {
+        span.textContent = msgs.join(' ');
+        span.classList.remove('field-validation-valid');
+        span.classList.add('field-validation-error', 'text-danger', 'd-block');
+      }
+      const ctrl = form.querySelector('[name="' + key + '"]');
+      if (ctrl) {
+        ctrl.classList.add('is-invalid', 'input-validation-error');
+        if (!first) first = ctrl;
+      }
+    }
+    if (first) first.focus({ preventScroll: false });
+  }
+
+  // --- Delegación de formularios AJAX dentro del host (CON manejo 400/500) ---
+  host.addEventListener('submit', async (ev) => {
+    const form = ev.target.closest('form');
+    if (!form) return;
+    ev.preventDefault();
+
+    // Limpia errores previos
+    form.querySelectorAll('[data-valmsg-for]').forEach(sp => {
+      // sp.textContent = '';
+      sp.classList.remove('field-validation-error','text-danger','invalid-feedback','d-block');
+      sp.classList.add('field-validation-valid');
+    });
+    form.querySelectorAll('.is-invalid, .input-validation-error')
+        .forEach(el => el.classList.remove('is-invalid','input-validation-error'));
+
+    // Validación cliente opcional
+    try {
+      if (window.jQuery && $.validator) {
+        const $f = $(form);
+        if (!$f.data('validator')) {
+          $f.removeData('validator').removeData('unobtrusiveValidation');
+          $.validator.unobtrusive && $.validator.unobtrusive.parse($f);
+        }
+        if (!$f.valid()) return;
+      }
+    } catch {}
+
+    const fd = new FormData(form);
+    const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+    if (token) headers['RequestVerificationToken'] = token;
+
+    const resp = await fetch(form.action, {
+      method: form.method || 'POST',
+      body: fd,
+      headers,
+      credentials: 'same-origin',
+      redirect: 'follow'
+    });
+
+    // --- Manejo explícito de 400/500 antes de leer como éxito ---
+    if (!resp.ok) {
+      const ct = (resp.headers.get('content-type') || '').toLowerCase();
+      const rawErr = await resp.text();
+      if (ct.includes('application/json')) {
+        try {
+          const dataErr = JSON.parse(rawErr);
+          if (dataErr.errors) {
+            for (const key in dataErr.errors) {
+              const msgs = dataErr.errors[key];
+              const span = form.querySelector('[data-valmsg-for="' + key + '"]');
+              if (span) {
+                span.textContent = msgs.join(' ');
+                span.classList.remove('field-validation-valid');
+                span.classList.add('field-validation-error','text-danger','d-block');
+              }
+              const ctrl = form.querySelector('[name="' + key + '"]');
+              if (ctrl) ctrl.classList.add('is-invalid','input-validation-error');
+            }
+            return;
+          }
+          alert(dataErr.message || ('Error ' + resp.status));
+          return;
+        } catch {
+          console.error(rawErr);
+          alert('Error ' + resp.status);
+          return;
+        }
+      } else {
         const host = document.getElementById('contentHost');
-        const hero = document.getElementById('hero');
-        if (!host) return;
-
-        async function loadToHost(url, opts) {
-          const resp = await fetch(url, Object.assign({
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-          }, opts || {}));
-
-        // helper para limpiar cualquier modal huérfano
-        function cleanupModals() {
-          document.querySelectorAll('.modal.show').forEach(el => {
-            try { bootstrap.Modal.getInstance(el)?.hide(); } catch {}
+        if (host) {
+          host.innerHTML = rawErr;
+          // re-ejecutar scripts embebidos
+          host.querySelectorAll('script').forEach(old => {
+            const s = document.createElement('script');
+            if (old.src) { s.src = old.src; s.async = false; }
+            else { s.text = old.textContent; }
+            document.head.appendChild(s);
+            old.remove();
           });
-          document.body.classList.remove('modal-open');
-          document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-          document.body.style.removeProperty('padding-right'); // por si Bootstrap la agregó
-        }
-
-          const ct = (resp.headers.get('content-type') || '').toLowerCase();
-          const ctype = (resp.headers.get('content-type') || '').toLowerCase();
-
-          // --- Respuesta JSON (Edit/Create por AJAX)
-            // if (ctype.includes('application/json')) {
-            //     const data = await resp.json();
-
-            //     if (data.ok) {
-            //     // Modal de éxito
-            //     const okEl = host.querySelector('#saveOkModal');
-            //         if (okEl) {
-            //             const msgEl = okEl.querySelector('.js-msg');
-            //             if (data.message && msgEl) msgEl.textContent = data.message; // <-- solo cambia el texto
-            //             const m = bootstrap.Modal.getOrCreateInstance(okEl);
-            //             if (data.redirectUrl) {
-            //                 okEl.addEventListener('hidden.bs.modal', () => loadToHost(data.redirectUrl), { once: true });
-            //             }
-            //             m.show();
-            //         } else {
-            //         // Fallback si el modal no existe
-            //         alert(data.message || 'Guardado correctamente.');
-            //         if (data.redirectUrl) loadToHost(data.redirectUrl);
-            //     }
-            //     return; // ¡No sustituyas el HTML!
-            //     }
-
-            //     // --- SIN CAMBIOS ---
-            //     if (data.reason === 'nochanges') {
-            //         const warnEl = host.querySelector('#noChangesModal');
-            //         if (warnEl) {
-            //             if (data.message) {
-            //                 const msg = warnEl.querySelector('.js-msg');
-            //                 if (msg) msg.textContent = data.message;  // <— no toques .modal-body
-            //             }
-            //             bootstrap.Modal.getOrCreateInstance(warnEl).show();
-            //         } else {
-            //             alert(data.message || 'No has modificado ningún campo.');
-            //         }
-            //         return;
-            //     }
-
-            //     // --- Otros errores
-            //     alert(data.message || 'Ocurrió un problema.');
-            //     return;
-            // }
-
-                if (ctype.includes('application/json')) {
-                    const data = await resp.json();
-
-                    if (data.ok) {
-                        const okEl = host.querySelector('#saveOkModal');
-                        if (okEl) {
-                            const msgEl = okEl.querySelector('.js-msg');
-                            if (data.message && msgEl) msgEl.textContent = data.message;
-                            const m = bootstrap.Modal.getOrCreateInstance(okEl);
-                            if (data.redirectUrl) {
-                                okEl.addEventListener('hidden.bs.modal', () => loadToHost(data.redirectUrl), { once: true });
-                            }
-                            m.show();
-                        } else {
-                            // ✅ Sin alert: solo recarga el listado si viene redirectUrl
-                            if (data.redirectUrl) await loadToHost(data.redirectUrl);
-                        }
-                        return;
-                    }
-
-                    // Puedes dejar este otro fallback igual o también quitar alert:
-                    if (data.reason === 'nochanges') {
-                        const warnEl = host.querySelector('#noChangesModal');
-                        if (warnEl) {
-                            if (data.message) {
-                                const msg = warnEl.querySelector('.js-msg');
-                                if (msg) msg.textContent = data.message;
-                            }
-                            bootstrap.Modal.getOrCreateInstance(warnEl).show();
-                        } else {
-                            // opcional: console.warn en vez de alert
-                            console.warn(data.message || 'No has modificado ningún campo.');
-                        }
-                        return;
-                    }
-
-                    // Errores
-                    console.error(data.message || 'Ocurrió un problema.');
-                    return;
-                }
-
-
-          // HTML normal (Index, Create, Edit con validaciones, etc.)
-          if (!resp.ok) { window.location.href = url; return; }
-          const html = await resp.text();
-          if (hero) hero.style.display = 'none';
-          cleanupModals();  
-          host.innerHTML = html;
+          wireUpValidation(host);
           initPageFeatures(host);
-          cleanupModals();  
-          window.scrollTo({ top: 0, behavior: 'instant' });
+        } else {
+          document.open(); document.write(rawErr); document.close();
         }
+        return;
+      }
+    }
 
-        // Menú lateral: enlaces con data-url
-        document.querySelectorAll('.menu a[data-url]').forEach(a=>{
-          a.addEventListener('click', (ev)=>{
-            ev.preventDefault();
-            loadToHost(a.dataset.url || a.href);
-          });
-        });
+    // --- Éxito (200) → JSON o HTML
+    const raw = await resp.text();
+    let data = null;
+    try { data = JSON.parse(raw); } catch {}
 
-        // // Delegación de enlaces dentro del host (Index/Create/Edit)
-        // host.addEventListener('click', (ev)=>{
-        //   const a = ev.target.closest('a[data-url], a.ajax-nav[data-url]');
-        //   if (!a) return;
-        //   ev.preventDefault();
-        //   loadToHost(a.dataset.url || a.href);
-        // });
-
-        // Delegación de CLICS dentro del host (Delete + navegación AJAX)
-        host.addEventListener('click', (ev) => {
-          // A) Mostrar modal de confirmación (Delete.cshtml)
-          const askBtn = ev.target.closest('#btnAsk');
-          if (askBtn) {
-            ev.preventDefault();
-            const modalEl = host.querySelector('#confirmDeleteModal');
-            if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
-            return;
-          }
-
-          // B) Confirmar => enviar el form (Delete.cshtml)
-          const confirmBtn = ev.target.closest('#btnConfirm');
-          if (confirmBtn) {
-            ev.preventDefault();
-            const form = host.querySelector('#frmDelete');
-            if (form?.requestSubmit) form.requestSubmit(); else form?.submit();
-            return;
-          }
-
-          // C) Navegación AJAX normal (links)
-          const a = ev.target.closest('a[data-url], a.ajax-nav[data-url]');
-          if (a) {
-            ev.preventDefault();
-            loadToHost(a.dataset.url || a.href);
-          }
-
-          //PDF
-
-            // document.getElementById('btnPrint')?.addEventListener('click', () => {
-            //     const qs = new URLSearchParams();
-            //     const cod = document.getElementById('fCodigo')?.value.trim() || '';
-            //     const nom = document.getElementById('fNombre')?.value.trim() || '';
-            //     const est = document.getElementById('fEstado')?.value ?? '';
-            //     if (cod) qs.set('codigo', cod);
-            //     if (nom) qs.set('nombre', nom);
-            //     if (est !== '') qs.set('estado', est);
-
-            //     qs.set('descargar', 'false');               // <-- inline (preview)
-            //     window.open('/Puestos/ExportPdf?' + qs.toString(), '_blank');
-            // });
-
-
-        });
-
-        // Delegación de formularios AJAX dentro del host (require data-ajax="true")
-        host.addEventListener('submit', (ev)=>{
-          // ✅ acepta forms con clase .js-ajax-form o con data-ajax="true"
-          const form = ev.target.closest('form.js-ajax-form, form[data-ajax="true"]');
-          if (!form) return;
-          ev.preventDefault();
-          const fd = new FormData(form);
-          loadToHost(form.action, { method: form.method || 'POST', body: fd });
-        });
-
-        // Exponer opcionalmente para usos puntuales
-        // window.loadToHost = loadToHost;
-            window.swapInHost = async function swapInHost(url, selector) {
-                const host = document.getElementById('contentHost');
-                const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (!resp.ok) { window.location.href = url; return; }
-                const html = await resp.text();
-
-                // montar HTML en un contenedor temporal
-                const tmp = document.createElement('div');
-                tmp.innerHTML = html;
-
-                const newNode = tmp.querySelector(selector);
-                const oldNode = host.querySelector(selector);
-                if (newNode && oldNode) oldNode.replaceWith(newNode);
-            };
-      })();
-
-
-      // Atajo Ctrl+B para abrir/cerrar el sidebar
-      document.addEventListener('keydown', (e)=>{
-        if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); toggleSidebar(); }
-      });
-
-      // ==== Autofiltros de Puestos (delegado en #contentHost) ====
-      // (function () {
-      //   const host = document.getElementById('contentHost');
-      //   if (!host || !window.loadToHost) return;
-
-      //   let t;
-      //   const debounce = (fn, ms = 300) => { clearTimeout(t); t = setTimeout(fn, ms); };
-
-      //   function runFilter() {
-      //     const form   = host.querySelector('#frmFiltros');
-      //     if (!form) return;
-
-      //     const codigo = form.querySelector('#fCodigo')?.value.trim() || '';
-      //     const nombre = form.querySelector('#fNombre')?.value.trim() || '';
-      //     const estado = form.querySelector('#fEstado')?.value ?? '';
-
-      //     const qs = new URLSearchParams();
-      //     if (codigo) qs.set('codigo', codigo);
-      //     if (nombre) qs.set('nombre', nombre);
-      //     if (estado !== '') qs.set('estado', estado);
-
-      //     const url = '/Puestos/Index' + (qs.toString() ? '?' + qs.toString() : '');
-      //     loadToHost(url); // recarga la tabla filtrada dentro de #contentHost
-      //   }
-
-      //   // Escribe en Código/Nombre => filtra con debounce
-      //   host.addEventListener('input', (ev) => {
-      //     const id = ev.target?.id;
-      //     if (id === 'fCodigo' || id === 'fNombre') debounce(runFilter, 300);
-      //   });
-
-      //   // Cambia Estado => filtra inmediato
-      //   host.addEventListener('change', (ev) => {
-      //     if (ev.target?.id === 'fEstado') runFilter();
-      //   });
-      // })();
-
-        // (function () {
-            // const host = document.getElementById('contentHost');
-            // if (!host) return;
-
-            // // debounce simple
-            // const debounce = (fn, ms = 400) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
-
-            // function buildUrl() {
-            //     const form = host.querySelector('#frmFiltros');
-            //     if (!form) return '/Puestos/Index';
-
-            //     const codigo = form.querySelector('#fCodigo')?.value.trim() || '';
-            //     const nombre = form.querySelector('#fNombre')?.value.trim() || '';
-            //     const estado = form.querySelector('#fEstado')?.value ?? '';
-
-            //     const qs = new URLSearchParams();
-            //     if (codigo) qs.set('codigo', codigo);
-            //     if (nombre) qs.set('nombre', nombre);
-            //     qs.set('estado', estado);             // siempre incluir estado; ""=Todos
-
-            //     const s = qs.toString();
-            //     return '/Puestos/Index' + (s ? '?' + s : '');
-            // }
-
-            // const run = debounce(async () => {
-            //     const url = buildUrl();
-
-            //     // guardar foco y caret
-            //     const active = document.activeElement;
-            //     const id = active?.id;
-            //     const selStart = ('selectionStart' in active) ? active.selectionStart : null;
-            //     const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
-
-            //     await window.swapInHost(url, '#printArea');              // solo grilla/pager
-            //     history.replaceState(null, '', url);                     // actualiza la URL
-            //     window.initPuestosPager(host.querySelector('#printArea'));// re-init paginación
-
-            //     // restaurar foco/caret
-            //     if (id) {
-            //         const el = host.querySelector('#' + CSS.escape(id));
-            //         if (el) {
-            //             el.focus();
-            //             if (selStart != null && selEnd != null && el.setSelectionRange) {
-            //                 el.setSelectionRange(selStart, selEnd);
-            //             }
-            //         }
-            //     }
-            // }, 400);
-
-            // // Tecla en Código/Nombre => dispara con debounce (0 o >=2 chars)
-            // host.addEventListener('input', (ev) => {
-            //     const id = ev.target?.id;
-            //     if (id === 'fCodigo' || id === 'fNombre') {
-            //         const v = ev.target.value.trim();
-            //         if (v.length === 0 || v.length >= 2) run();
-            //     }
-            // });
-
-            // // Cambio de Estado => dispara inmediato
-            // host.addEventListener('change', (ev) => {
-            //     if (ev.target?.id === 'fEstado') run();
-            // });
-
-            // Al insertar por primera vez el Index, inicializa el paginador
-        //     const mo = new MutationObserver(() => {
-        //         const area = host.querySelector('#printArea');
-        //         if (area && !area.__inited) { area.__inited = true; window.initPuestosPager(area); }
-        //     });
-        //     mo.observe(host, { childList: true, subtree: true });
-
-        //     // Click en "Limpiar filtros" del estado vacío
-        //     host.addEventListener('click', (ev) => {
-        //         const btn = ev.target.closest('.js-clear-filters');
-        //         if (!btn) return;
-        //         ev.preventDefault();
-
-        //         const form = host.querySelector('#frmFiltros');
-        //         const fCodigo = form?.querySelector('#fCodigo');
-        //         const fNombre = form?.querySelector('#fNombre');
-        //         const fEstado = form?.querySelector('#fEstado');
-
-        //         if (fCodigo) fCodigo.value = '';
-        //         if (fNombre) fNombre.value = '';
-        //         if (fEstado) fEstado.value = '';  // “Todos”
-
-        //         // dispara eventos para que tu lógica de filtros se ejecute
-        //         fCodigo?.dispatchEvent(new Event('input', { bubbles: true }));
-        //         fNombre?.dispatchEvent(new Event('input', { bubbles: true }));
-        //         fEstado?.dispatchEvent(new Event('change', { bubbles: true }));
-        //     });
-        // })();
-
-        (function () {
+    if (data) {
+      if (data.ok) {
+        const okEl = document.getElementById('saveOkModal');
+        if (okEl && window.bootstrap) {
+          const inst = bootstrap.Modal.getOrCreateInstance(okEl);
+          inst.show();
+          if (data.redirectUrl) okEl.addEventListener('hidden.bs.modal', () => {
             const host = document.getElementById('contentHost');
-            if (!host) return;
-
-            const debounce = (fn, ms = 400) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); } };
-
-            function buildUrl() {
-                const form = host.querySelector('#frmFiltros');
-                if (!form) return null;
-                const endpoint = form.dataset.endpoint || '/';
-                const codigo = form.querySelector('#fCodigo')?.value.trim() || '';
-                const nombre = form.querySelector('#fNombre')?.value.trim() || '';
-                const estado = form.querySelector('#fEstado')?.value ?? '';
-
-                const qs = new URLSearchParams();
-                if (codigo) qs.set('codigo', codigo);
-                if (nombre) qs.set('nombre', nombre);
-                qs.set('estado', estado);
-
-                return endpoint + (qs.toString() ? '?' + qs.toString() : '');
+            if (host) {
+              fetch(data.redirectUrl, { headers: { 'X-Requested-With':'XMLHttpRequest' } })
+                .then(r => r.text()).then(html => { host.innerHTML = html; wireUpValidation(host); initPageFeatures(host); });
+            } else {
+              window.location.href = data.redirectUrl;
             }
-
-            const run = debounce(async () => {
-                const url = buildUrl();
-                if (!url) return;
-
-                // guardar foco/caret
-                const active = document.activeElement;
-                const id = active?.id;
-                const selStart = ('selectionStart' in active) ? active.selectionStart : null;
-                const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
-
-                await window.swapInHost(url, '#printArea');
-                history.replaceState(null, '', url);
-                window.initPuestosPager(host.querySelector('#printArea'));
-
-                if (id) {
-                    const el = host.querySelector('#' + CSS.escape(id));
-                    if (el) {
-                        el.focus();
-                        if (selStart != null && selEnd != null && el.setSelectionRange) el.setSelectionRange(selStart, selEnd);
-                    }
-                }
-            }, 400);
-
-            // Delegación
-            host.addEventListener('input', (ev) => {
-                const id = ev.target?.id;
-                if (id === 'fCodigo' || id === 'fNombre') {
-                    const v = ev.target.value.trim();
-                    if (v.length === 0 || v.length >= 2) run();
-                }
-            });
-            host.addEventListener('change', (ev) => { if (ev.target?.id === 'fEstado') run(); });
-
-            // Print genérico
-            host.addEventListener('click', (ev) => {
-                const btn = ev.target.closest('#btnPrint');
-                if (!btn) return;
-
-                const form = host.querySelector('#frmFiltros');
-                const endpoint = form?.dataset.report || (form?.dataset.endpoint?.replace('/Index', '/ExportPdf')) || '';
-                if (!endpoint) return;
-
-                const qs = new URLSearchParams();
-                const cod = form.querySelector('#fCodigo')?.value.trim() || '';
-                const nom = form.querySelector('#fNombre')?.value.trim() || '';
-                const est = form.querySelector('#fEstado')?.value ?? '';
-                if (cod) qs.set('codigo', cod);
-                if (nom) qs.set('nombre', nom);
-                qs.set('estado', est);
-
-                window.open(endpoint + (qs.toString() ? '?' + qs.toString() : ''), '_blank');
-            });
-        })();
-
-      //--------------- PAGINACION ----------------------------------------------------
-        // function initPageFeatures(host) {
-        //     initPuestosIndex(host);
-        // }
-
-        // function initPuestosIndex(host) {
-        //     const tbl = host.querySelector('#tblPuestos');
-        //     if (!tbl) return; // no estamos en /Puestos/Index
-
-        //     const pageSize = 9;
-        //     const $tbody = tbl.querySelector('tbody');
-        //     const rows = Array.from($tbody.querySelectorAll('tr'));
-        //     const $pager = host.querySelector('#pager');
-        //     const $info = host.querySelector('#infoRows');
-        //     let filtered = rows.slice();
-        //     let page = 1;
-
-        //     function render(toPage) {
-        //         page = toPage ?? page;
-        //         const total = filtered.length;
-        //         const pages = Math.max(1, Math.ceil(total / pageSize));
-        //         if (page > pages) page = pages;
-
-        //         rows.forEach(tr => tr.style.display = 'none');
-        //         const start = (page - 1) * pageSize;
-        //         filtered.slice(start, start + pageSize).forEach(tr => tr.style.display = '');
-
-        //         const first = total ? start + 1 : 0;
-        //         const last = Math.min(start + pageSize, total);
-        //         if ($info) $info.textContent = `Mostrando ${first}-${last} de ${total}`;
-
-        //         if ($pager) {
-        //             $pager.closest('nav')?.style.setProperty('display', pages > 1 ? '' : 'none');
-        //             drawPager(pages);
-        //         }
-        //     }
-
-        //     function drawPager(pages) {
-        //         const li = (label, p, disabled = false, active = false) => {
-        //             const el = document.createElement('li');
-        //             el.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
-        //             const a = document.createElement('a');
-        //             a.className = 'page-link'; a.href = '#'; a.textContent = label;
-        //             a.addEventListener('click', (ev) => { ev.preventDefault(); if (!disabled && !active) render(p); });
-        //             el.appendChild(a);
-        //             return el;
-        //         };
-        //         $pager.innerHTML = '';
-        //         $pager.appendChild(li('«', 1, page === 1));
-        //         $pager.appendChild(li('‹', page - 1, page === 1));
-        //         const range = 2;
-        //         const start = Math.max(1, page - range);
-        //         const end = Math.min(pages, page + range);
-        //         if (start > 1) $pager.appendChild(li('1', 1, false, page === 1));
-        //         if (start > 2) $pager.appendChild(li('…', page, true));
-        //         for (let i = start; i <= end; i++) $pager.appendChild(li(String(i), i, false, i === page));
-        //         if (end < pages - 1) $pager.appendChild(li('…', page, true));
-        //         if (end < pages) $pager.appendChild(li(String(pages), pages, false, page === pages));
-        //         $pager.appendChild(li('›', page + 1, page === pages));
-        //         $pager.appendChild(li('»', pages, page === pages));
-        //     }
-
-        //     // Filtros del servidor (auto-búsqueda)
-        //     const fCodigo = host.querySelector('#fCodigo');
-        //     const fNombre = host.querySelector('#fNombre');
-        //     const fEstado = host.querySelector('#fEstado');
-
-        //     function buildUrl() {
-        //         const params = new URLSearchParams();
-        //         const cod = (fCodigo?.value || '').trim();
-        //         const nom = (fNombre?.value || '').trim();
-        //         const est = (fEstado?.value ?? ''); // "" = Todos
-
-        //         if (cod) params.set('codigo', cod);
-        //         if (nom) params.set('nombre', nom);
-        //         params.set('estado', est);
-
-        //         const qs = params.toString();
-        //         return '/Puestos/Index' + (qs ? ('?' + qs) : '');
-        //     }
-
-        //     // const debounce = (fn, ms = 700) => {
-        //     //     let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn.apply(null, a), ms); };
-        //     // };
-
-        //     function debounce(fn, ms = 700) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
-
-        //     // const go = debounce(() => {
-        //     //     const url = buildUrl();
-        //     //     window.loadToHost ? window.loadToHost(url) : window.location.assign(url);
-        //     // }, 700);
-
-        //     const go = debounce(async () => {
-        //         const url = buildUrl();
-
-        //         // guardar foco y posición del caret
-        //         const active = document.activeElement;
-        //         const id = active?.id;
-        //         const selStart = ('selectionStart' in active) ? active.selectionStart : null;
-        //         const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
-
-        //         await window.swapInHost(url, '#printArea');   // <— solo recarga la grilla/pager
-        //         history.replaceState(null, '', url);          // actualiza la URL sin recargar
-
-        //         // restaurar foco/caret
-        //         if (id) {
-        //             const el = document.getElementById(id);
-        //             if (el) {
-        //                 el.focus();
-        //                 if (selStart != null && selEnd != null) el.setSelectionRange(selStart, selEnd);
-        //             }
-        //         }
-        //     }, 700);
-
-        //     function onTextInput() {
-        //         const v = this.value.trim();
-        //         if (v.length === 0 || v.length >= 2) go();
-        //     }
-
-        //     fCodigo?.addEventListener('input', onTextInput);
-        //     fNombre?.addEventListener('input', onTextInput);
-        //     fEstado?.addEventListener('change', go);
-        //     host.querySelector('#btnPrint')?.addEventListener('click', () => window.print());
-
-        //     // arranque
-        //     filtered = rows.slice();
-        //     render(1);
-        // }
-
-        // Se ejecuta después de cada loadToHost
-        function initPageFeatures(host) {
-            // Inicializa el paginador si estamos en Puestos/Index
-            const area = host.querySelector('#printArea');
-            if (area) window.initPuestosPager(area);
-            setupPasswordUi(host);
-            setupLiveValidation(host);
+          }, { once: true });
+        } else if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
         }
-
-        function setupPasswordUi(scope){
-          // Busca dentro del "scope" (el #contentHost recién pintado)
-          const pwd      = scope.querySelector('#NuevaContrasena, input[name="NuevaContrasena"]');
-          const confirm  = scope.querySelector('#ConfirmarContrasena, input[name="ConfirmarContrasena"]');
-          const list     = scope.querySelector('#pwChecklist');
-          const matchMsg = scope.querySelector('#pwMatchMsg');
-          if (!pwd || !list) return; // no estamos en la vista Create Usuarios
-
-          const req = (sel) => list?.querySelector(sel);
-
-          const setItem = (el, ok) => {
-            if (!el) return;
-            el.classList.toggle('pw-ok', ok);
-            el.classList.toggle('pw-bad', !ok);
-            const i = el.querySelector('i');
-            if (i) i.className = ok ? 'bi bi-check-circle-fill me-1' : 'bi bi-x-circle-fill me-1';
-          };
-
-          function setupLiveValidation(scope){
-              const form = scope.querySelector('#frmCreateUsuario');
-              if (!form) return;
-
-              const getMsg = (name) =>
-                form.querySelector(`[data-valmsg-for="${CSS.escape(name)}"]`);
-
-              const mark = (el, ok) => {
-                el.classList.toggle('is-valid', ok);
-                el.classList.toggle('is-invalid', !ok);
-                const msg = getMsg(el.name);
-                if (msg && ok) {
-                  msg.textContent = '';
-                  msg.classList.remove('field-validation-error','text-danger');
-                  msg.classList.add('field-validation-valid');
-                }
-              };
-
-              const requiredOk = (el) => ((el.value || '').trim().length > 0);
-
-              const pwd = form.querySelector('#NuevaContrasena');
-              const cfm = form.querySelector('#ConfirmarContrasena');
-              const matchMsg = form.querySelector('#pwMatchMsg');
-
-              const checkConfirm = () => {
-                if (!pwd || !cfm) return;
-                const a = pwd.value || '';
-                const b = cfm.value || '';
-                if (!b) {
-                  cfm.classList.remove('is-valid','is-invalid');
-                  if (matchMsg) { matchMsg.textContent = ''; matchMsg.classList.remove('text-success','text-danger'); }
-                  return;
-                }
-                const same = a === b;
-                cfm.classList.toggle('is-valid', same);
-                cfm.classList.toggle('is-invalid', !same);
-                if (matchMsg) {
-                  matchMsg.textContent = same ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
-                  matchMsg.classList.toggle('text-success', same);
-                  matchMsg.classList.toggle('text-danger', !same);
-                }
-                // Si ya había error de servidor en ConfirmarContrasena, límpialo al coincidir
-                const span = getMsg('ConfirmarContrasena');
-                if (span && same) {
-                  span.textContent = '';
-                  span.classList.remove('field-validation-error','text-danger');
-                  span.classList.add('field-validation-valid');
-                }
-              };
-
-              // Delegación: limpia el mensaje del campo en cuanto el valor sea válido
-              form.addEventListener('input', (ev) => {
-                const el = ev.target;
-                if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) return;
-
-                // Reglas “required”
-                if (el.hasAttribute('required') || ['UsuarioNombre','NuevaContrasena','ConfirmarContrasena','RolID','EmpleadoID'].includes(el.name)) {
-                  mark(el, requiredOk(el));
-                }
-
-                // Confirmación de contraseña reactiva
-                if (el === pwd || el === cfm) checkConfirm();
-              });
-
-              form.addEventListener('change', (ev) => {
-                const el = ev.target;
-                if (['RolID','EmpleadoID','Estado'].includes(el.name)) mark(el, requiredOk(el));
-              });
-
-              // Primera pasada por si hay valores precargados
-              form.querySelectorAll('input,select,textarea').forEach(el => {
-                if ((el.value || '').length) mark(el, requiredOk(el));
-              });
-            }
-
-          const checkPwd = () => {
-            const v = pwd.value || '';
-            const okLower = /[a-z]/.test(v);
-            const okUpper = /[A-Z]/.test(v);
-            const okDigit = /\d/.test(v);
-            const okLen   = v.length >= 8 && v.length <= 15;
-
-            setItem(req('[data-req="lower"]'), okLower);
-            setItem(req('[data-req="upper"]'), okUpper);
-            setItem(req('[data-req="digit"]'), okDigit);
-            setItem(req('[data-req="len"]'),   okLen);
-
-            const allOk = okLower && okUpper && okDigit && okLen;
-            pwd.classList.toggle('is-valid',   allOk && v.length > 0);
-            pwd.classList.toggle('is-invalid', !allOk && v.length > 0);
-          };
-
-          const checkMatch = () => {
-            if (!confirm || !matchMsg) return;
-            const a = pwd.value || '';
-            const b = confirm.value || '';
-
-            if (!b) {
-              confirm.classList.remove('is-valid','is-invalid');
-              matchMsg.textContent = '';
-              matchMsg.classList.remove('text-success','text-danger');
-              return;
-            }
-
-            const same = a === b;
-            confirm.classList.toggle('is-valid', same);
-            confirm.classList.toggle('is-invalid', !same);
-
-            matchMsg.textContent = same ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
-            matchMsg.classList.toggle('text-success', same);
-            matchMsg.classList.toggle('text-danger', !same);
-          };
-
-          // Eventos
-          pwd.addEventListener('input', () => { checkPwd(); checkMatch(); });
-          confirm?.addEventListener('input', checkMatch);
-
-          // Primer cálculo
-          checkPwd(); checkMatch();
+        return;
+      }
+      if (data.reason === 'nochanges') {
+        const warnEl = document.getElementById('noChangesModal');
+        if (warnEl && window.bootstrap) {
+          const msg = warnEl.querySelector('.js-msg');
+          if (msg && data.message) msg.textContent = data.message;
+          bootstrap.Modal.getOrCreateInstance(warnEl).show();
+        } else {
+          alert(data.message || 'No has modificado ningún campo.');
         }
+        return;
+      }
+      if (data.errors) {
+        for (const key in data.errors) {
+          const msgs = data.errors[key];
+          const span = form.querySelector('[data-valmsg-for="' + key + '"]');
+          if (span) {
+            span.textContent = msgs.join(' ');
+            span.classList.remove('field-validation-valid');
+            span.classList.add('field-validation-error','text-danger','d-block');
+          }
+          const ctrl = form.querySelector('[name="' + key + '"]');
+          if (ctrl) ctrl.classList.add('is-invalid','input-validation-error');
+        }
+        return;
+      }
+      if (data.message) { alert(data.message); return; }
+    }
 
+    // HTML (validaciones servidor, etc.)
+    if (host) {
+        cleanupModals();
 
-        // Init de paginación para la grilla actual
-        window.initPuestosPager = function initPuestosPager(rootEl) {
-            const wrap = rootEl || document.getElementById('printArea');
-            if (!wrap) return;
+      host.innerHTML = raw;
+      host.querySelectorAll('script').forEach(old => {
+        const s = document.createElement('script');
+        if (old.src) { s.src = old.src; s.async = false; }
+        else { s.text = old.textContent; }
+        document.head.appendChild(s);
+        old.remove();
+      });
+      wireUpValidation(host);
+      initPageFeatures(host);
+      window.scrollTo(0, 0);
+      cleanupModals();
 
-            const pageSize = 9;                                      // <— ajusta si quieres
-            const $tbody = wrap.querySelector('#tblPuestos tbody');
-            const rows = Array.from($tbody?.querySelectorAll('tr') || []);
-            const $pager = wrap.querySelector('#pager');
-            const $info = wrap.querySelector('#infoRows');
-            let page = 1;
+    } else {
+      document.open(); document.write(raw); document.close();
+    }
+  });
 
-            function render(toPage) {
-                page = toPage ?? page;
-                const total = rows.length;
-                const pages = Math.max(1, Math.ceil(total / pageSize));
-                if (page > pages) page = pages;
+  // Exponer utilidad para reemplazar solo un fragmento
+  window.swapInHost = async function swapInHost(url, selector) {
+    const host = document.getElementById('contentHost');
+    const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    if (!resp.ok) { window.location.href = url; return; }
+    const html = await resp.text();
+    const tmp = document.createElement('div'); tmp.innerHTML = html;
+    const newNode = tmp.querySelector(selector);
+    const oldNode = host.querySelector(selector);
+    if (newNode && oldNode) oldNode.replaceWith(newNode);
+  };
 
-                rows.forEach(tr => tr.style.display = 'none');
-                const start = (page - 1) * pageSize;
-                rows.slice(start, start + pageSize).forEach(tr => tr.style.display = '');
+  /* ==== Validación reactiva en TODOS los inputs dentro de #contentHost ==== */
+  host.addEventListener('input', (ev) => {
+    const el = ev.target;
+    if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) return;
 
-                const first = total ? start + 1 : 0;
-                const last = Math.min(start + pageSize, total);
-                if ($info) $info.textContent = `Mostrando ${first}-${last} de ${total}`;
-                drawPager(pages);
-            }
+    if (window.jQuery && $(el.form).data('validator')) {
+      const ok = $(el).valid();
+      if (ok) clearOneField(el);
+      return;
+    }
 
-            function drawPager(pages) {
-                if (!$pager) return;
-                const mk = (label, p, disabled = false, active = false) => {
-                    const li = document.createElement('li');
-                    li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
-                    const a = document.createElement('a');
-                    a.className = 'page-link'; a.href = '#'; a.textContent = label;
-                    a.addEventListener('click', ev => { ev.preventDefault(); if (!disabled && !active) render(p); });
-                    li.appendChild(a);
-                    return li;
-                };
-                $pager.innerHTML = '';
-                const pagesCount = pages;
-                $pager.appendChild(mk('«', 1, page === 1));
-                $pager.appendChild(mk('‹', page - 1, page === 1));
-                const range = 2;
-                const start = Math.max(1, page - range);
-                const end = Math.min(pagesCount, page + range);
-                if (start > 1) $pager.appendChild(mk('1', 1, false, page === 1));
-                if (start > 2) $pager.appendChild(mk('…', page, true));
-                for (let p = start; p <= end; p++) $pager.appendChild(mk(String(p), p, false, p === page));
-                if (end < pagesCount - 1) $pager.appendChild(mk('…', page, true));
-                if (end < pagesCount) $pager.appendChild(mk(String(pagesCount), pagesCount, false, page === pagesCount));
-                $pager.appendChild(mk('›', page + 1, page === pagesCount));
-                $pager.appendChild(mk('»', pagesCount, page === pagesCount));
-            }
+    const isRequired = el.hasAttribute('data-val') && el.hasAttribute('data-val-required');
+    if (isRequired && (el.value || '').trim() !== '') {
+      clearOneField(el);
+    }
+  });
 
-            render(1);
-        };
-    </script>
+})();
+
+/* Atajo Ctrl+B para abrir/cerrar el sidebar */
+document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); toggleSidebar(); }
+});
+
+/* ==== Autofiltros de Puestos (delegado en #contentHost) ==== */
+(function () {
+  const host = document.getElementById('contentHost');
+  if (!host) return;
+
+  const debounce = (fn, ms = 400) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); } };
+
+  function buildUrl() {
+    const form = host.querySelector('#frmFiltros');
+    if (!form) return null;
+    const endpoint = form.dataset.endpoint || '/';
+    const codigo = form.querySelector('#fCodigo')?.value.trim() || '';
+    const nombre = form.querySelector('#fNombre')?.value.trim() || '';
+    const estado = form.querySelector('#fEstado')?.value ?? '';
+
+    const qs = new URLSearchParams();
+    if (codigo) qs.set('codigo', codigo);
+    if (nombre) qs.set('nombre', nombre);
+    qs.set('estado', estado);
+
+    return endpoint + (qs.toString() ? '?' + qs.toString() : '');
+  }
+
+  const run = debounce(async () => {
+    const url = buildUrl();
+    if (!url) return;
+
+    const active = document.activeElement;
+    const id = active?.id;
+    const selStart = ('selectionStart' in active) ? active.selectionStart : null;
+    const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
+
+    await window.swapInHost(url, '#printArea');
+    history.replaceState(null, '', url);
+    window.initPuestosPager(host.querySelector('#printArea'));
+
+    if (id) {
+      const el = host.querySelector('#' + CSS.escape(id));
+      if (el) {
+        el.focus();
+        if (selStart != null && selEnd != null && el.setSelectionRange) el.setSelectionRange(selStart, selEnd);
+      }
+    }
+  }, 400);
+
+  host.addEventListener('input', (ev) => {
+    const id = ev.target?.id;
+    const v = ev.target?.value?.trim?.() || '';
+    if ((id === 'fCodigo' || id === 'fNombre') && (v.length === 0 || v.length >= 2)) run();
+  });
+
+  host.addEventListener('change', (ev) => { if (ev.target?.id === 'fEstado') run(); });
+
+  host.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('#btnPrint');
+    if (!btn) return;
+
+    const form = host.querySelector('#frmFiltros');
+    const endpoint = form?.dataset.report || (form?.dataset.endpoint?.replace('/Index', '/ExportPdf')) || '';
+    if (!endpoint) return;
+
+    const qs = new URLSearchParams();
+    const cod = form.querySelector('#fCodigo')?.value.trim() || '';
+    const nom = form.querySelector('#fNombre')?.value.trim() || '';
+    const est = form.querySelector('#fEstado')?.value ?? '';
+    if (cod) qs.set('codigo', cod);
+    if (nom) qs.set('nombre', nom);
+    qs.set('estado', est);
+
+    window.open(endpoint + (qs.toString() ? '?' + qs.toString() : ''), '_blank');
+  });
+})();
+
+/* ========== Init extra de páginas ========== */
+function initPageFeatures(host) {
+  const area = host.querySelector('#printArea');
+  if (area) window.initPuestosPager(area);
+  setupPasswordUi(host);
+}
+
+function setupPasswordUi(scope) {
+  const pwd = scope.querySelector('#NuevaContrasena, input[name="NuevaContrasena"]');
+  const confirm = scope.querySelector('#ConfirmarContrasena, input[name="ConfirmarContrasena"]');
+  const list = scope.querySelector('#pwChecklist');
+  const matchMsg = scope.querySelector('#pwMatchMsg');
+  if (!pwd || !list) return;
+
+  const req = (sel) => list?.querySelector(sel);
+  const setItem = (el, ok) => {
+    if (!el) return;
+    el.classList.toggle('pw-ok', ok);
+    el.classList.toggle('pw-bad', !ok);
+    const i = el.querySelector('i');
+    if (i) i.className = ok ? 'bi bi-check-circle-fill me-1' : 'bi bi-x-circle-fill me-1';
+  };
+
+  const checkPwd = () => {
+    const v = pwd.value || '';
+    const okLower = /[a-z]/.test(v);
+    const okUpper = /[A-Z]/.test(v);
+    const okDigit = /\d/.test(v);
+    const okLen = v.length >= 8 && v.length <= 15;
+
+    setItem(req('[data-req="lower"]'), okLower);
+    setItem(req('[data-req="upper"]'), okUpper);
+    setItem(req('[data-req="digit"]'), okDigit);
+    setItem(req('[data-req="len"]'), okLen);
+
+    const allOk = okLower && okUpper && okDigit && okLen;
+    pwd.classList.toggle('is-valid', allOk && v.length > 0);
+    pwd.classList.toggle('is-invalid', !allOk && v.length > 0);
+  };
+
+  const checkMatch = () => {
+    if (!confirm || !matchMsg) return;
+    const a = pwd.value || '';
+    const b = confirm.value || '';
+    if (!b) {
+      confirm.classList.remove('is-valid', 'is-invalid');
+      matchMsg.textContent = '';
+      matchMsg.classList.remove('text-success', 'text-danger');
+      return;
+    }
+    const same = a === b;
+    confirm.classList.toggle('is-valid', same);
+    confirm.classList.toggle('is-invalid', !same);
+    matchMsg.textContent = same ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
+    matchMsg.classList.toggle('text-success', same);
+    matchMsg.classList.toggle('text-danger', !same);
+  };
+
+  pwd.addEventListener('input', () => { checkPwd(); checkMatch(); });
+  confirm?.addEventListener('input', checkMatch);
+  checkPwd(); checkMatch();
+}
+
+/* Init de paginación */
+window.initPuestosPager = function initPuestosPager(rootEl) {
+  const wrap = rootEl || document.getElementById('printArea');
+  if (!wrap) return;
+
+  const pageSize = 9;
+  const $tbody = wrap.querySelector('#tblPuestos tbody');
+  const rows = Array.from($tbody?.querySelectorAll('tr') || []);
+  const $pager = wrap.querySelector('#pager');
+  const $info = wrap.querySelector('#infoRows');
+  let page = 1;
+
+  function render(toPage) {
+    page = toPage ?? page;
+    const total = rows.length;
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    if (page > pages) page = pages;
+
+    rows.forEach(tr => tr.style.display = 'none');
+    const start = (page - 1) * pageSize;
+    rows.slice(start, start + pageSize).forEach(tr => tr.style.display = '');
+
+    const first = total ? start + 1 : 0;
+    const last = Math.min(start + pageSize, total);
+    if ($info) $info.textContent = `Mostrando ${first}-${last} de ${total}`;
+    drawPager(pages);
+  }
+
+  function drawPager(pages) {
+    if (!$pager) return;
+    const mk = (label, p, disabled = false, active = false) => {
+      const li = document.createElement('li');
+      li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+      const a = document.createElement('a');
+      a.className = 'page-link'; a.href = '#'; a.textContent = label;
+      a.addEventListener('click', ev => { ev.preventDefault(); if (!disabled && !active) render(p); });
+      li.appendChild(a);
+      return li;
+    };
+    $pager.innerHTML = '';
+    const pagesCount = pages;
+    $pager.appendChild(mk('«', 1, page === 1));
+    $pager.appendChild(mk('‹', page - 1, page === 1));
+    const range = 2;
+    const start = Math.max(1, page - range);
+    const end = Math.min(pagesCount, page + range);
+    if (start > 1) $pager.appendChild(mk('1', 1, false, page === 1));
+    if (start > 2) $pager.appendChild(mk('…', page, true));
+    for (let p = start; p <= end; p++) $pager.appendChild(mk(String(p), p, false, p === page));
+    if (end < pagesCount - 1) $pager.appendChild(mk('…', page, true));
+    if (end < pagesCount) $pager.appendChild(mk(String(pagesCount), pagesCount, false, p === pagesCount));
+    $pager.appendChild(mk('›', page + 1, page === pagesCount));
+    $pager.appendChild(mk('»', pagesCount, page === pagesCount));
+  }
+
+  render(1);
+};
+
+window.swapContentIntoHost = function (html) {
+  const host = document.getElementById('contentHost');
+  if (!host) return;
+  host.innerHTML = html;
+
+  host.querySelectorAll('script').forEach(old => {
+    const s = document.createElement('script');
+    if (old.src) { s.src = old.src; s.async = false; }
+    else { s.text = old.textContent; }
+    document.head.appendChild(s);
+    old.remove();
+  });
+
+  window.scrollTo(0, 0);
+};
+</script>
 
 
 </body>

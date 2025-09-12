@@ -8,5 +8,7 @@ namespace PIOGHOASIS.Models.ViewModels
     {
         public Persona Persona { get; set; } = new Persona();
         public Empleado Empleado { get; set; } = new Empleado();
+
     }
+
 }

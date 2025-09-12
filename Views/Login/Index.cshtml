@@ -39,6 +39,14 @@
                                     </div>
                                 }
 
+                                @if (TempData["MsgOk"] is string ok)
+                                {
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        @ok
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                }
+
                                 <form method="post" action="/Login/Index" autocomplete="off">
                                     @* @Html.AntiForgeryToken()  // quita el comentario si usas validación antifalsificación *@
                                     @Html.AntiForgeryToken()

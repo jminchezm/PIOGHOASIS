@@ -22,12 +22,14 @@
                 @Html.AntiForgeryToken()
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Correo electrónico</label>
-                    <input asp-for="Email" class="form-control" type="email" placeholder="ejemplo@correo.com" required />
-                    <span asp-validation-for="Email" class="text-danger"></span>
+                    <input asp-for="Email" class="form-control" type="email" placeholder="ejemplo@correo.com" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
                 </div>
                 <button class="btn btn-warning fw-bold">Enviar</button>
                 <a class="btn btn-outline-secondary ms-2" href="/Login/Index">Volver</a>
             </form>
+
+            <partial name="_ValidationScriptsPartial" />
         </div>
     </div>
 </div>

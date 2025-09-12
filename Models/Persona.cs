@@ -31,8 +31,9 @@ namespace PIOGHOASIS.Models
         [Column("Email"), StringLength(100)]
         public string? Email { get; set; }
 
-        [Column("Telefono1"), StringLength(8)]
-        [Required(ErrorMessage = "El campo Telefono 1 es obligatorio.")]
+        [RegularExpression(@"^\d{8}$", ErrorMessage = "El Teléfono 1 debe tener 8 dígitos.")]
+        [StringLength(8)]
+        [Required(ErrorMessage = "El campo Teléfono 1 es obligatorio.")]
         public string? Telefono1 { get; set; }
 
         [Column("Telefono2"), StringLength(8)]

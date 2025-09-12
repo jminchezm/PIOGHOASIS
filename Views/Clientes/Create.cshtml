@@ -1,0 +1,301 @@
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@model PIOGHOASIS.Models.ViewModels.ClienteFormVm
+@{
+    Layout = null; // vive dentro del Dashboard
+}
+
+<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+<style>
+    .cli-create {
+        position: relative;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)), url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+    }
+
+    .cc-card {
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 8px 28px rgba(0,0,0,.08);
+        backdrop-filter: blur(2px);
+    }
+
+    .cc-header {
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .75rem 1rem;
+        border-top-left-radius: .75rem;
+        border-top-right-radius: .75rem;
+        border-bottom: 2px solid #d7a536;
+    }
+
+    .cc-back {
+        position: sticky;
+        top: calc(var(--header-h) + 8px);
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        background: #4b5563;
+        color: #fff;
+        border: none;
+        border-radius: .5rem;
+        padding: .4rem .75rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.15);
+    }
+
+        .cc-back:hover {
+            filter: brightness(.95);
+            color: #fff;
+        }
+
+    .cc-save {
+        font-weight: 800;
+        padding: .6rem 1.25rem;
+    }
+
+    .form-label {
+        font-weight: 700;
+        color: #1f2a37;
+    }
+
+    .form-text-muted {
+        color: #8a93a2;
+    }
+
+    .cc-subtitle {
+        font-weight: 800;
+        color: #1f2a37;
+        border-left: 4px solid #f0a100;
+        padding-left: .5rem;
+        margin: .25rem 0 1rem;
+    }
+
+    span.field-validation-error {
+        display: block;
+        color: #dc3545;
+    }
+</style>
+
+<div class="cli-create">
+    <!-- Volver -->
+    <div class="d-flex justify-content-end mb-2">
+        <a class="cc-back ajax-nav" href="/Clientes/Index" data-url="/Clientes/Index">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <div class="cc-card">
+        <div class="cc-header">Registrar nuevo cliente</div>
+        @* data-ajax="true" *@
+        <div class="p-3 p-md-4">
+            <form id="cliForm"
+                  asp-action="Create"
+                  method="post"
+                  data-ajax="true"
+                  enctype="multipart/form-data"
+                  novalidate>
+                @Html.AntiForgeryToken()
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <!-- ===== Datos de la Persona ===== -->
+                <h6 class="cc-subtitle">Datos de la Persona</h6>
+                <div class="row g-3">
+
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.PrimerNombre" class="form-label">Primer nombre*</label>
+                        <input asp-for="Persona.PrimerNombre" class="form-control" />
+                        <span asp-validation-for="Persona.PrimerNombre" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.SegundoNombre" class="form-label">Segundo nombre</label>
+                        <input asp-for="Persona.SegundoNombre" class="form-control" />
+                        <span asp-validation-for="Persona.SegundoNombre" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.PrimerApellido" class="form-label">Primer apellido*</label>
+                        <input asp-for="Persona.PrimerApellido" class="form-control" />
+                        <span asp-validation-for="Persona.PrimerApellido" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.SegundoApellido" class="form-label">Segundo apellido</label>
+                        <input asp-for="Persona.SegundoApellido" class="form-control" />
+                        <span asp-validation-for="Persona.SegundoApellido" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.Email" class="form-label">Email</label>
+                        <input asp-for="Persona.Email" type="email" class="form-control" />
+                        <span asp-validation-for="Persona.Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.Telefono1" class="form-label">Teléfono 1*</label>
+                        <input asp-for="Persona.Telefono1" class="form-control" />
+                        <span asp-validation-for="Persona.Telefono1" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.Telefono2" class="form-label">Teléfono 2</label>
+                        <input asp-for="Persona.Telefono2" class="form-control" />
+                        <span asp-validation-for="Persona.Telefono2" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12">
+                        <label asp-for="Persona.Direccion" class="form-label">Dirección*</label>
+                        <textarea asp-for="Persona.Direccion" class="form-control" rows="2"></textarea>
+                        <span asp-validation-for="Persona.Direccion" class="text-danger"></span>
+                    </div>
+
+                    <!-- Tipo de documento -->
+                    @* asp-for="Persona.TipoDocumentoID" *@
+                    <div class="col-12 col-md-4">
+                      <label asp-for="Persona.TipoDocumentoID" class="form-label">Tipo de documento*</label>
+                      <select asp-for="Persona.TipoDocumentoID"
+                              class="form-select"
+                              asp-items="ViewBag.TiposDocumento">
+                          <option value="">Seleccione...</option>
+                      </select>
+                      <span asp-validation-for="Persona.TipoDocumentoID" class="text-danger"></span>
+                    </div>
+
+                    <!-- Número de documento -->
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.NumeroDocumento" class="form-label">Número de documento*</label>
+                        <input asp-for="Persona.NumeroDocumento" class="form-control" />
+                        <span asp-validation-for="Persona.NumeroDocumento" class="text-danger"></span>
+                    </div>
+
+                    <!-- NIT -->
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.Nit" class="form-label">NIT</label>
+                        <input asp-for="Persona.Nit" class="form-control" />
+                        <span asp-validation-for="Persona.Nit" class="text-danger"></span>
+                    </div>
+
+                    <!-- Fecha nacimiento -->
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.FechaNacimiento" class="form-label">Fecha de nacimiento*</label>
+                        <input asp-for="Persona.FechaNacimiento" type="date" class="form-control" />
+                        <span asp-validation-for="Persona.FechaNacimiento" class="text-danger"></span>
+                    </div>
+
+                    <!-- País -->
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.PaisID" class="form-label">País*</label>
+                        <select asp-for="Persona.PaisID"
+                                class="form-select"
+                                asp-items="ViewBag.Paises"
+                                onchange="(function(s){var d=document.getElementById('Persona_DepartamentoID')||document.querySelector('[name=&quot;Persona.DepartamentoID&quot;]');var m=document.getElementById('Persona_MunicipioID')||document.querySelector('[name=&quot;Persona.MunicipioID&quot;]');var v=(s.value||'').trim().toUpperCase();var offD=function(){d.value='';d.innerHTML='<option value=&quot;&quot;>Seleccione...</option>';d.setAttribute('disabled','disabled');};var onD=function(){d.removeAttribute('disabled');};var offM=function(){m.value='';m.innerHTML='<option value=&quot;&quot;>Seleccione...</option>';m.setAttribute('disabled','disabled');};if(v!=='GTM'){offD();offM();return;}onD();offM();d.innerHTML='<option value=&quot;&quot;>Cargando...</option>';fetch('/Clientes/Departamentos?paisId='+encodeURIComponent(v),{headers:{'X-Requested-With':'XMLHttpRequest'}}).then(function(r){return r.json()}).then(function(arr){var cur=d.getAttribute('data-current');d.innerHTML='<option value=&quot;&quot;>Seleccione...</option>';arr.forEach(function(x){var o=document.createElement('option');o.value=x.id;o.textContent=x.nombre;if(cur&&String(cur)===String(x.id))o.selected=true;d.appendChild(o);});if(d.options.length<=1){offD();return;}if(d.value){var evt=document.createEvent('HTMLEvents');evt.initEvent('change',true,false);d.dispatchEvent(evt);}}).catch(function(){offD();});})(this)">
+                            <option value="">Seleccione...</option>
+                        </select>
+                        <span asp-validation-for="Persona.PaisID" class="text-danger"></span>
+                    </div>
+
+                    <!-- Departamento -->
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.DepartamentoID" class="form-label">Departamento*</label>
+                        <select asp-for="Persona.DepartamentoID"
+                                class="form-select"
+                                asp-items="ViewBag.Departamentos"
+                                id="Persona_DepartamentoID"
+                                data-current="@Model?.Persona?.DepartamentoID"
+                                disabled
+                                onchange="(function(s){var m=document.getElementById('Persona_MunicipioID')||document.querySelector('[name=&quot;Persona.MunicipioID&quot;]');var id=parseInt(s.value,10)||0;var off=function(){m.value='';m.innerHTML='<option value=&quot;&quot;>Seleccione...</option>';m.setAttribute('disabled','disabled');};var on=function(){m.removeAttribute('disabled');};if(!id){off();return;}on();m.innerHTML='<option value=&quot;&quot;>Cargando...</option>';fetch('/Clientes/Municipios?deptoId='+encodeURIComponent(id),{headers:{'X-Requested-With':'XMLHttpRequest'}}).then(function(r){return r.json()}).then(function(arr){var cur=m.getAttribute('data-current');m.innerHTML='<option value=&quot;&quot;>Seleccione...</option>';arr.forEach(function(x){var o=document.createElement('option');o.value=x.id;o.textContent=x.nombre;if(cur&&String(cur)===String(x.id))o.selected=true;m.appendChild(o);});if(m.options.length<=1)off();}).catch(function(){off();});})(this)">
+                            <option value="">Seleccione...</option>
+                        </select>
+                        <span asp-validation-for="Persona.DepartamentoID" class="text-danger"></span>
+                    </div>
+
+                    <!-- Municipio -->
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.MunicipioID" class="form-label">Municipio*</label>
+                        <select asp-for="Persona.MunicipioID"
+                                class="form-select"
+                                asp-items="ViewBag.Municipios"
+                                id="Persona_MunicipioID"
+                                data-current="@Model?.Persona?.MunicipioID"
+                                disabled>
+                            <option value="">Seleccione...</option>
+                        </select>
+                        <span asp-validation-for="Persona.MunicipioID" class="text-danger"></span>
+                    </div>
+
+                    <!-- Foto -->
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">Foto</label>
+                        <input type="file" class="form-control" id="Foto" name="Foto" accept="image/png,image/jpeg,image/webp" />
+                        <small class="form-text-muted d-block mt-1">Formatos: JPG/PNG/WebP. Máx. 3 MB.</small>
+                        <span data-valmsg-for="Foto" class="text-danger"></span>
+                        @* <div class="mt-2">
+                            <img id="fotoPreview" src="~/img/user-placeholder.png" class="img-thumbnail" style="max-height:140px" alt="preview" />
+                        </div> *@
+                    </div>
+                </div>
+
+                <hr class="my-4" />
+
+                <!-- ===== Datos del Cliente ===== -->
+                <h6 class="cc-subtitle">Datos del Cliente</h6>
+                <div class="row g-3">
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Cliente.ClienteID" class="form-label">Código*</label>
+                        <input asp-for="Cliente.ClienteID" class="form-control" readonly />
+                        <span asp-validation-for="Cliente.ClienteID" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label asp-for="Persona.PersonaID" class="form-label">PersonaID</label>
+                        <input asp-for="Persona.PersonaID" class="form-control" readonly />
+                        <span asp-validation-for="Persona.PersonaID" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">Estado*</label>
+                        <select asp-for="Cliente.Estado" class="form-select">
+                            <option value="true">Activo</option>
+                            <option value="false">Inactivo</option>
+                        </select>
+                        <span asp-validation-for="Cliente.Estado" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary cc-save">
+                        <i class="bi bi-download me-1"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal éxito -->
+<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white py-2">
+                <h6 class="modal-title mb-0"><i class="bi bi-check-circle me-1"></i> Registro creado</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="~/img/exito.png" asp-append-version="true" class="img-fluid d-block mx-auto my-2" alt="ok" style="width:50px" />
+                <p class="fw-bold mb-0">¡Cliente creado correctamente!</p>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>

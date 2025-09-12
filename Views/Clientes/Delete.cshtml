@@ -1,0 +1,113 @@
+﻿@model PIOGHOASIS.Models.Cliente
+@{
+    if (ViewBag.IsPartial == true) { Layout = null; }
+    var accion = Model.Estado ? "Desactivar" : "Reactivar";
+}
+<style>
+    .usr-form{position:relative;margin-top:0;width:100%;min-height:calc(100vh - var(--header-h));padding:24px;
+             background:linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;}
+    .usr-card{background:rgba(255,255,255,.90);border:1px solid rgba(0,0,0,.06);border-radius:.75rem;box-shadow:0 6px 22px rgba(0,0,0,.08);}
+    .usr-title{background:#f3c259;color:#222;font-weight:800;font-size:1.25rem;padding:.75rem 1rem;border-radius:.75rem .75rem 0 0;}
+</style>
+
+<div class="usr-form">
+    <div class="d-flex justify-content-end mb-2">
+        <a class="btn btn-secondary ajax-nav" href="/Clientes/Index" data-url="/Clientes/Index"><i class="bi bi-arrow-left"></i> Volver a la lista</a>
+    </div>
+
+    <div class="usr-card">
+        <div class="usr-title">@accion Cliente</div>
+        <div class="p-3 p-md-4">
+            <div class="d-flex align-items-center mb-3">
+                <img class="rounded me-3" style="width:56px;height:56px;object-fit:cover" src="/Clientes/Avatar/@Model.ClienteID" alt="Avatar" />
+                <div>
+                    <div class="fw-bold">
+                        @($"{Model.Persona?.PrimerNombre} {Model.Persona?.SegundoNombre} {Model.Persona?.PrimerApellido} {Model.Persona?.SegundoApellido}".Trim())
+                    </div>
+                    <small class="text-muted">Código: @Model.ClienteID</small>
+                </div>
+            </div>
+            <p>¿Seguro que deseas <strong>@accion.ToLower()</strong> este cliente?</p>
+
+            <div class="mt-3">
+                <a href="#" id="btnAsk" class="btn @(Model.Estado ? "btn-danger" : "btn-success")">
+                    <i class="bi @(Model.Estado ? "bi-power" : "bi-check-circle")"></i> @accion
+                </a>
+                <a class="btn btn-outline-secondary ms-2 ajax-nav" href="/Clientes/Index" data-url="/Clientes/Index">Cancelar</a>
+            </div>
+
+            <form id="frmDelete" asp-action="ToggleEstado" asp-controller="Clientes" method="post" class="d-none" data-ajax="true">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.ClienteID" />
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header @(Model.Estado ? "bg-danger" : "bg-success") text-white py-2">
+                <h6 class="modal-title mb-0"><i class="bi bi-exclamation-triangle me-1"></i> Confirmar</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                ¿Deseas @accion.ToLower() al cliente <strong>
+                    @($"{Model.Persona?.PrimerNombre} {Model.Persona?.PrimerApellido}")
+                </strong>?
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirm" class="btn @(Model.Estado ? "btn-danger" : "btn-success")">@accion</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+@* @model PIOGHOASIS.Models.Cliente
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Delete</title>
+</head>
+<body>
+
+<h3>Are you sure you want to delete this?</h3>
+<div>
+    <h4>Cliente</h4>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Estado)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Estado)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Persona)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Persona.PersonaID)
+        </dd>
+    </dl>
+    
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="ClienteID" />
+        <input type="submit" value="Delete" class="btn btn-danger" /> |
+        <a asp-action="Index">Back to List</a>
+    </form>
+</div>
+</body>
+</html>
+ *@

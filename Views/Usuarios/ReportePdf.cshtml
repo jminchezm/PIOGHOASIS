@@ -1,0 +1,148 @@
+﻿@model IEnumerable<PIOGHOASIS.Models.Entities.Usuario>
+@{
+    Layout = null;
+
+    // Texto del estado (para la caja de filtros)
+    string EstadoTxt = (ViewBag.Estado as string) switch
+    {
+        "1" => "Activo",
+        "0" => "Inactivo",
+        _ => "Todos"
+    };
+
+    // URL absoluta del logo para wkhtmltopdf
+    var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var logoUrl = baseUrl + Url.Content("~/img/login/logo-oasis.png");
+
+    string RolFiltro = string.IsNullOrWhiteSpace(ViewBag.Rol as string) ? "—" : (ViewBag.Rol as string);
+    string CodFiltro = string.IsNullOrWhiteSpace(ViewBag.Codigo as string) ? "—" : (ViewBag.Codigo as string);
+    string NomFiltro = string.IsNullOrWhiteSpace(ViewBag.Nombre as string) ? "—" : (ViewBag.Nombre as string);
+
+    string NombreCompleto(PIOGHOASIS.Models.Entities.Usuario u)
+    {
+        var p = u?.Empleado?.Persona;
+        var partes = new[] { p?.PrimerNombre, p?.SegundoNombre, p?.PrimerApellido, p?.SegundoApellido }
+                     .Where(s => !string.IsNullOrWhiteSpace(s));
+        return string.Join(" ", partes);
+    }
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Reporte de Usuarios</title>
+    <style>
+        /* ===== Tipografía y layout general (seguro para wkhtmltopdf) ===== */
+        html, body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 17px;
+            color: #1f2a37;
+        }
+        .container { padding: 14mm 12mm; }
+
+        /* ===== Encabezado con marca ===== */
+        .brand {
+            display: table; width: 100%;
+            border-bottom: 3px solid #d7a536;
+            padding-bottom: 8px; margin-bottom: 10px;
+        }
+        .brand .left  { display: table-cell; vertical-align: middle; width: 1%; }
+        .brand .right { display: table-cell; vertical-align: middle; padding-left: 10px; }
+
+        .logo  { width: 150px; height: auto; }
+        .title { margin: 0; font-size: 30px; line-height: 1.2; font-weight: 800; color: #1f2a37; }
+        .meta  { margin-top: 2px; color: #6b7280; font-size: 17px; }
+
+        /* ===== Caja de filtros ===== */
+        .filters {
+            margin-top: 8px; margin-bottom: 10px;
+            background: #fff8e6; border: 1px solid #f3c259; border-left: 5px solid #F0A100;
+            border-radius: 6px; padding: 8px 10px;
+        }
+        .filters b { color: #1f2a37; }
+        .filters .chip { margin-right: 14px; white-space: nowrap; }
+
+        /* ===== Tabla ===== */
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            background: #f3c259; color: #222; border: 1px solid #d7a536;
+            padding: 7px 8px; text-align: left; font-weight: 800;
+        }
+        tbody td { border: 1px solid #e8e5e5; padding: 7px 8px; vertical-align: top; }
+        tbody tr:nth-child(even){ background: #fffaf0; }
+        tbody tr:hover { background: #fff4d6; } /* si lo ves en visor */
+
+        /* ===== Pills de estado ===== */
+        .pill     { font-weight: 700; }
+        .pill-ok  { color: #16803d; }
+        .pill-off { color: #b42318; }
+
+        /* ===== Estado vacío ===== */
+        .empty { padding: 14mm 0; text-align: center; color: #6b7280; }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Header -->
+        <div class="brand">
+            <div class="left">
+                <img class="logo" src="@logoUrl" alt="Hotel Oasis" />
+            </div>
+            <div class="right">
+                <h1 class="title">Reporte de Usuarios</h1>
+                <div class="meta">Generado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+            </div>
+        </div>
+
+        <!-- Filtros (muestra lo que venga en ViewBag; si no seteas nada, saldrá “—”) -->
+        <div class="filters">
+            <span class="chip"><b>Código:</b> @CodFiltro</span>
+            <span class="chip"><b>Nombre/Usuario:</b> @NomFiltro</span>
+            <span class="chip"><b>Rol (ID):</b> @RolFiltro</span>
+            <span class="chip"><b>Estado:</b> @EstadoTxt</span>
+        </div>
+
+        <!-- Tabla -->
+        @if (!Model.Any())
+        {
+            <div class="empty">No se encontró ningún registro con los filtros seleccionados.</div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:120px;">Código</th>
+                        <th style="width:220px;">Usuario</th>
+                        <th>Empleado</th>
+                        <th style="width:160px;">Rol</th>
+                        <th style="width:100px;">Estado</th>
+                        <th style="width:170px;">Registro</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in Model)
+                    {
+                        var empId = u.Empleado?.EmpleadoID ?? "—";
+                        var empNm = NombreCompleto(u);
+                        <tr>
+                            <td>@u.UsuarioID</td>
+                            <td>@(u.UsuarioNombre ?? "—")</td>
+                            <td>@($"{empId} - {empNm}".Trim().Trim('-').Trim())</td>
+                            <td>@(u.Rol?.Nombre ?? "—")</td>
+                            <td>
+                                @Html.Raw(u.Estado
+                                         ? "<span class='pill pill-ok'>Activo</span>"
+                                         : "<span class='pill pill-off'>Inactivo</span>")
+                            </td>
+                            <td>@u.FechaRegistro.ToString("dd/MM/yyyy HH:mm")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</body>
+</html>

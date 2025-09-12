@@ -8,9 +8,17 @@ using PIOGHOASIS.Models.Entities;
 using PIOGHOASIS.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using PIOGHOASIS.Models; // Pbkdf2
+using PIOGHOASIS.Models;
+using System.ComponentModel.DataAnnotations; // Pbkdf2
 // VMs
-public record ForgotVm(string Email);
+//public record ForgotVm(string Email);
+
+public record ForgotVm
+    (
+        [Required(ErrorMessage = "Ingresa tu correo.")]
+        [EmailAddress(ErrorMessage = "Debe ser un correo válido.")]
+        string Email
+    );
 public class ResetVm
 {
     public string? Uid { get; set; }
@@ -36,6 +44,9 @@ public class PasswordController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Forgot(ForgotVm vm)
     {
+        if (!ModelState.IsValid) return View(vm);   // <-- valida formato y requerido
+
+        //var email = (vm.Email ?? "").Trim();
         // 1) Ubicar usuario por correo de Persona (ajusta el nombre del campo!)
         var email = (vm.Email ?? "").Trim();
         var user = await _db.usuarios
@@ -138,7 +149,10 @@ public class PasswordController : Controller
         rec.UsedAtUtc = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
-        return View("ResetSuccess");
+        //return View("ResetSuccess");
+        // Mensaje temporal si quieres mostrarlo en Login
+        TempData["MsgOk"] = "Tu contraseña se cambió correctamente. Inicia sesión con tu nueva contraseña.";
+        return RedirectToAction("Index", "Login");
     }
 
     // ===== Helper: valida token/expiración/uso =====

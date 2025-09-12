@@ -1,0 +1,133 @@
+﻿@model PIOGHOASIS.Models.Cliente
+@{
+    if (ViewBag.IsPartial == true) { Layout = null; }
+}
+<style>
+    .usr-form {
+        position: relative;
+        margin-top: 0;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+    }
+
+    .usr-card {
+        background: rgba(255,255,255,.90);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 6px 22px rgba(0,0,0,.08);
+    }
+
+    .usr-title {
+        background: #f3c259;
+        color: #222;
+        font-weight: 800;
+        font-size: 1.25rem;
+        padding: .75rem 1rem;
+        border-radius: .75rem .75rem 0 0;
+    }
+
+    .pill {
+        font-weight: 700
+    }
+
+    .ok {
+        color: #16803d
+    }
+
+    .off {
+        color: #b42318
+    }
+</style>
+
+<div class="usr-form">
+    <div class="d-flex justify-content-end mb-2">
+        <a class="btn btn-secondary ajax-nav" href="/Clientes/Index" data-url="/Clientes/Index"><i class="bi bi-arrow-left"></i> Volver a la lista</a>
+    </div>
+
+    <div class="usr-card">
+        <div class="usr-title">Detalle del cliente</div>
+        <div class="p-3 p-md-4">
+            <div class="row g-3 align-items-center">
+                <div class="col-auto">
+                    <img class="rounded-circle" style="width:72px;height:72px;object-fit:cover"
+                         src="/Clientes/Avatar/@Model.ClienteID" alt="Avatar" />
+                </div>
+                <div class="col">
+                    <h5 class="mb-0">
+                        @($"{Model.Persona?.PrimerNombre} {Model.Persona?.SegundoNombre} {Model.Persona?.PrimerApellido} {Model.Persona?.SegundoApellido}".Trim())
+                    </h5>
+                    <small class="text-muted">
+                        Estado: @Html.Raw(Model.Estado ? "<span class='pill ok'>Activo</span>" : "<span class='pill off'>Inactivo</span>")
+                    </small>
+                </div>
+            </div>
+            <hr />
+            <dl class="row">
+                <dt class="col-sm-3">Código</dt>
+                <dd class="col-sm-9">@Model.ClienteID</dd>
+                <dt class="col-sm-3">Documento</dt>
+                <dd class="col-sm-9">@($"{Model.Persona?.TipoDocumentoID} {Model.Persona?.NumeroDocumento}".Trim())</dd>
+                <dt class="col-sm-3">Teléfonos</dt>
+                <dd class="col-sm-9">@($"{Model.Persona?.Telefono1} / {Model.Persona?.Telefono2}".Trim(' ', '/', '-'))</dd>
+                <dt class="col-sm-3">Correo</dt>
+                <dd class="col-sm-9">@Model.Persona?.Email</dd>
+                <dt class="col-sm-3">Dirección</dt>
+                <dd class="col-sm-9">@Model.Persona?.Direccion</dd>
+                <dt class="col-sm-3">Fecha Nac.</dt>
+                <dd class="col-sm-9">@Model.Persona?.FechaNacimiento?.ToString("dd/MM/yyyy")</dd>
+            </dl>
+
+            <div class="mt-3">
+                <a class="btn btn-primary ajax-nav" data-url="/Clientes/Edit/@Model.ClienteID" href="/Clientes/Edit/@Model.ClienteID"><i class="bi bi-pencil-square"></i> Editar</a>
+                <a class="btn btn-outline-secondary ajax-nav ms-2" data-url="/Clientes/Index" href="/Clientes/Index">Volver</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+@* @model PIOGHOASIS.Models.Cliente
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Details</title>
+</head>
+<body>
+
+<div>
+    <h4>Cliente</h4>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Estado)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Estado)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Persona)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Persona.PersonaID)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" asp-route-id="@Model?.ClienteID">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>
+</body>
+</html>
+ *@

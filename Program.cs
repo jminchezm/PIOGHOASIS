@@ -1,11 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PIOGHOASIS.Infraestructure.Data;
-using Rotativa.AspNetCore;
-using System.IO;
-using System;
 using PIOGHOASIS.Infraestructure.Email;
+using Rotativa.AspNetCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,6 +33,10 @@ builder.Services.AddDbContext<AppDbContext>
         opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
     }
 );
+
+//SMTP correo
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
+builder.Services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, SmtpEmailSender>();
 
 var app = builder.Build();
 

@@ -1,0 +1,343 @@
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@model PIOGHOASIS.Models.ViewModels.ClienteFormVm
+@{
+    Layout = null;
+    var avatarUrl = Url.Action("Avatar", "Clientes", new { id = Model.Cliente.ClienteID }) + "?v=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+}
+
+<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+<style>
+  .cli-create{position:relative;width:100%;min-height:calc(100vh - var(--header-h));padding:24px;background:linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;overflow:hidden}
+  .cc-card{background:rgba(255,255,255,.85);border:1px solid rgba(0,0,0,.06);border-radius:.75rem;box-shadow:0 8px 28px rgba(0,0,0,.08);backdrop-filter:blur(2px)}
+  .cc-header{background:#f0a100;color:#1f2a37;font-weight:800;padding:.75rem 1rem;border-top-left-radius:.75rem;border-top-right-radius:.75rem;border-bottom:2px solid #d7a536}
+  .cc-back{position:sticky;top:calc(var(--header-h) + 8px);z-index:2;display:inline-flex;align-items:center;gap:.35rem;background:#4b5563;color:#fff;border:none;border-radius:.5rem;padding:.4rem .75rem;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.15)}
+  .cc-save{font-weight:800;padding:.6rem 1.25rem}
+  .form-label{font-weight:700;color:#1f2a37}
+  .cc-subtitle{font-weight:800;color:#1f2a37;border-left:4px solid #f0a100;padding-left:.5rem;margin:.25rem 0 1rem}
+  span.field-validation-error{display:block;color:#dc3545}
+  #fotoPreviewEdit{text-align:center}
+</style>
+
+<div class="cli-create">
+  <div class="d-flex justify-content-end mb-2">
+    <a class="cc-back ajax-nav" href="/Clientes/Index" data-url="/Clientes/Index">
+      <i class="bi bi-arrow-left"></i> Volver a la lista
+    </a>
+  </div>
+
+  <div class="cc-card">
+    <div class="cc-header">Editar cliente</div>
+
+    <div class="p-3 p-md-4">
+      <form id="cliForm" class="js-ajax-form"
+            asp-action="Edit"
+            asp-route-id="@Model.Cliente.ClienteID"
+            method="post"
+            data-ajax="true"
+            enctype="multipart/form-data"
+            novalidate>
+        @Html.AntiForgeryToken()
+
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <!-- ocultos -->
+        <input type="hidden" asp-for="Cliente.ClienteID" />
+        <input type="hidden" asp-for="Persona.PersonaID" />
+        <input type="hidden" asp-for="Persona.FotoPath" />
+        <input type="hidden" asp-for="Persona.FechaRegistro" />
+
+        <!-- ===== Persona ===== -->
+        <h6 class="cc-subtitle">Datos de la Persona</h6>
+        <div class="row g-3">
+          @* <div class="mb-2" id="fotoPreviewEdit">
+            <img id="fotoPreview" src="@avatarUrl" class="img-thumbnail" style="max-height:140px" alt="foto-actual" />
+          </div> *@
+
+          <!-- Foto actual + cambio -->
+            <div class="col-12">
+                <div class="d-flex align-items-center gap-3">
+                    <img id="fotoPreview" src="@avatarUrl" class="img-thumbnail" style="max-height:160px" alt="foto-actual" />
+                    @* col-12 col-md-4 *@
+                    <div class="flex-grow-1">
+                        <label class="form-label">Cambiar foto</label>
+                        <input type="file" class="form-control" id="Foto" name="Foto" accept="image/png,image/jpeg,image/webp" />
+                        <small class="form-text-muted d-block mt-1">Formatos: JPG/PNG/WebP. Máx. 3 MB.</small>
+                        <span data-valmsg-for="Foto" class="text-danger"></span>
+                        <div class="form-check mt-2">
+                          <input class="form-check-input" type="checkbox" id="QuitarFoto" name="QuitarFoto" value="true" />
+                          <label class="form-check-label" for="QuitarFoto">Quitar foto</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.PrimerNombre" class="form-label"></label>
+            <input asp-for="Persona.PrimerNombre" class="form-control" />
+            <span asp-validation-for="Persona.PrimerNombre" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.SegundoNombre" class="form-label"></label>
+            <input asp-for="Persona.SegundoNombre" class="form-control" />
+            <span asp-validation-for="Persona.SegundoNombre" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.PrimerApellido" class="form-label"></label>
+            <input asp-for="Persona.PrimerApellido" class="form-control" />
+            <span asp-validation-for="Persona.PrimerApellido" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.SegundoApellido" class="form-label"></label>
+            <input asp-for="Persona.SegundoApellido" class="form-control" />
+            <span asp-validation-for="Persona.SegundoApellido" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.Email" class="form-label"></label>
+            <input asp-for="Persona.Email" type="email" class="form-control" />
+            <span asp-validation-for="Persona.Email" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.Telefono1" class="form-label"></label>
+            <input asp-for="Persona.Telefono1" class="form-control" />
+            <span asp-validation-for="Persona.Telefono1" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.Telefono2" class="form-label"></label>
+            <input asp-for="Persona.Telefono2" class="form-control" />
+            <span asp-validation-for="Persona.Telefono2" class="text-danger"></span>
+          </div>
+
+          <div class="col-12">
+            <label asp-for="Persona.Direccion" class="form-label"></label>
+            <textarea asp-for="Persona.Direccion" class="form-control" rows="2"></textarea>
+            <span asp-validation-for="Persona.Direccion" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.TipoDocumentoID" class="form-label"></label>
+            <select asp-for="Persona.TipoDocumentoID" class="form-select" asp-items="ViewBag.TiposDocumento">
+              <option value="">Seleccione...</option>
+            </select>
+            <span asp-validation-for="Persona.TipoDocumentoID" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.NumeroDocumento" class="form-label"></label>
+            <input asp-for="Persona.NumeroDocumento" class="form-control" />
+            <span asp-validation-for="Persona.NumeroDocumento" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.Nit" class="form-label"></label>
+            <input asp-for="Persona.Nit" class="form-control" />
+            <span asp-validation-for="Persona.Nit" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.FechaNacimiento" class="form-label"></label>
+            <input asp-for="Persona.FechaNacimiento" type="date" class="form-control" />
+            <span asp-validation-for="Persona.FechaNacimiento" class="text-danger"></span>
+          </div>
+
+          <!-- País / Depto / Municipio (habilitado por JS) -->
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.PaisID" class="form-label"></label>
+            <select asp-for="Persona.PaisID" class="form-select" asp-items="ViewBag.Paises" id="Persona_PaisID">
+              <option value="">Seleccione...</option>
+            </select>
+            <span asp-validation-for="Persona.PaisID" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.DepartamentoID" class="form-label"></label>
+            <select asp-for="Persona.DepartamentoID"
+                    class="form-select"
+                    asp-items="ViewBag.Departamentos"
+                    id="Persona_DepartamentoID"
+                    data-current="@Model?.Persona?.DepartamentoID">
+              <option value="">Seleccione...</option>
+            </select>
+            <span asp-validation-for="Persona.DepartamentoID" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.MunicipioID" class="form-label"></label>
+            <select asp-for="Persona.MunicipioID"
+                    class="form-select"
+                    asp-items="ViewBag.Municipios"
+                    id="Persona_MunicipioID"
+                    data-current="@Model?.Persona?.MunicipioID">
+              <option value="">Seleccione...</option>
+            </select>
+            <span asp-validation-for="Persona.MunicipioID" class="text-danger"></span>
+          </div>
+
+          @* <div class="col-12 col-md-4">
+            <label class="form-label">Foto</label>
+            <input type="file" class="form-control" id="Foto" name="Foto" accept="image/png,image/jpeg,image/webp" />
+            <small class="form-text-muted d-block mt-1">Formatos: JPG/PNG/WebP. Máx. 3 MB.</small>
+            <span data-valmsg-for="Foto" class="text-danger"></span>
+            <div class="form-check mt-2">
+              <input class="form-check-input" type="checkbox" id="QuitarFoto" name="QuitarFoto" value="true" />
+              <label class="form-check-label" for="QuitarFoto">Quitar foto</label>
+            </div>
+          </div> *@
+        </div>
+
+        <hr class="my-4" />
+
+        <!-- ===== Cliente ===== -->
+        <h6 class="cc-subtitle">Datos del Cliente</h6>
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <label asp-for="Cliente.ClienteID" class="form-label"></label>
+            <input asp-for="Cliente.ClienteID" class="form-control" readonly />
+            <span asp-validation-for="Cliente.ClienteID" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Persona.PersonaID" class="form-label"></label>
+            <input asp-for="Persona.PersonaID" class="form-control" readonly />
+            <span asp-validation-for="Persona.PersonaID" class="text-danger"></span>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label asp-for="Cliente.Estado" class="form-label"></label>
+            <select asp-for="Cliente.Estado" class="form-select">
+              <option value="true">Activo</option>
+              <option value="false">Inactivo</option>
+            </select>
+            <span asp-validation-for="Cliente.Estado" class="text-danger"></span>
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex justify-content-end">
+          <button type="submit" class="btn btn-primary cc-save">
+            <i class="bi bi-save2 me-1"></i> Actualizar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modales -->
+<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white py-2">
+        <h6 class="modal-title mb-0"><i class="bi bi-check-circle me-1"></i> Registro actualizado</h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="~/img/exito.png" asp-append-version="true" class="img-fluid d-block mx-auto my-2" alt="ok" style="width:50px" />
+        <p class="fw-bold mb-0">¡Cliente actualizado correctamente!</p>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="noChangesModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark py-2">
+        <h6 class="modal-title mb-0"><i class="bi bi-exclamation-triangle me-1"></i> Sin cambios</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img src="~/img/advertencia.png" asp-append-version="true" class="img-fluid d-block mx-auto my-2" alt="Advertencia" style="width:50px" />
+        <p class="mb-0 js-msg">No has modificado ningún campo.</p>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Entendido</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Preview foto
+  (function () {
+    const file = document.getElementById('Foto');
+    const img = document.getElementById('fotoPreview');
+    if (!file || !img) return;
+    file.addEventListener('change', () => {
+      const f = file.files && file.files[0];
+      if (f) img.src = URL.createObjectURL(f);
+    });
+  })();
+
+  // Cascada País -> Depto -> Municipio (igual a Create pero permitiendo valores existentes)
+  function cargarDepartamentos(paisId) {
+    const d = document.getElementById('Persona_DepartamentoID');
+    const m = document.getElementById('Persona_MunicipioID');
+    const clearD = () => { d.value = ''; d.innerHTML = '<option value="">Seleccione...</option>'; };
+    const clearM = () => { m.value = ''; m.innerHTML = '<option value="">Seleccione...</option>'; };
+    if ((paisId || '').toUpperCase() !== 'GTM') { clearD(); clearM(); return; }
+
+    const cur = d.getAttribute('data-current');
+    d.innerHTML = '<option value="">Cargando...</option>';
+    fetch('/Clientes/Departamentos?paisId=' + encodeURIComponent(paisId), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(arr => {
+        d.innerHTML = '<option value="">Seleccione...</option>';
+        arr.forEach(x => {
+          const o = document.createElement('option');
+          o.value = x.id; o.textContent = x.nombre;
+          if (cur && String(cur) === String(x.id)) o.selected = true;
+          d.appendChild(o);
+        });
+      })
+      .catch(() => clearD());
+  }
+
+  function cargarMunicipios(deptoId) {
+    const m = document.getElementById('Persona_MunicipioID');
+    const clear = () => { m.value = ''; m.innerHTML = '<option value="">Seleccione...</option>'; };
+    if (!deptoId) { clear(); return; }
+
+    const cur = m.getAttribute('data-current');
+    m.innerHTML = '<option value="">Cargando...</option>';
+    fetch('/Clientes/Municipios?deptoId=' + encodeURIComponent(deptoId), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(r => r.json())
+      .then(arr => {
+        m.innerHTML = '<option value="">Seleccione...</option>';
+        arr.forEach(x => {
+          const o = document.createElement('option');
+          o.value = x.id; o.textContent = x.nombre;
+          if (cur && String(cur) === String(x.id)) o.selected = true;
+          m.appendChild(o);
+        });
+      })
+      .catch(() => clear());
+  }
+
+  // init con valores actuales
+  (function initCascada() {
+    const pais = document.getElementById('Persona_PaisID');
+    const dpto = document.getElementById('Persona_DepartamentoID');
+    const muni = document.getElementById('Persona_MunicipioID');
+
+    pais?.addEventListener('change', e => {
+      cargarDepartamentos(e.target.value);
+      // limpiar municipio al cambiar país
+      muni.value = ''; muni.innerHTML = '<option value="">Seleccione...</option>';
+    });
+    dpto?.addEventListener('change', e => cargarMunicipios(parseInt(e.target.value, 10) || 0));
+
+    // Carga inicial (si GTM trae la lista, si no limpia)
+    if (pais && pais.value) cargarDepartamentos(pais.value);
+    if (dpto && dpto.value) cargarMunicipios(parseInt(dpto.value, 10) || 0);
+  })();
+</script>

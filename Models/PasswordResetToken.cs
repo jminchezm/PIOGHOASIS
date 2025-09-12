@@ -1,26 +1,24 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using PIOGHOASIS.Models.Entities;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace PIOGHOASIS.Models
+[Table("PASSWORD_RESET_TOKENS", Schema = "dbo")]
+public class PasswordResetToken
 {
-    [Table("PASSWORD_RESET_TOKENS", Schema = "dbo")]
-    public class PasswordResetToken
-    {
-        [Key]
-        public Guid Id { get; set; }
+    [Key] public Guid Id { get; set; }
 
-        [Required, StringLength(20)]
-        public string UsuarioID { get; set; } = null!;   // FK al usuario
+    [Required, Column("UsuarioID"), MaxLength(10)]
+    public string UsuarioID { get; set; } = null!;
 
-        // Guardamos SOLO el hash del token (Base64Url del SHA256)
-        [Required, StringLength(64)]
-        public string TokenHash { get; set; } = null!;
+    [Required, MaxLength(64)]
+    public string TokenHash { get; set; } = null!;
 
-        public DateTime ExpiresAtUtc { get; set; }       // UtcNow + 5 min
-        public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
-        public DateTime? UsedAtUtc { get; set; }      // null = no usado
+    public DateTime ExpiresAtUtc { get; set; }
+    public DateTime? UsedAtUtc { get; set; }
+    [MaxLength(64)] public string? RequestIp { get; set; }
+    [MaxLength(256)] public string? UserAgent { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
-        [StringLength(64)] public string? RequestIp { get; set; }
-        [StringLength(256)] public string? UserAgent { get; set; }
-    }
+    // La navegación; la FK ya queda definida por Fluent API
+    public Usuario Usuario { get; set; } = null!;
 }
