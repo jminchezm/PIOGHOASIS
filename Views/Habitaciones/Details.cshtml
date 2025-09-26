@@ -1,0 +1,334 @@
+﻿@model PIOGHOASIS.Models.Habitacion
+@{
+    Layout = null;
+    var defaultImg = Url.Content("~/img/DefaultHabitacion.png");
+    var imgUrl = string.IsNullOrWhiteSpace(Model?.Imagen) ? defaultImg : Model.Imagen;
+}
+<style>
+    .hab-det {
+        position: relative;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+        background-attachment: fixed;
+        background-position: center center;
+        background-size: cover;
+    }
+
+    .pd-card {
+        background: rgba(255,255,255,.88);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .9rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,.10);
+        backdrop-filter: blur(2px);
+        overflow: hidden;
+    }
+
+    .pd-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .9rem 1rem;
+        border-bottom: 2px solid #d7a536;
+    }
+
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .2rem .6rem;
+        border-radius: 999px;
+        font-weight: 700;
+        border: 1px solid transparent;
+        font-size: .9rem;
+        white-space: nowrap;
+    }
+
+    .pill-ok {
+        background: #e8f7e9;
+        color: #166534;
+        border-color: #bfe8c2;
+    }
+
+    .pill-off {
+        background: #fff0f0;
+        color: #b42318;
+        border-color: #f5c2c7;
+    }
+
+    .pd-body {
+        padding: 1rem 1.25rem 1.5rem;
+    }
+
+    .pd-grid {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 1.25rem;
+        align-items: start;
+    }
+
+    @@media (max-width: 992px) {
+        .pd-grid
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    }
+
+    .pd-figure {
+        position: relative;
+        border-radius: .75rem;
+        overflow: hidden;
+        box-shadow: 0 8px 22px rgba(0,0,0,.12);
+        background: #f3f4f6;
+    }
+
+        .pd-figure img {
+            display: block;
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+        }
+
+    .section {
+        background: #fff;
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        padding: .9rem 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 6px 16px rgba(0,0,0,.05);
+    }
+
+    .sec-title {
+        font-weight: 800;
+        color: #1f2a37;
+        border-left: 4px solid #f0a100;
+        padding-left: .5rem;
+        margin: .25rem 0 .8rem;
+    }
+
+    .kv {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: .6rem 1rem;
+        align-items: start;
+    }
+    @@media (max-width: 576px) {
+        .kv
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    }
+
+    .kv .lbl {
+        font-weight: 700;
+        color: #374151;
+    }
+
+    .kv .val {
+        color: #111827;
+    }
+
+    .amenities {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+
+    .amenity {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .3rem .55rem;
+        border-radius: .7rem;
+        border: 1px solid #e5e7eb;
+        background: #ffffff;
+        color: #111827;
+        font-weight: 600;
+        font-size: .9rem;
+        box-shadow: 0 3px 10px rgba(0,0,0,.04);
+    }
+
+        .amenity i {
+            font-size: 1rem;
+        }
+
+        .amenity.on {
+            border-color: #c7f0d1;
+            background: #f2fbf5;
+            color: #166534;
+        }
+
+        .amenity.off {
+            border-color: #f1d0d0;
+            background: #fff6f6;
+            color: #9b1c1c;
+        }
+
+    .back {
+        position: sticky;
+        top: calc(var(--header-h) + 8px);
+        background: #4b5563;
+        color: #fff;
+        border: none;
+        border-radius: .6rem;
+        padding: .45rem .85rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.15);
+    }
+
+        .back:hover {
+            filter: brightness(.95);
+            color: #fff;
+        }
+
+    .actions {
+        display: flex;
+        gap: .75rem;
+        justify-content: center;
+        margin-top: 1rem;
+    }
+</style>
+
+<div class="hab-det">
+    <div class="d-flex justify-content-end mb-2">
+        <a class="back ajax-nav" href="/Habitaciones/Index" data-url="/Habitaciones/Index">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <div class="pd-card">
+        <div class="pd-header">
+            <div>
+                Detalle de la Habitación: @Model?.Codigo
+            </div>
+            <div>
+                @if (Model?.Estado ?? false)
+                {
+                    <span class="pill pill-ok"><i class="bi bi-check-circle"></i> Activa</span>
+                }
+                else
+                {
+                    <span class="pill pill-off"><i class="bi bi-x-circle"></i> Inactiva</span>
+                }
+            </div>
+        </div>
+
+        <div class="pd-body">
+            <div class="pd-grid">
+                <!-- Columna Izquierda: Imagen -->
+                <figure class="pd-figure">
+                    <img src="@imgUrl" alt="Imagen de habitación"
+                         onerror="this.onerror=null;this.src='@defaultImg';" />
+                </figure>
+
+                <!-- Columna Derecha: Información -->
+                <div>
+                    <div class="section">
+                        <div class="sec-title">Información general</div>
+                        <div class="kv">
+                            <div class="lbl">No. Habitación</div><div class="val">@Model?.NumeroHabitacion</div>
+                            <div class="lbl">Piso</div><div class="val">@Model?.Piso</div>
+                            <div class="lbl">Tipo</div>
+                            <div class="val">@Model?.TipoHabitacion?.Nombre@(Model?.TipoHabitacionID != null ? $" (#{Model.TipoHabitacionID})" : "")</div>
+                            <div class="lbl">Capacidad / Camas</div>
+                            <div class="val">
+                                @(Model?.CapacidadPersonas?.ToString() ?? "-") persona(s)
+                                @if (!string.IsNullOrWhiteSpace(Model?.DescripcionCamas))
+                                {
+                                    <text> — @Model.DescripcionCamas</text>
+                                }
+                            </div>
+                            <div class="lbl">Descripción</div>
+                            <div class="val">@(string.IsNullOrWhiteSpace(Model?.Descripcion) ? "—" : Model.Descripcion)</div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="sec-title">Amenidades</div>
+                        <div class="amenities">
+                            <span class="amenity @(Model?.AireAcondicionado == true ? "on" : "off")">
+                                <i class="bi bi-snow"></i> A/C
+                            </span>
+                            <span class="amenity @(Model?.Ventilador == true ? "on" : "off")">
+                                <i class="bi bi-fan"></i> Ventilador
+                            </span>
+                            <span class="amenity @(Model?.TV == true ? "on" : "off")">
+                                <i class="bi bi-tv"></i> TV
+                            </span>
+                            <span class="amenity @(Model?.BanoPrivado == true ? "on" : "off")">
+                                <i class="bi bi-droplet"></i> Baño privado
+                            </span>
+                            <span class="amenity @(Model?.WIFI == true ? "on" : "off")">
+                                <i class="bi bi-wifi"></i> WIFI
+                            </span>
+                            <span class="amenity @(Model?.Parqueo == true ? "on" : "off")">
+                                <i class="bi bi-car-front"></i> Parqueo
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        @{
+                            var tarifas = ViewBag.Tarifas as IEnumerable<PIOGHOASIS.Models.TarifaHabitacion> ?? Enumerable.Empty<PIOGHOASIS.Models.TarifaHabitacion>();
+                        }
+                        @if (tarifas.Any())
+                        {
+                            <div class="section">
+                                <div class="sec-title">Tarifas</div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width:130px"># Personas</th>
+                                                <th style="width:170px">Fecha inicio</th>
+                                                <th style="width:170px">Fecha fin</th>
+                                                <th style="width:160px">Precio/noche</th>
+                                                <th>Etiqueta</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var t in tarifas)
+                                            {
+                                                <tr>
+                                                    <td>@t.NumeroPersonas</td>
+                                                    <td>@t.FechaInicio.ToString("dd/MM/yyyy")</td>
+                                                    <td>@t.FechaFin.ToString("dd/MM/yyyy")</td>
+                                                    <td>Q. @t.PrecioNoche.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("es-GT"))</td>
+                                                    <td>@(string.IsNullOrWhiteSpace(t.EtiquetaTemporada) ? "—" : t.EtiquetaTemporada)</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="section">
+                                <div class="sec-title">Tarifas</div>
+                                <div class="text-muted">No hay tarifas registradas para esta habitación.</div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="actions">
+                        <a class="btn btn-primary btn-lg ajax-nav"
+                           href="/Habitaciones/Edit/@Model?.HabitacionID"
+                           data-url="/Habitaciones/Edit/@Model?.HabitacionID">
+                            <i class="bi bi-pencil-square me-1"></i> Editar Habitación
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

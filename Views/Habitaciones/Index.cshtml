@@ -1,0 +1,441 @@
+﻿@model IEnumerable<PIOGHOASIS.Models.Habitacion>
+@using PIOGHOASIS.Models
+@{
+    Layout = null;
+
+    var q = Context.Request.Query;
+    var qCodigo = q["codigo"].ToString();
+    var qTipo = q["tipo"].ToString();
+    var qPersonas = q["personas"].ToString();
+    var qEstado = q.ContainsKey("estado") ? q["estado"].ToString() : "";
+    var tipos = (IEnumerable<TipoHabitacion>)ViewBag.Tipos ?? Enumerable.Empty<TipoHabitacion>();
+}
+
+<style>
+    .hab-ui {
+        position: relative;
+        margin-top: 0;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        background: linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+        padding: 30px;
+    }
+
+        .hab-ui .card-filtros {
+            background: rgba(255,255,255,.85);
+            box-shadow: 0 6px 22px rgba(0,0,0,.08);
+            border: 1px solid rgba(0,0,0,.06);
+            border-radius: .75rem
+        }
+
+        .hab-ui .tt {
+            font-size: clamp(1.25rem,1.8vw,1.75rem);
+            font-weight: 800;
+            color: #1f2a37
+        }
+
+    .btn-nuevo {
+        background: #f0a100;
+        border: none;
+        color: #222;
+        font-weight: 800;
+        box-shadow: 0 10px 22px rgba(240,161,0,.35)
+    }
+
+        .btn-nuevo:hover {
+            background: #db9400
+        }
+
+    .hab-ui thead th {
+        background: #f3c259;
+        color: #222;
+        border-bottom: 2px solid #d7a536;
+        vertical-align: middle
+    }
+
+    .pill {
+        display: inline-block;
+        padding: .15rem .5rem;
+        border-radius: 999px;
+        font-size: .84rem;
+        font-weight: 700
+    }
+
+    .pill-ok {
+        background: #e8f7e9;
+        color: #16803d;
+        border: 1px solid #bfe8c2
+    }
+
+    .pill-off {
+        background: #fff0f0;
+        color: #b42318;
+        border: 1px solid #f5c2c7
+    }
+
+    .btn-icon {
+        --bs-btn-padding-y: .25rem;
+        --bs-btn-padding-x: .45rem;
+        --bs-btn-border-radius: .35rem
+    }
+
+    .btn-edit {
+        color: #0d6efd;
+        border-color: #cfe2ff;
+        background: #eff6ff
+    }
+
+    .btn-detail {
+        color: #0aa2c0;
+        border-color: #beeaf3;
+        background: #e7f9fd
+    }
+
+    .btn-delete {
+        color: #dc3545;
+        border-color: #f1c2c6;
+        background: #fff1f2
+    }
+
+    .empty-state {
+        min-height: 320px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column
+    }
+
+    .empty-illus {
+        max-width: 160px;
+        opacity: .85
+    }
+</style>
+
+<div class="hab-ui">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="tt mb-0">Listado de Habitaciones</h2>
+        <a class="btn btn-nuevo" href="/Habitaciones/Create" data-url="/Habitaciones/Create">
+            <i class="bi bi-plus-circle me-1"></i> Nueva Habitación
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card-filtros p-3 mb-3">
+        <form id="frmFiltros" class="row g-3 align-items-end"
+              data-endpoint="/Habitaciones/Index" data-report="/Habitaciones/ExportPdf">
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold">Código</label>
+                <input id="fCodigo" class="form-control" value="@qCodigo" placeholder="Buscar por código" />
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold">Tipo de Habitación</label>
+                <select id="fTipo" class="form-select">
+                    <option value="" selected="@(string.IsNullOrEmpty(qTipo) ? "selected" : null)">Todo</option>
+                    @foreach (var t in tipos)
+                    {
+                        <option value="@t.TipoHabitacionID" selected="@(qTipo == t.TipoHabitacionID ? "selected" : null)">@t.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold">No. Personas</label>
+                <input id="fPersonas" type="number" min="0" class="form-control" value="@qPersonas" placeholder="Igual a…" />
+            </div>
+            <div class="col-12 col-md-2">
+                <label class="form-label fw-semibold">Estado</label>
+                <select id="fEstado" class="form-select">
+                    <option value="" selected="@(qEstado == "" ? "selected" : null)">Todos</option>
+                    <option value="1" selected="@(qEstado == "1" ? "selected" : null)">Activo</option>
+                    <option value="0" selected="@(qEstado == "0" ? "selected" : null)">Inactivo</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-1 d-flex">
+                <button type="button" id="btnPrint" class="btn btn-outline-secondary" title="Imprimir">
+                    <i class="bi bi-printer"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div id="printArea" class="card p-0">
+        @if (!Model.Any())
+        {
+            <div class="empty-state p-5 text-center">
+                <img src="~/img/empty-search.svg" asp-append-version="true" class="mb-3 empty-illus" alt="Sin resultados" />
+                <h5 class="fw-bold mb-1">No se encontró ningún registro</h5>
+                <p class="text-muted mb-3">Ajusta los filtros o limpia la búsqueda.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="tblNumPaginador" class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:110px">Código</th>
+                            <th style="width:90px">No. Hab</th>
+                            <th style="width:160px">Tipo Habitación</th>
+                            @* <th style="width:110px">No. Camas</th> *@
+                            <th>Descripción de camas</th>
+                            <th style="width:120px">No. Personas</th>
+                            <th style="width:120px">Estado</th>
+                            <th style="width:150px" class="text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var h in Model)
+                        {
+                            <tr data-codigo="@h.Codigo" data-tipo="@h.TipoHabitacionID" data-personas="@h.CapacidadPersonas" data-estado="@(h.Estado ? "1" : "0")">
+                                <td>@h.Codigo</td>
+                                <td>@h.NumeroHabitacion</td>
+                                <td>@h.TipoHabitacion?.Nombre</td>
+                                @* <td>@h.NumeroCamas</td> *@
+                                <td>@h.DescripcionCamas</td>
+                                <td>@h.CapacidadPersonas</td>
+                                <td>@(h.Estado? Html.Raw("<span class=\"pill pill-ok\">Activo</span>") : Html.Raw("<span class=\"pill pill-off\">Inactivo</span>"))</td>
+                                <td class="text-center">
+                                    <div class="btn-group">
+                                        <a class="btn btn-sm btn-outline-primary btn-icon btn-edit ajax-nav" href="/Habitaciones/Edit/@h.HabitacionID" data-url="/Habitaciones/Edit/@h.HabitacionID" title="Editar"><i class="bi bi-pencil-square"></i></a>
+                                        <a class="btn btn-sm btn-outline-info btn-icon btn-detail ajax-nav" href="/Habitaciones/Details/@h.HabitacionID" data-url="/Habitaciones/Details/@h.HabitacionID" title="Detalles"><i class="bi bi-eye"></i></a>
+                                        @if (h.Estado)
+                                        {
+                                            <a class="btn btn-sm btn-outline-danger btn-icon btn-delete ajax-nav" href="/Habitaciones/Delete/@h.HabitacionID" data-url="/Habitaciones/Delete/@h.HabitacionID" title="Desactivar"><i class="bi bi-trash"></i></a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center p-2">
+                <div class="small text-muted"><span id="infoRows"></span></div>
+                <nav><ul id="pager" class="pagination mb-0"></ul></nav>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    (function(){
+      const host = document.getElementById('contentHost'); // dashboard
+      const fCodigo=document.getElementById('fCodigo');
+      const fTipo=document.getElementById('fTipo');
+      const fPersonas=document.getElementById('fPersonas');
+      const fEstado=document.getElementById('fEstado');
+
+      const debounce=(fn,ms=500)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
+
+      function buildUrl(){
+        const qs=new URLSearchParams();
+        const c=(fCodigo?.value||'').trim();
+        const t=(fTipo?.value||'').trim();
+        const p=(fPersonas?.value||'').trim();
+        const e=(fEstado?.value??'');
+        if(c)qs.set('codigo',c);
+        if(t)qs.set('tipo',t);
+        if(p)qs.set('personas',p);
+        qs.set('estado',e);
+        return '/Habitaciones/Index'+(qs.toString()?('?'+qs.toString()):'');
+      }
+
+      const run=debounce(async ()=>{
+        const url=buildUrl();
+        await window.swapInHost(url,'#printArea');
+        history.replaceState(null,'',url);
+        window.initPuestosPager(document.getElementById('printArea'));
+      },450);
+
+      fCodigo?.addEventListener('input', e=>{ const v=e.target.value.trim(); if(v.length===0||v.length>=2) run(); });
+      fTipo?.addEventListener('change',run);
+      fPersonas?.addEventListener('input',run);
+      fEstado?.addEventListener('change',run);
+
+      document.getElementById('btnPrint')?.addEventListener('click',()=>{
+        const url=buildUrl().replace('/Index','/ExportPdf');
+        window.open(url,'_blank');
+      });
+
+      window.addEventListener('DOMContentLoaded',()=>{ window.initPuestosPager(document.getElementById('printArea')); });
+    })();
+</script>
+
+
+
+@* @model IEnumerable<PIOGHOASIS.Models.Habitacion>
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+</head>
+<body>
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Codigo)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.NumeroHabitacion)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Piso)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CapacidadPersonas)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.NumeroCamas)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.DescripcionCamas)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Vista)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Ubicacion)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Descripcion)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ServiciosIncluidos)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PrecioPorNoche)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PersonaExtraPN)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PrecioTemporadaAlta)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PersonaExtraPTA)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PrecioTemporadaBaja)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PersonaExtraPTB)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.AireAcondicionado)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Ventilador)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TV)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.BanoPrivado)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Estado)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Imagen)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.TipoHabitacion)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Codigo)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.NumeroHabitacion)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Piso)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CapacidadPersonas)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.NumeroCamas)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DescripcionCamas)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Vista)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Ubicacion)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Descripcion)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ServiciosIncluidos)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PrecioPorNoche)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PersonaExtraPN)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PrecioTemporadaAlta)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PersonaExtraPTA)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PrecioTemporadaBaja)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PersonaExtraPTB)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.AireAcondicionado)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Ventilador)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TV)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.BanoPrivado)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Estado)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Imagen)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TipoHabitacion.TipoHabitacionID)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.HabitacionID">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.HabitacionID">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.HabitacionID">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+</body>
+</html>
+ *@

@@ -1,0 +1,404 @@
+﻿@model IEnumerable<PIOGHOASIS.Models.Habitacion>
+@{
+    Layout = null;
+
+    // Helpers para construir URLs absolutas (wkhtmltopdf)
+    string Abs(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "";
+        var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+        return url!.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? url : (baseUrl + url);
+    }
+
+    string EstadoTxt(object? e) => (e is bool b && b) ? "Activa" : "Inactiva";
+
+    var defaultImg = Abs(Url.Content("~/img/DefaultHabitacion.png"));
+    var logoUrl = Abs(Url.Content("~/img/login/logo-oasis.png"));
+
+    // Mapa de tarifas pasado por ViewBag desde el controlador
+    var tarifasMapa =
+    ViewBag.TarifasPorHab as IDictionary<int, IEnumerable<PIOGHOASIS.Models.TarifaHabitacion>>
+    ?? new Dictionary<int, IEnumerable<PIOGHOASIS.Models.TarifaHabitacion>>();
+
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Reporte de Habitaciones</title>
+    <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+
+    <style>
+        html, body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #1f2a37;
+        }
+
+        body {
+            font-size: 12px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            padding: 10mm;
+        }
+
+        .brand {
+            display: table;
+            width: 100%;
+            border-bottom: 3px solid #d7a536;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+            .brand .left {
+                display: table-cell;
+                vertical-align: middle;
+                width: 1%;
+            }
+
+            .brand .right {
+                display: table-cell;
+                vertical-align: middle;
+                padding-left: 10px;
+            }
+
+        .logo {
+            width: 150px;
+            height: auto;
+        }
+
+        .title {
+            margin: 0;
+            font-size: 22px;
+            line-height: 1.2;
+            font-weight: 800;
+            color: #1f2a37;
+        }
+
+        .meta {
+            margin-top: 2px;
+            color: #6b7280;
+            font-size: 11px;
+        }
+
+        /* Tarjeta estilo Details (suave para PDF) */
+        .pd-card {
+            background: #ffffff;
+            border: 1px solid rgba(0,0,0,.10);
+            border-radius: 9px;
+            box-shadow: 0 3px 10px rgba(0,0,0,.06);
+            overflow: hidden;
+            margin-bottom: 12mm;
+            page-break-inside: avoid;
+        }
+
+        .pd-header {
+            display: table;
+            width: 100%;
+            background: #f0a100;
+            color: #1f2a37;
+            font-weight: 800;
+            border-bottom: 2px solid #d7a536;
+        }
+
+            .pd-header .title {
+                display: table-cell;
+                padding: 8px 10px;
+                font-size: 15px;
+            }
+
+            .pd-header .status {
+                display: table-cell;
+                width: 1%;
+                white-space: nowrap;
+                padding: 8px 10px;
+                text-align: right;
+            }
+
+        .pill {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 700;
+            border: 1px solid transparent;
+            font-size: 11px;
+        }
+
+        .pill-ok {
+            background: #e8f7e9;
+            color: #166534;
+            border-color: #bfe8c2;
+        }
+
+        .pill-off {
+            background: #fff0f0;
+            color: #b42318;
+            border-color: #f5c2c7;
+        }
+
+        .pd-body {
+            padding: 10px 12px 12px;
+        }
+
+        .pd-grid {
+            display: table;
+            width: 100%;
+        }
+
+        .col-left, .col-right {
+            display: table-cell;
+            vertical-align: top;
+        }
+
+        .col-left {
+            width: 360px;
+            padding-right: 12px;
+        }
+
+        .col-right {
+            width: auto;
+        }
+
+        .pd-figure {
+            background: #f3f4f6;
+            border: 1px solid rgba(0,0,0,.08);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+            .pd-figure img {
+                display: block;
+                width: 100%;
+                height: 260px;
+                object-fit: cover;
+            }
+
+        .section {
+            background: #fff;
+            border: 1px solid rgba(0,0,0,.06);
+            border-radius: 8px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+        }
+
+        .sec-title {
+            font-weight: 800;
+            color: #1f2a37;
+            font-size: 13px;
+            border-left: 4px solid #f0a100;
+            padding-left: 6px;
+            margin: 4px 0 8px;
+        }
+
+        .kv {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .kv-row {
+            display: table-row;
+        }
+
+        .kv .lbl, .kv .val {
+            display: table-cell;
+            padding: 3px 4px;
+            vertical-align: top;
+            border-bottom: 1px dotted #eee;
+        }
+
+        .kv .lbl {
+            width: 190px;
+            font-weight: 700;
+            color: #374151;
+        }
+
+        .kv .val {
+            color: #111827;
+        }
+
+        .amenities {
+            margin: 0 -3px;
+        }
+
+        .amenity {
+            display: inline-block;
+            margin: 3px;
+            padding: 3px 8px;
+            border-radius: 7px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            color: #111827;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+            .amenity.on {
+                border-color: #c7f0d1;
+                background: #f2fbf5;
+                color: #166534;
+            }
+
+            .amenity.off {
+                border-color: #f1d0d0;
+                background: #fff6f6;
+                color: #9b1c1c;
+            }
+
+        @@media print {
+            .pd-card
+
+        {
+            margin-bottom: 10mm;
+        }
+
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="brand">
+            <div class="left"><img class="logo" src="@logoUrl" alt="Hotel Oasis" /></div>
+            <div class="right">
+                <h1 class="title">Reporte de Habitaciones</h1>
+                <div class="meta">Generado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+            </div>
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div style="text-align:center; color:#6b7280; padding: 20mm 0;">No se encontró ningún registro con los filtros seleccionados.</div>
+        }
+        else
+        {
+            foreach (var h in Model)
+            {
+                var imgUrl = string.IsNullOrWhiteSpace(h.Imagen) ? defaultImg : Abs(h.Imagen);
+
+                // TIPADO EXPLÍCITO: evita el error CS8197
+                IEnumerable<PIOGHOASIS.Models.TarifaHabitacion> tlist;
+                if (!tarifasMapa.TryGetValue(h.HabitacionID, out tlist))
+                    tlist = Enumerable.Empty<PIOGHOASIS.Models.TarifaHabitacion>();
+
+                <div class="pd-card">
+                    <div class="pd-header">
+                        <div class="title">Detalle de la Habitación: @h.Codigo</div>
+                        <div class="status">
+                            @if (h.Estado)
+                            {
+                                <span class="pill pill-ok">Activa</span>
+                            }
+                            else
+                            {
+                                <span class="pill pill-off">Inactiva</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="pd-body">
+                        <div class="pd-grid">
+                            <div class="col-left">
+                                <figure class="pd-figure">
+                                    <img src="@imgUrl" alt="Habitación @h.Codigo"
+                                            onerror="this.onerror=null;this.src='@defaultImg';" />
+                                </figure>
+                            </div>
+                            <div class="col-right">
+                                <div class="section">
+                                    <div class="sec-title">Información general</div>
+                                    <div class="kv">
+                                        <div class="kv-row">
+                                            <div class="lbl">No. Habitación</div>
+                                            <div class="val">@h.NumeroHabitacion</div>
+                                        </div>
+                                        <div class="kv-row">
+                                            <div class="lbl">Piso</div>
+                                            <div class="val">@h.Piso</div>
+                                        </div>
+                                        <div class="kv-row">
+                                            <div class="lbl">Tipo</div>
+                                            <div class="val">@h.TipoHabitacion?.Nombre@(string.IsNullOrWhiteSpace(h.TipoHabitacionID) ? "" : $" (#{h.TipoHabitacionID})")</div>
+                                        </div>
+                                        <div class="kv-row">
+                                            <div class="lbl">Capacidad / Camas</div>
+                                            <div class="val">
+                                                @(h.CapacidadPersonas?.ToString() ?? "-") persona(s)
+                                                @if (!string.IsNullOrWhiteSpace(h.DescripcionCamas))
+                                                {
+                                                    <text> — @h.DescripcionCamas</text>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="kv-row">
+                                            <div class="lbl">Descripción</div>
+                                            <div class="val">@(string.IsNullOrWhiteSpace(h.Descripcion) ? "—" : h.Descripcion)</div>
+                                        </div>
+                                        <div class="kv-row">
+                                            <div class="lbl">Estado</div>
+                                            <div class="val">@EstadoTxt(h.Estado)</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="section">
+                                    <div class="sec-title">Amenidades</div>
+                                    <div class="amenities">
+                                        <span class="amenity @(h.AireAcondicionado == true ? "on" : "off")"><i class="bi bi-snow"></i> A/C</span>
+                                        <span class="amenity @(h.Ventilador == true ? "on" : "off")"><i class="bi bi-fan"></i> Ventilador</span>
+                                        <span class="amenity @(h.TV == true ? "on" : "off")"><i class="bi bi-tv"></i> TV</span>
+                                        <span class="amenity @(h.BanoPrivado == true ? "on" : "off")"><i class="bi bi-droplet"></i> Baño privado</span>
+                                        <span class="amenity @(h.WIFI == true ? "on" : "off")"><i class="bi bi-wifi"></i> WIFI</span>
+                                        <span class="amenity @(h.Parqueo == true ? "on" : "off")"><i class="bi bi-car-front"></i> Parqueo</span>
+
+                                    </div>
+                                </div>
+
+                                <div class="section">
+                                    <div class="sec-title">Tarifas</div>
+                                    @if (tlist.Any())
+                                    {
+                                        <table style="width:100%; border-collapse:collapse; font-size:11px;">
+                                            <thead>
+                                                <tr>
+                                                    <th style="text-align:left; border:1px solid #e5e7eb; padding:4px 6px; width:90px"># Personas</th>
+                                                    <th style="text-align:left; border:1px solid #e5e7eb; padding:4px 6px; width:110px">Inicio</th>
+                                                    <th style="text-align:left; border:1px solid #e5e7eb; padding:4px 6px; width:110px">Fin</th>
+                                                    <th style="text-align:left; border:1px solid #e5e7eb; padding:4px 6px; width:110px">Precio/noche</th>
+                                                    <th style="text-align:left; border:1px solid #e5e7eb; padding:4px 6px;">Etiqueta</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var t in tlist)
+                                                {
+                                                    <tr>
+                                                        <td style="border:1px solid #f0f0f0; padding:4px 6px;">@t.NumeroPersonas</td>
+                                                        <td style="border:1px solid #f0f0f0; padding:4px 6px;">@t.FechaInicio.ToString("dd/MM/yyyy")</td>
+                                                        <td style="border:1px solid #f0f0f0; padding:4px 6px;">@t.FechaFin.ToString("dd/MM/yyyy")</td>
+                                                        <td style="border:1px solid #f0f0f0; padding:4px 6px;">
+                                                            Q. @t.PrecioNoche.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("es-GT"))
+                                                        </td>
+                                                        <td style="border:1px solid #f0f0f0; padding:4px 6px;">@(string.IsNullOrWhiteSpace(t.EtiquetaTemporada) ? "—" : t.EtiquetaTemporada)</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    }
+                                    else
+                                    {
+                                        <div style="color:#6b7280; font-size:11px;">No hay tarifas registradas para esta habitación.</div>
+                                    }
+                                </div>
+
+                                @* Si quisieras incluir tarifas aquí, puedes cargarla en el action y mostrarlas como tabla compacta *@
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</body>
+</html>

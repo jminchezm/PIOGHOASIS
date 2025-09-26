@@ -1,0 +1,536 @@
+﻿@* @model PIOGHOASIS.Models.Habitacion
+@using PIOGHOASIS.Models
+@{
+    Layout = null;
+    var tipos = (IEnumerable<TipoHabitacion>)ViewBag.Tipos ?? Enumerable.Empty<TipoHabitacion>();
+} *@
+
+@model PIOGHOASIS.Models.ViewModels.HabitacionCreateVM
+@using PIOGHOASIS.Models
+@{
+    Layout = null;
+    var tipos = (IEnumerable<TipoHabitacion>)ViewBag.Tipos ?? Enumerable.Empty<TipoHabitacion>();
+}
+
+<style>
+    .hab-create {
+        position: relative;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+        background-attachment: fixed; /* 🔒 el fondo al viewport */
+        background-position: center center; /* estable */
+        background-size: cover; /* mantiene el encuadre */
+    }
+
+    .hc-card {
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 8px 28px rgba(0,0,0,.08);
+        backdrop-filter: blur(2px)
+    }
+
+    .hc-header {
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .75rem 1rem;
+        border-top-left-radius: .75rem;
+        border-top-right-radius: .75rem;
+        border-bottom: 2px solid #d7a536;
+    }
+
+    .hc-back {
+        position: sticky;
+        top: calc(var(--header-h) + 8px);
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        background: #4b5563;
+        color: #fff;
+        border: none;
+        border-radius: .5rem;
+        padding: .4rem .75rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.15)
+    }
+
+        .hc-back:hover {
+            filter: brightness(.95);
+            color: #fff
+        }
+
+    .form-label {
+        font-weight: 700;
+        color: #1f2a37
+    }
+
+    .hint {
+        color: #6b7280;
+        font-size: .9rem
+    }
+
+    .form-check.form-switch .form-check-input:checked {
+        background-color: #16a34a;
+        border-color: #16a34a;
+    }
+
+    .pc-subtitle {
+        font-weight: 800;
+        color: #1f2a37;
+        border-left: 4px solid #f0a100;
+        padding-left: .5rem;
+        margin: .25rem 0 1rem;
+    }
+
+</style>
+
+<div class="hab-create">
+    <div class="d-flex justify-content-end mb-2">
+        <a class="hc-back ajax-nav" href="/Habitaciones/Index" data-url="/Habitaciones/Index"><i class="bi bi-arrow-left"></i> Volver a la lista</a>
+    </div>
+
+    <div class="hc-card">
+        <div class="hc-header">Registrar Nueva Habitación</div>
+        <div class="p-3 p-md-4">
+            <form id="frmCreate"  asp-action="Create" method="post" enctype="multipart/form-data" data-ajax="true" novalidate>
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div class="row g-3">
+                    <h6 class="pc-subtitle">Datos de la Habitación</h6>
+                    <div>
+                        <div class="col-12 col-md-3">
+                            <label class="form-label">Código*</label>
+                            <input asp-for="Habitacion.Codigo" class="form-control" readonly />
+                        </div> 
+                    </div>
+                   
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">No. Habitación*</label>
+                        <input asp-for="Habitacion.NumeroHabitacion" class="form-control" placeholder="Número de habitación" />
+                        <span asp-validation-for="Habitacion.NumeroHabitacion" class="text-danger"></span>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">Piso*</label>
+                        <input asp-for="Habitacion.Piso" class="form-control" placeholder="Nivel del edificio" />
+                        <span asp-validation-for="Habitacion.Piso" class="text-danger"></span>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">Tipo Habitación*</label>
+                        <select asp-for="Habitacion.TipoHabitacionID" class="form-select">
+                            <option value="">Seleccione el tipo</option>
+                            @foreach (var t in tipos)
+                            {
+                                <option value="@t.TipoHabitacionID">@t.Nombre</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Habitacion.TipoHabitacionID" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">Capacidad Personas*</label>
+                        <input asp-for="Habitacion.CapacidadPersonas" type="text" onkeypress="return event.charCode >= 48 && event.charCode <= 57" placeholder="Capacidad de Personas" class="form-control" />
+                        <span asp-validation-for="Habitacion.CapacidadPersonas" class="text-danger"></span>
+                    </div>
+                    @* <div class="col-12 col-md-4">
+                        <label class="form-label">No. Camas*</label>
+                        <input asp-for="NumeroCamas" type="number" min="0" class="form-control" />
+                    </div> *@
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">Descripción de Camas*</label>
+                        <input asp-for="Habitacion.DescripcionCamas" class="form-control" placeholder="Descripción de camas" />
+                        <span asp-validation-for="Habitacion.DescripcionCamas" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">Subir Imagen</label>
+                        <input type="file" class="form-control" name="fileImagen" accept="image/*" />
+                        <div class="hint">Formatos: JPG/PNG/WebP. Máx. 3 MB.</div>
+                    </div>
+
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">Estado*</label>
+                        <select asp-for="Habitacion.Estado" class="form-select">
+                            <option value="true">Activo</option>
+                            @* <option value="false">Inactivo</option> *@
+                        </select>
+                    </div>
+                    @* <div class="col-12 col-md-3">
+                        <label class="form-label">Vista*</label>
+                        <input asp-for="Vista" class="form-control" placeholder="Ingresa la vista" />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Ubicación</label>
+                        <input asp-for="Ubicacion" class="form-control" placeholder="Ingresa la ubicación" />
+                    </div> *@
+
+                    <div class="col-12 col-md-12">
+                        <label class="form-label">Descripción*</label>
+                        <textarea asp-for="Habitacion.Descripcion" rows="3" class="form-control" placeholder="Ingresa la descripción de la habitación."></textarea>
+                        <span asp-validation-for="Habitacion.Descripcion" class="text-danger"></span>
+                    </div>
+                    @* <div class="col-12 col-md-6">
+                        <label class="form-label">Servicios Incluidos</label>
+                        <textarea asp-for="ServiciosIncluidos" rows="3" class="form-control" placeholder="Ingresa los servicios incluidos."></textarea>
+                    </div> *@
+                    <hr />
+                    <h6 class="pc-subtitle">Tarifas por ocupación y fechas</h6>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle" id="tblTarifas">
+                            <thead>
+                                <tr>
+                                    <th style="width:120px"># Personas</th>
+                                    <th style="width:170px">Fecha inicio</th>
+                                    <th style="width:170px">Fecha fin</th>
+                                    <th style="width:180px">Precio/noche</th>
+                                    <th>Etiqueta</th>
+                                    <th style="width:60px"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.TarifaItems.Count; i++)
+                                {
+                                    <tr>
+                                        <td>
+                                            <input asp-for="TarifaItems[@i].NumeroPersonas" class="form-control" type="number" min="1" />
+                                        </td>
+                                        <td>
+                                            <input asp-for="TarifaItems[@i].FechaInicio" class="form-control" type="date" />
+                                        </td>
+                                        <td>
+                                            <input asp-for="TarifaItems[@i].FechaFin" class="form-control" type="date" />
+                                        </td>
+                                        <td>
+                                            <input asp-for="TarifaItems[@i].PrecioNocheStr"
+                                                   class="form-control"
+                                                   type="text"
+                                                   inputmode="decimal"
+                                                   pattern="^\d*\.?\d{0,2}$"
+                                                   onkeypress="return /^[0-9.]$/.test(event.key)"
+                                                   oninput="formatearPrecio(this)" placeholder="0.00" />
+                                        </td>
+                                        <td>
+                                            <input asp-for="TarifaItems[@i].EtiquetaTemporada" class="form-control" placeholder="Alta/Baja/Promo..." />
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="remFila(this)">
+                                                <i class="bi bi-x"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addFila()">
+                            <i class="bi bi-plus-lg"></i> Agregar tarifa
+                        </button>
+                    </div>
+
+                    <table class="d-none">
+                        <tbody id="tplTarifaRow">
+                            <tr>
+                                <td><input name="__name__.NumeroPersonas" class="form-control" type="number" min="1" value="1" /></td>
+                                <td><input name="__name__.FechaInicio" class="form-control" type="date" value="@DateTime.Today:yyyy-MM-dd" /></td>
+                                <td><input name="__name__.FechaFin" class="form-control" type="date" value="@DateTime.Today.AddMonths(1):yyyy-MM-dd" /></td>
+                                <td>
+                                    <input name="__name__.PrecioNocheStr" class="form-control" type="text"
+                                           inputmode="decimal" pattern="^\d*\.?\d{0,2}$"
+                                           onkeypress="return /^[0-9.]$/.test(event.key)"
+                                           oninput="formatearPrecio(this)" placeholder="0.00" />
+                                </td>
+                                <td><input name="__name__.EtiquetaTemporada" class="form-control" /></td>
+                                <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="remFila(this)"><i class="bi bi-x"></i></button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div id="tarifaError" class="text-danger fw-bold mt-2" style="display:none;">
+                        Debes agregar al menos una tarifa válida (personas, fechas y precio).
+                    </div>
+
+                    <hr />
+                    <h6 class="pc-subtitle">Servicios</h6>
+
+                    <!-- A/C -->
+                    <div class="col-6 col-md-3">
+                        <label class="form-label d-block">A/C</label>
+                        <div class="form-check form-switch align-items-center">
+                            <input type="checkbox"
+                                   name="Habitacion.AireAcondicionado"
+                                   id="chkAC"
+                                   value="true"
+                                   class="form-check-input"
+                                   @(Model?.Habitacion.AireAcondicionado == true ? "checked" : null) />
+                            <input type="hidden" name="Habitacion.AireAcondicionado" value="false" />
+                            <label class="form-check-label ms-2" for="chkAC">
+                                <span class="hint">Tiene aire acondicionado</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Ventilador -->
+                    <div class="col-6 col-md-3">
+                        <label class="form-label d-block">Ventilador</label>
+                        <div class="form-check form-switch align-items-center">
+                            <input type="checkbox"
+                                   name="Habitacion.Ventilador"
+                                   id="chkVent"
+                                   value="true"
+                                   class="form-check-input"
+                                   @(Model?.Habitacion.Ventilador == true ? "checked" : null) />
+                            <input type="hidden" name="Habitacion.Ventilador" value="false" />
+                            <label class="form-check-label ms-2" for="chkVent">
+                                <span class="hint">Tiene ventilador</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- TV -->
+                    <div class="col-6 col-md-3">
+                        <label class="form-label d-block">TV</label>
+                        <div class="form-check form-switch align-items-center">
+                            <input type="checkbox"
+                                   name="Habitacion.TV"
+                                   id="chkTV"
+                                   value="true"
+                                   class="form-check-input"
+                                   @(Model?.Habitacion.TV == true ? "checked" : null) />
+                            <input type="hidden" name="Habitacion.TV" value="false" />
+                            <label class="form-check-label ms-2" for="chkTV">
+                                <span class="hint">Tiene televisión</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Baño Privado -->
+                    <div class="col-6 col-md-3">
+                        <label class="form-label d-block">Baño Privado</label>
+                        <div class="form-check form-switch align-items-center">
+                            <input type="checkbox"
+                                   name="Habitacion.BanoPrivado"
+                                   id="chkBanio"
+                                   value="true"
+                                   class="form-check-input"
+                                   @(Model?.Habitacion.BanoPrivado == true ? "checked" : null) />
+                            <input type="hidden" name="Habitacion.BanoPrivado" value="false" />
+                            <label class="form-check-label ms-2" for="chkBanio">
+                                <span class="hint">Tiene baño privado</span>
+                            </label>
+                        </div>
+                    </div> 
+
+                    <!-- WIFI -->
+                    <div class="col-6 col-md-3">
+                        <label class="form-label d-block">WIFI</label>
+                        <div class="form-check form-switch align-items-center">
+                            <input type="checkbox"
+                                   name="Habitacion.WIFI"
+                                   id="chkWIFI"
+                                   value="true"
+                                   class="form-check-input"
+                                   @(Model?.Habitacion.WIFI == true ? "checked" : null) />
+                            <input type="hidden" name="Habitacion.WIFI" value="false" />
+                            <label class="form-check-label ms-2" for="chkWIFI">
+                                <span class="hint">Tiene señal WIFI</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Parqueo -->
+                    <div class="col-6 col-md-3">
+                        <label class="form-label d-block">Parqueo</label>
+                        <div class="form-check form-switch align-items-center">
+                            <input type="checkbox"
+                                   name="Habitacion.Parqueo"
+                                   id="chkParqueo"
+                                   value="true"
+                                   class="form-check-input"
+                                   @(Model?.Habitacion.Parqueo == true ? "checked" : null) />
+                            <input type="hidden" name="Habitacion.Parqueo" value="false" />
+                            <label class="form-check-label ms-2" for="chkParqueo">
+                                <span class="hint">Tiene Parqueo</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-end">
+                    <button class="btn btn-primary"><i class="bi bi-download me-1"></i> Guardar Habitación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal éxito (lo usa el Dashboard si existe) -->
+<div class="modal fade" id="saveOkModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white py-2">
+                <h6 class="modal-title mb-0"><i class="bi bi-check-circle me-1"></i> Habitación creada</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center"><p class="mb-0 js-msg">¡Guardado exitosamente!</p></div>
+            <div class="modal-footer py-2"><button class="btn btn-success" data-bs-dismiss="modal">Aceptar</button></div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+      function formatearPrecio(input) {
+        let valor = input.value.replace(/[^0-9.]/g, '');
+        let partes = valor.split('.');
+        if (partes.length > 2) valor = partes[0] + '.' + partes[1];
+        if (partes[1]) {
+            partes[1] = partes[1].substring(0, 2);
+            valor = partes[0] + '.' + partes[1];
+        }
+        if (valor) {
+            let num = parseFloat(valor);
+            if (!isNaN(num)) {
+                input.value = num.toLocaleString('en-US', {
+                    minimumFractionDigits: partes[1] ? 2 : 0,
+                    maximumFractionDigits: 2
+                });
+            } else input.value = "";
+        } else input.value = "";
+    }
+
+    function addFila() {
+        const tbody = document.querySelector('#tblTarifas tbody');
+        const tpl = document.querySelector('#tplTarifaRow tr').cloneNode(true);
+        tbody.appendChild(tpl);
+        reindexTarifas();
+    }
+
+    function remFila(btn) {
+        const tr = btn.closest('tr');
+        const tbody = document.querySelector('#tblTarifas tbody');
+        if (tbody.rows.length <= 1) { // siempre deja al menos 1
+            tr.querySelectorAll('input').forEach(i => i.value = '');
+        } else {
+            tr.remove();
+        }
+        reindexTarifas();
+    }
+
+    function reindexTarifas() {
+        // Reescribe los name/id para que el model binder reciba TarifaItems[0].Campo ...
+        const rows = document.querySelectorAll('#tblTarifas tbody tr');
+        rows.forEach((tr, i) => {
+            tr.querySelectorAll('input,select,textarea').forEach(inp => {
+                // name como ...TarifaItems[0].Campo
+                const baseName = inp.getAttribute('name') || inp.getAttribute('asp-for');
+                let name = baseName;
+                if (!name || name.indexOf('TarifaItems[') === -1) {
+                    // viene de plantilla "__name__.Campo"
+                    name = ("TarifaItems[" + i + "]." + (inp.name || "").split('.').pop());
+                } else {
+                    name = name.replace(/TarifaItems\[\d+\]/, "TarifaItems[" + i + "]");
+                }
+                inp.setAttribute('name', name);
+                // id opcional (para validation/unobtrusive)
+                const id = name.replace(/\./g, "_").replace(/\[/g, "_").replace(/\]/g, "_");
+                inp.id = id;
+            });
+        });
+    }
+
+    // Antes de enviar: quitar comas de miles en PrecioNocheStr
+    document.querySelector('form').addEventListener('submit', function() {
+        document.querySelectorAll('input[name$=".PrecioNocheStr"]').forEach(inp => {
+            inp.value = (inp.value || "").replace(/,/g, "");
+        });
+    });
+
+    // Inicial
+    document.addEventListener('DOMContentLoaded', reindexTarifas);
+
+      
+    
+    function parsePrecio(str) {
+      if (!str) return NaN;
+      const limpio = (str + "").replace(/,/g, "").trim();
+      return parseFloat(limpio);
+    }
+
+    function filaTarifaEsVacia(tr) {
+      const p = tr.querySelector('input[name$=".NumeroPersonas"]')?.value?.trim();
+      const fi = tr.querySelector('input[name$=".FechaInicio"]')?.value?.trim();
+      const ff = tr.querySelector('input[name$=".FechaFin"]')?.value?.trim();
+      const pr = tr.querySelector('input[name$=".PrecioNocheStr"]')?.value?.trim();
+      return (!p && !fi && !ff && !pr); // vacía si todo está vacío
+    }
+
+    function filaTarifaEsValida(tr) {
+      const p = parseInt(tr.querySelector('input[name$=".NumeroPersonas"]')?.value || "0", 10);
+      const fi = tr.querySelector('input[name$=".FechaInicio"]')?.value;
+      const ff = tr.querySelector('input[name$=".FechaFin"]')?.value;
+      const pr = parsePrecio(tr.querySelector('input[name$=".PrecioNocheStr"]')?.value);
+
+      if (!p || p < 1) return false;
+      if (!fi || !ff) return false;
+      const d1 = new Date(fi + "T00:00:00");
+      const d2 = new Date(ff + "T00:00:00");
+      if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false;
+      if (d2 < d1) return false;
+      if (isNaN(pr) || pr <= 0) return false;
+
+      return true;
+    }
+
+    function hayAlMenosUnaTarifaValida() {
+      const rows = document.querySelectorAll('#tblTarifas tbody tr');
+      let algunaValida = false;
+      rows.forEach(tr => {
+        if (filaTarifaEsVacia(tr)) return;
+        if (filaTarifaEsValida(tr)) algunaValida = true;
+      });
+      return algunaValida;
+    }
+
+    (function () {
+      const form = document.getElementById('frmCreate');
+      const errorDiv = document.getElementById('tarifaError');
+      if (!form) return;
+
+      form.addEventListener('submit', function (ev) {
+        // Si jQuery Validate ya bloqueó (otros campos requeridos), respétalo y sal.
+        if (ev.defaultPrevented) return;
+
+        // Normaliza precios (solo si vamos a intentar enviar)
+        document.querySelectorAll('input[name$=".PrecioNocheStr"]').forEach(inp => {
+          inp.value = (inp.value || "").replace(/,/g, "");
+        });
+
+        // Valida tarifas
+        if (!hayAlMenosUnaTarifaValida()) {
+          ev.preventDefault();
+          // evita que Unobtrusive AJAX u otros handlers envíen el form
+          if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+          else ev.stopPropagation();
+
+          errorDiv.classList.remove('d-none');
+          errorDiv.style.display = 'block';
+          document.querySelector('#tblTarifas tbody tr input')?.focus();
+          return false;
+        }
+
+        // OK tarifas: oculta el mensaje y deja que jQuery Validate/Unobtrusive sigan su curso
+        errorDiv.classList.add('d-none');
+        errorDiv.style.display = 'none';
+        // no hacemos preventDefault aquí
+      });
+    })();
+
+</script>

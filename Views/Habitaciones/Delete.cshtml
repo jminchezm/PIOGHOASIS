@@ -1,0 +1,349 @@
+﻿@model PIOGHOASIS.Models.Habitacion
+@{
+    Layout = null;
+
+    var isActive = Model?.Estado == true;
+    var actionText = isActive ? "Desactivar" : "Activar";
+    var question = isActive
+        ? $"¿Deseas desactivar la habitación {Model?.Codigo}?"
+        : $"¿Deseas activar la habitación {Model?.Codigo}?";
+
+    var defaultImg = Url.Content("~/img/DefaultHabitacion.png");
+    var imgUrl = string.IsNullOrWhiteSpace(Model?.Imagen) ? defaultImg : Model.Imagen;
+}
+<style>
+    .hab-det {
+        position: relative;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+        background-attachment: fixed;
+        background-position: center center;
+        background-size: cover;
+    }
+
+    .pd-card {
+        background: rgba(255,255,255,.88);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .9rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,.10);
+        backdrop-filter: blur(2px);
+        overflow: hidden;
+    }
+
+    .pd-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .9rem 1rem;
+        border-bottom: 2px solid #d7a536;
+    }
+
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .2rem .6rem;
+        border-radius: 999px;
+        font-weight: 700;
+        border: 1px solid transparent;
+        font-size: .9rem;
+        white-space: nowrap;
+    }
+
+    .pill-ok {
+        background: #e8f7e9;
+        color: #166534;
+        border-color: #bfe8c2;
+    }
+
+    .pill-off {
+        background: #fff0f0;
+        color: #b42318;
+        border-color: #f5c2c7;
+    }
+
+    .pd-body {
+        padding: 1rem 1.25rem 1.5rem;
+    }
+
+    .pd-grid {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 1.25rem;
+        align-items: start;
+    }
+
+    @@media (max-width: 992px) {
+        .pd-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .pd-figure {
+        position: relative;
+        border-radius: .75rem;
+        overflow: hidden;
+        box-shadow: 0 8px 22px rgba(0,0,0,.12);
+        background: #f3f4f6;
+    }
+
+        .pd-figure img {
+            display: block;
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+        }
+
+    .section {
+        background: #fff;
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        padding: .9rem 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 6px 16px rgba(0,0,0,.05);
+    }
+
+    .sec-title {
+        font-weight: 800;
+        color: #1f2a37;
+        border-left: 4px solid #f0a100;
+        padding-left: .5rem;
+        margin: .25rem 0 .8rem;
+    }
+
+    .kv {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: .6rem 1rem;
+        align-items: start;
+    }
+
+    @@media (max-width: 576px) {
+        .kv {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .kv .lbl {
+        font-weight: 700;
+        color: #374151;
+    }
+
+    .kv .val {
+        color: #111827;
+    }
+
+    .warn {
+        display: grid;
+        grid-template-columns: 32px 1fr;
+        gap: .75rem;
+        align-items: start;
+        padding: .75rem .9rem;
+        border-radius: .6rem;
+        border: 1px solid #fecaca;
+        background: #fef2f2;
+        color: #7f1d1d;
+        margin-bottom: 1rem;
+    }
+
+    .back {
+        position: sticky;
+        top: calc(var(--header-h) + 8px);
+        background: #4b5563;
+        color: #fff;
+        border: none;
+        border-radius: .6rem;
+        padding: .45rem .85rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.15);
+    }
+
+        .back:hover {
+            filter: brightness(.95);
+            color: #fff;
+        }
+
+    .actions {
+        display: flex;
+        gap: .75rem;
+        justify-content: center;
+        margin-top: .5rem;
+    }
+
+    .btn-danger-soft {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
+        .btn-danger-soft:hover {
+            background: #fecaca;
+            color: #7f1d1d;
+        }
+</style>
+
+<div class="hab-det">
+    <div class="d-flex justify-content-end mb-2">
+        <a class="back ajax-nav" href="/Habitaciones/Index" data-url="/Habitaciones/Index">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <div class="pd-card">
+        <div class="pd-header">
+            <div>@question</div>
+            <div>
+                @if (Model?.Estado ?? false)
+                {
+                    <span class="pill pill-ok"><i class="bi bi-check-circle"></i> Activa</span>
+                }
+                else
+                {
+                    <span class="pill pill-off"><i class="bi bi-x-circle"></i> Inactiva</span>
+                }
+            </div>
+        </div>
+
+        <div class="pd-body">
+            <div class="pd-grid">
+                <!-- Columna Izquierda: Imagen -->
+                <figure class="pd-figure">
+                    <img src="@imgUrl" alt="Imagen de habitación"
+                         onerror="this.onerror=null;this.src='@defaultImg';" />
+                </figure>
+
+                <!-- Columna Derecha: Información + acción -->
+                <div>
+                    <div class="section warn">
+                        <i class="bi bi-exclamation-octagon-fill" style="font-size:1.2rem"></i>
+                        <div>
+                            @if (isActive)
+                            {
+                                <strong>Vas a desactivar esta habitación.</strong>
+                            }
+                            else
+                            {
+                                <strong>Vas a activar esta habitación.</strong>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="sec-title">Información general</div>
+                        <div class="kv">
+                            <div class="lbl">Código</div><div class="val">@Model?.Codigo</div>
+                            <div class="lbl">No. Habitación</div><div class="val">@Model?.NumeroHabitacion</div>
+                            <div class="lbl">Piso</div><div class="val">@Model?.Piso</div>
+                            <div class="lbl">Tipo</div><div class="val">@Model?.TipoHabitacion?.Nombre</div>
+                            <div class="lbl">Estado actual</div>
+                            <div class="val">
+                                @Html.Raw(isActive
+                                                                ? "<span class='pill pill-ok'><i class=\"bi bi-check-circle\"></i> Activa</span>"
+                                                                : "<span class='pill pill-off'><i class=\"bi bi-x-circle\"></i> Inactiva</span>")
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <form id="frmToggle" asp-action="ToggleEstado" asp-route-id="@Model.HabitacionID" method="post" class="m-0">
+                            @Html.AntiForgeryToken()
+                            <button id="btnAsk" type="button" class="btn btn-danger-soft btn-lg">
+                                <i class="bi bi-power me-1"></i> @actionText
+                            </button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación -->
+<div class="modal fade" id="confirmToggleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white py-2">
+                <h6 class="modal-title mb-0">
+                    <i class="bi bi-exclamation-octagon me-1"></i> Confirmar @actionText
+                </h6>
+                <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                @if (isActive)
+                {
+                    <span>Esta acción <strong>desactivará</strong> la habitación <strong>@Model?.Codigo</strong>. ¿Deseas continuar?</span>
+                }
+                else
+                {
+                    <span>Esta acción <strong>activará</strong> la habitación <strong>@Model?.Codigo</strong>. ¿Deseas continuar?</span>
+                }
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirm">
+                    <i class="bi bi-power me-1"></i> @actionText
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+      const form    = document.getElementById('frmToggle');
+      const askBtn  = document.getElementById('btnAsk');
+      const okBtn   = document.getElementById('btnConfirm');
+      const modalEl = document.getElementById('confirmToggleModal');
+      const modal   = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+      const hero = window.parent?.document?.getElementById?.('hero') || document.getElementById('hero');
+      const host = window.parent?.document?.getElementById?.('contentHost') || document.getElementById('contentHost');
+
+      // Abrir modal
+      askBtn?.addEventListener('click', () => modal.show());
+
+      // Confirmar → POST vía fetch y luego cargar Index
+      okBtn?.addEventListener('click', async () => {
+        if (!form) return;
+        okBtn.disabled = true;
+        try {
+          const fd = new FormData(form);
+          const resp = await fetch(form.action, {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-Requested-With':'XMLHttpRequest' }
+          });
+
+          // El controlador devuelve el Index como HTML cuando IsAjax
+          const ctype = (resp.headers.get('content-type') || '').toLowerCase();
+          if (ctype.includes('text/html') || ctype.includes('application/xhtml')) {
+            const html = await resp.text();
+            if (host) {
+              if (hero) hero.style.display = 'none';
+              host.innerHTML = html;
+              window.parent?.scrollTo?.(0,0);
+            } else {
+              // fuera del dashboard → navegar al Index
+              window.location.href = '/Habitaciones/Index';
+            }
+          } else {
+            // fallback: navegar al Index
+            window.location.href = '/Habitaciones/Index';
+          }
+        } catch (e) {
+          console.error(e);
+          alert('Error de red. Intenta nuevamente.');
+        } finally {
+          okBtn.disabled = false;
+          modal.hide();
+        }
+      });
+    })();
+</script>
