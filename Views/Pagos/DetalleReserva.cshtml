@@ -1,0 +1,360 @@
+﻿@model PIOGHOASIS.Models.ViewModels.PagoDetalleReservaVM
+@{
+    Layout = null;
+    var r = Model.Reserva;
+    var sel = Model.Seleccionado;
+
+    bool hasFile = sel != null && !string.IsNullOrWhiteSpace(sel.ComprobantePath);
+    bool isImg = sel != null && !string.IsNullOrWhiteSpace(sel.ComprobanteMime) && sel.ComprobanteMime.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+    bool isPdf = sel != null && !string.IsNullOrWhiteSpace(sel.ComprobanteMime) && sel.ComprobanteMime.Contains("pdf", StringComparison.OrdinalIgnoreCase);
+
+    var volverUrl = Url.Action("Index", "Reservas");
+    // 👉 FIX de cache para PDF (ver punto 5)
+    var verPdfReserva = Url.Action("ReservaPdf", "Reservas", new { id = r.ReservaID, _ = DateTimeOffset.Now.ToUnixTimeSeconds() });
+}
+
+<style>
+    /* reusa tu pay-create / pc-card / pc-header / pc-subtitle / badge-soft de Nueva.cshtml */
+    .pay-create {
+        position: relative;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+        background-attachment: fixed;
+        background-position: center center;
+        background-size: cover
+    }
+
+    .pc-back {
+        position: sticky;
+        top: calc(var(--header-h) + 8px);
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        background: #4b5563;
+        color: #fff;
+        border: none;
+        border-radius: .5rem;
+        padding: .4rem .75rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.15)
+    }
+
+        .pc-back:hover {
+            filter: brightness(.95);
+            color: #fff
+        }
+
+    .pc-card {
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 8px 28px rgba(0,0,0,.08);
+        backdrop-filter: blur(2px)
+    }
+
+    .pc-header {
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .75rem 1rem;
+        border-top-left-radius: .75rem;
+        border-top-right-radius: .75rem;
+        border-bottom: 2px solid #d7a536;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px
+    }
+
+    .pc-subtitle {
+        font-weight: 800;
+        color: #1f2a37;
+        border-left: 4px solid #f0a100;
+        padding-left: .5rem;
+        margin: .25rem 0 1rem
+    }
+
+    .badge-soft {
+        display: inline-block;
+        padding: .2rem .5rem;
+        border-radius: 999px;
+        background: #eef2ff;
+        border: 1px solid #e5e7eb;
+        font-weight: 700
+    }
+
+    .preview-box {
+        background: #fff;
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 6px 18px rgba(0,0,0,.06);
+        padding: 10px
+    }
+
+    .preview-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+        margin-top: 8px
+    }
+
+    /*Area comprobante de pago*/
+    /* Altura del panel de comprobante (ajústala a tu gusto) */
+    #comprobantePago {
+        --cp-h: 375px; /* altura por defecto */
+    }
+
+    @@media (max-width: 992px) {
+        #comprobantePago
+
+    {
+        --cp-h: 420px;
+    }
+    /* en pantallas pequeñas */
+    }
+
+    /* Fuerza el alto del visor dentro del partial */
+    #comprobantePago .preview-box {
+        height: var(--cp-h);
+        overflow: hidden; /* o auto si quieres barra de scroll */
+        display: flex;
+        flex-direction: column;
+    }
+
+        #comprobantePago .preview-box > embed,
+        #comprobantePago .preview-box > img {
+            width: 100%;
+            height: calc(var(--cp-h) - 42px) !important; /* deja espacio para actions */
+            object-fit: contain; /* imágenes grandes se escalan sin recortar */
+            border-radius: .5rem;
+        }
+
+    #comprobantePago .preview-actions {
+        /* margin-top: 8px; */
+    }
+
+</style>
+
+<div class="pay-create">
+    <div class="d-flex justify-content-end mb-2">
+        <a class="pc-back ajax-nav" href="/Home/Dashboard" data-url="@volverUrl">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <div class="pc-card">
+        <div class="pc-header">
+            <div>
+                <div class="h6 mb-0">Detalle de pagos · Reserva @r.Codigo</div>
+                <small class="text-muted">@r.Cliente?.Persona?.PrimerNombre @r.Cliente?.Persona?.PrimerApellido</small>
+            </div>
+            <div class="text-end small">
+                <div>Pagado: <strong>Q @Model.Pagado.ToString("N2")</strong></div>
+                <div>Pendiente: <span class="badge-soft">Q @Model.Pendiente.ToString("N2")</span></div>
+               @*  <div class="mt-1">
+                    <a class="btn btn-sm btn-outline-info" href="@verPdfReserva" target="_blank" rel="noopener">
+                        <i class="bi bi-filetype-pdf"></i> PDF de reserva
+                    </a>
+                </div> *@
+            </div>
+        </div>
+
+        <div class="p-3 p-md-4">
+            <div class="row g-3">
+                <!-- Izquierda: listado de pagos -->
+                <div class="col-12 col-lg-6">
+                    <h6 class="pc-subtitle">Pagos</h6>
+                    <div>
+                        @if (!(Model.Pagos?.Any() ?? false))
+                        {
+                            <div class="text-muted">No hay pagos registrados para esta reserva.</div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Forma</th>
+                                            <th>Tipo</th>
+                                            <th>Referencia</th>
+                                            <th class="text-end">Monto</th>
+                                            <th style="width:120px"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var p in Model.Pagos)
+                                        {
+                                            <tr class="@(Model.Seleccionado?.PagoReservaID == p.PagoReservaID ? "table-primary" : "")">
+                                                <td>@p.FechaPago:</td>
+                                                <td>@p.FormaPago?.Nombre</td>
+                                                <td>@p.TipoPago?.Nombre</td>
+                                                <td>@(string.IsNullOrWhiteSpace(p.NumeroReferencia) ? "—" : p.NumeroReferencia)</td>
+                                                <td class="text-end">Q @p.MontoPagado.ToString("N2")</td>
+                                                <td class="text-end">
+                                                    @* <a class="btn btn-outline-primary btn-sm ajax-nav"
+                                                       href="@Url.Action("DetalleReserva", "Pagos", new { reservaId = r.ReservaID, pagoId = p.PagoReservaID })"
+                                                       data-url="@Url.Action("DetalleReserva", "Pagos", new { reservaId = r.ReservaID, pagoId = p.PagoReservaID })">
+                                                        Ver comprobante
+                                                    </a> *@
+                                                    <a class="btn btn-outline-primary btn-sm js-comprobante"
+                                                       href="@Url.Action("ComprobanteParcial", "Pagos", new { pagoId = p.PagoReservaID })"
+                                                       data-target="#comprobantePago">
+                                                        Ver comprobante
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                    <div>
+                        <div id="comprobantePago">
+                            @await Html.PartialAsync("_ComprobantePago", sel)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Derecha: preview del comprobante del pago seleccionado -->
+                <div class="col-12 col-lg-6">
+
+                    <div>
+                        <h6 class="pc-subtitle">Comprobante de reservación</h6>
+
+                        <!-- Visor embebido del PDF de la reserva -->
+                        <div class="preview-box">
+                            <embed src="@($"{verPdfReserva}#toolbar=1&navpanes=0")"
+                                   type="application/pdf"
+                                   width="100%"
+                                   style="height:520px;border-radius:.5rem;" />
+
+                            <div class="preview-actions">
+                                <a class="btn btn-outline-secondary btn-sm"
+                                   href="@verPdfReserva"
+                                   target="_blank" rel="noopener">
+                                    <i class="bi bi-box-arrow-up-right"></i> Abrir en pestaña
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @{
+        var flashMsg = TempData["FlashModal"] as string;
+        var flashType = (TempData["FlashType"] as string ?? "info").ToLower(); // success/info/warning/danger
+    }
+    @if (!string.IsNullOrWhiteSpace(flashMsg))
+    {
+        <style>
+            .flash-mask {
+                position: fixed;
+                inset: 0;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background: rgba(0,0,0,.35);
+                z-index: 2000;
+            }
+
+            .flash-card {
+                background: #fff;
+                border-radius: .75rem;
+                width: min(520px, 92%);
+                box-shadow: 0 20px 50px rgba(0,0,0,.25);
+                overflow: hidden;
+                border: 1px solid rgba(0,0,0,.06);
+            }
+
+            .flash-head {
+                padding: 12px 16px;
+                font-weight: 800;
+                color: #1f2a37;
+                border-bottom: 1px solid #eee;
+            }
+
+            .flash-body {
+                padding: 14px 16px;
+            }
+
+            .flash-ok {
+                background: #e7f9ed;
+                border-bottom: 2px solid #bfe8c2;
+            }
+
+            .flash-warn {
+                background: #fff7ed;
+                border-bottom: 2px solid #f8d39a;
+            }
+
+            .flash-info {
+                background: #e7f9fd;
+                border-bottom: 2px solid #beeaf3;
+            }
+
+            .flash-error {
+                background: #fff0f0;
+                border-bottom: 2px solid #f5c2c7;
+            }
+        </style>
+
+        <div class="flash-mask" id="flashMask" aria-hidden="true">
+            <div class="flash-card">
+                <div class="flash-head @(flashType == "success" ? "flash-ok" : flashType == "warning" ? "flash-warn" : flashType == "danger" ? "flash-error" : "flash-info")">
+                    Notificación
+                </div>
+                <div class="flash-body">
+                    @flashMsg
+                </div>
+            </div>
+        </div>
+
+        <script>
+            (function(){
+              const mask = document.getElementById('flashMask');
+              if (!mask) return;
+              mask.style.display = 'flex';
+              setTimeout(()=>{ mask.style.display = 'none'; }, 2500); // 2.5s y se oculta solo
+              mask.addEventListener('click', (e)=>{ if (e.target === mask) mask.style.display='none'; });
+            })();
+        </script>
+    }
+
+</div>
+
+<script>
+    document.addEventListener('click', async (ev) => {
+      const a = ev.target.closest('a.js-comprobante');
+      if (!a) return;
+      ev.preventDefault();
+
+      const url = a.getAttribute('href');
+      const targetSel = a.dataset.target || '#comprobantePago';
+      const target = document.querySelector(targetSel);
+      if (!target) return;
+
+      try {
+        const r = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const html = await r.text();
+        target.innerHTML = html;
+
+        // Marca la fila seleccionada visualmente (opcional):
+        const tr = a.closest('tr');
+        document.querySelectorAll('tbody tr').forEach(x => x.classList.remove('table-primary'));
+        if (tr) tr.classList.add('table-primary');
+      } catch (e) {
+        console.error(e);
+      }
+    });
+</script>
+

@@ -1,0 +1,58 @@
+﻿@model PIOGHOASIS.Models.ViewModels.ReservaResumenVM
+
+<div class="title">Resumen de Reserva</div>
+
+<div class="dates mb-1">
+    <div>@Model.CheckIn.ToString("MMM dd, yyyy")</div>
+    <div><i class="bi bi-arrow-right"></i></div>
+    <div>@Model.CheckOut.ToString("MMM dd, yyyy")</div>
+</div>
+<div class="mb-2">
+    <span class="badge-night"><i class="bi bi-moon"></i> @Model.Noches Noche(s)</span>
+</div>
+
+<hr />
+
+<div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+    <div>
+        <div class="fw-bold">@Model.HabitacionTitulo</div>
+        <div class="text-muted small">
+            @(Model.TarifaID.HasValue ? "Tarifa seleccionada" : "Tarifa estándar")
+        </div>
+    </div>
+    <div class="fw-bold">Q @Model.PrecioNoche.ToString("N2")</div>
+</div>
+
+<div class="mb-2"><i class="bi bi-people"></i> @Model.Personas persona(s)</div>
+
+<hr />
+
+<div class="rowline"><span>Subtotal</span><span>Q @Model.Subtotal.ToString("N2")</span></div>
+<div class="rowline"><span>Impuestos</span><span>Q @Model.Impuestos.ToString("N2")</span></div>
+
+<div class="rowline total mt-2">
+    <span>Total</span><span>Q @Model.Total.ToString("N2")</span>
+</div>
+
+
+
+@* @model PIOGHOASIS.Models.ViewModels.ReservaResumenVM
+<div class="section">
+    <div class="sec-title">Resumen de Reserva</div>
+    <div>@Model.CheckIn: ➜ @Model.CheckOut:</div>
+    <div>@Model.Noches noche(s)</div>
+    <hr />
+    <div>@Model.HabitacionTitulo</div>
+    <div>Q @Model.PrecioNoche.ToString("N2") / noche</div>
+    <hr />
+    <div class="d-flex justify-content-between">
+        <span>Subtotal</span><strong>Q @Model.Subtotal.ToString("N2")</strong>
+    </div>
+    <div class="d-flex justify-content-between">
+        <span>Impuestos</span><strong>Q @Model.Impuestos.ToString("N2")</strong>
+    </div>
+    <div class="d-flex justify-content-between fs-5">
+        <span>Total</span><strong>Q @Model.Total.ToString("N2")</strong>
+    </div>
+</div>
+ *@

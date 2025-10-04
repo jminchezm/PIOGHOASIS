@@ -29,11 +29,21 @@ namespace PIOGHOASIS.Infraestructure.Data
         public DbSet<Habitacion> habitaciones => Set<Habitacion>();
         public DbSet<TarifaHabitacion> tarifasHabitacion { get; set; }
 
+        public DbSet<Reserva> reservas => Set<Reserva>();
+        public DbSet<DetalleReserva> detalleReservas => Set<DetalleReserva>();
+        public DbSet<EstadoReserva> estadosReserva => Set<EstadoReserva>();
+        public DbSet<PagoReserva> pagosReserva => Set<PagoReserva>();
+        public DbSet<FormaPago> formasPago => Set<FormaPago>();
+        public DbSet<TipoPago> tiposPago => Set<TipoPago>();
+        //public DbSet<PlataformaReserva> plataformas => Set<PlataformaReserva>();
+        public DbSet<PlataformaReserva> plataformasReserva { get; set; } = null!;
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
 
             base.OnModelCreating(modelBuilder);
+
             // Aplica todas las configuraciones en el ensamblado
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
             //base.OnModelCreating(modelBuilder);
@@ -139,6 +149,211 @@ namespace PIOGHOASIS.Infraestructure.Data
                  .HasForeignKey(x => x.TipoHabitacionID)
                  .OnDelete(DeleteBehavior.Restrict);
             });
+
+            //  modelBuilder.Entity<Reserva>()
+            //.HasOne(r => r.Cliente).WithMany().HasForeignKey(r => r.ClienteID);
+
+            //  modelBuilder.Entity<Reserva>()
+            //    .HasOne(r => r.Estado).WithMany().HasForeignKey(r => r.EstadoReservaID);
+
+            //  modelBuilder.Entity<DetalleReserva>()
+            //    .HasOne(d => d.Reserva).WithMany(r => r.Detalles).HasForeignKey(d => d.ReservaID);
+
+            //  modelBuilder.Entity<DetalleReserva>()
+            //    .HasOne(d => d.Habitacion).WithMany().HasForeignKey(d => d.HabitacionID);
+
+            //  modelBuilder.Entity<DetalleReserva>()
+            //    .HasOne(d => d.Tarifa).WithMany().HasForeignKey(d => d.TarifaID);
+
+            //  modelBuilder.Entity<PagoReserva>()
+            //    .HasOne(p => p.Reserva).WithMany(r => r.Pagos).HasForeignKey(p => p.ReservaID);
+            //  modelBuilder.Entity<PagoReserva>()
+            //    .HasOne(p => p.FormaPago).WithMany().HasForeignKey(p => p.FormaPagoID);
+            //  modelBuilder.Entity<PagoReserva>()
+            //    .HasOne(p => p.TipoPago).WithMany().HasForeignKey(p => p.TipoPagoID);
+            //  modelBuilder.Entity<PagoReserva>()
+            //    .HasOne(p => p.Plataforma).WithMany().HasForeignKey(p => p.PlataformaID);
+
+            //  // Índices útiles
+            //  modelBuilder.Entity<TarifaHabitacion>()
+            //    .HasIndex(t => new { t.HabitacionID, t.NumeroPersonas, t.FechaInicio, t.FechaFin });
+            //  modelBuilder.Entity<Reserva>()
+            //    .HasIndex(r => new { r.FechaCheckIn, r.FechaCheckOut });
+            //  modelBuilder.Entity<Habitacion>()
+            //    .HasIndex(h => h.Estado);
+
+            // Si todo está en dbo, fija el esquema por defecto y te ahorras repetirlo:
+            modelBuilder.HasDefaultSchema("dbo");
+
+            // ===== Catálogos / lookups =====
+            modelBuilder.Entity<EstadoReserva>(e =>
+            {
+                e.ToTable("ESTADO_RESERVA", "dbo");
+                e.HasKey(x => x.EstadoReservaID);
+                //e.Property(x => x.EstadoReservaID).HasColumnType("smallint");
+            });
+            //modelBuilder.Entity<Reserva>()
+            //    .HasOne(r => r.Estado)
+            //    .WithMany()
+            //    .HasForeignKey(r => r.EstadoReservaID);
+
+            modelBuilder.Entity<Reserva>(e =>
+            {
+                //e.Property(x => x.EstadoReservaID).HasColumnType("smallint");
+                e.HasOne(r => r.Estado)
+                 .WithMany()
+                 .HasForeignKey(r => r.EstadoReservaID);
+            });
+
+            modelBuilder.Entity<FormaPago>(e =>
+            {
+                e.ToTable("FORMA_PAGO");
+                e.HasKey(x => x.FormaPagoID);
+                e.Property(x => x.Nombre).HasMaxLength(60).IsRequired();
+            });
+
+            modelBuilder.Entity<TipoPago>(e =>
+            {
+                e.ToTable("TIPO_PAGO");
+                e.HasKey(x => x.TipoPagoID);
+                e.Property(x => x.Nombre).HasMaxLength(60).IsRequired();
+            });
+
+            modelBuilder.Entity<PlataformaReserva>(e =>
+            {
+                e.ToTable("PLATAFORMA_RESERVA");
+                e.HasKey(x => x.PlataformaID);           // <- CLAVE PRIMARIA (evita el error “requires a primary key”)
+                e.Property(x => x.Nombre).HasMaxLength(60).IsRequired();
+                e.Property(x => x.Codigo).HasMaxLength(20);
+            });
+
+            // ===== Personas / clientes / usuarios =====
+            modelBuilder.Entity<Persona>(e =>
+            {
+                e.ToTable("PERSONA");
+                e.HasKey(x => x.PersonaID);
+                e.Property(x => x.PersonaID).HasMaxLength(10).IsRequired();
+                e.Property(x => x.PrimerNombre).HasMaxLength(60).IsRequired();
+                e.Property(x => x.PrimerApellido).HasMaxLength(60).IsRequired();
+                // ... lo demás que tengas en el modelo
+            });
+
+            //modelBuilder.Entity<Cliente>(e =>
+            //{
+            //    e.ToTable("CLIENTE");
+            //    e.HasKey(x => x.ClienteID);
+            //    e.Property(x => x.ClienteID).HasMaxLength(10).IsRequired();     // string(10)
+            //    e.Property(x => x.PersonaID).HasMaxLength(10).IsRequired();
+
+            //    e.HasOne(x => x.Persona)
+            //     .WithOne(p => p.Cliente)       // si no tienes navegación inversa, usa .WithMany()
+            //     .HasForeignKey<Cliente>(x => x.PersonaID)
+            //     .HasPrincipalKey<Persona>(p => p.PersonaID);
+            //});
+
+            modelBuilder.Entity<Usuario>(e =>
+            {
+                e.ToTable("USUARIO");
+                e.HasKey(x => x.UsuarioID);
+                e.Property(x => x.UsuarioID).HasMaxLength(10);
+                // relaciones que ya definiste (Empleado, Rol) pueden quedarse como están
+            });
+
+            // ===== Habitaciones / tarifas =====
+            modelBuilder.Entity<TipoHabitacion>(e =>
+            {
+                e.ToTable("TIPO_HABITACION");
+                e.HasKey(x => x.TipoHabitacionID);
+                e.Property(x => x.TipoHabitacionID).HasMaxLength(10).IsUnicode(true);
+                e.Property(x => x.Nombre).HasMaxLength(100).IsUnicode(true).IsRequired();
+                e.Property(x => x.Descripcion).HasMaxLength(300).IsUnicode(true);
+            });
+
+            modelBuilder.Entity<Habitacion>(e =>
+            {
+                e.ToTable("HABITACION");
+                e.HasKey(x => x.HabitacionID);
+                e.Property(x => x.Codigo).HasMaxLength(10).IsRequired();
+                e.Property(x => x.TipoHabitacionID).HasMaxLength(10).IsRequired();
+
+                e.HasOne(x => x.TipoHabitacion)
+                 .WithMany()
+                 .HasForeignKey(x => x.TipoHabitacionID)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(h => h.Estado);
+            });
+
+            modelBuilder.Entity<TarifaHabitacion>(e =>
+            {
+                e.ToTable("TARIFA_HABITACION");
+                e.HasKey(x => x.TarifaID);
+                e.Property(x => x.NumeroPersonas).IsRequired();
+                e.Property(x => x.PrecioNoche).HasColumnType("decimal(18,2)");
+
+                e.HasOne(x => x.Habitacion)
+                 .WithMany()
+                 .HasForeignKey(x => x.HabitacionID);
+
+                e.HasIndex(t => new { t.HabitacionID, t.NumeroPersonas, t.FechaInicio, t.FechaFin });
+            });
+
+            // ===== Reservas =====
+            modelBuilder.Entity<Reserva>(e =>
+            {
+                e.ToTable("RESERVA");
+                e.HasKey(x => x.ReservaID);
+
+                e.Property(x => x.Codigo).HasMaxLength(12).IsRequired();
+                e.Property(x => x.ClienteID).HasMaxLength(10).IsRequired();   // <- string(10)
+                e.Property(x => x.Subtotal).HasColumnType("decimal(18,2)");
+                e.Property(x => x.Impuestos).HasColumnType("decimal(18,2)");
+                e.Property(x => x.Total).HasColumnType("decimal(18,2)");
+
+                e.HasOne(x => x.Cliente)
+                 .WithMany()
+                 .HasForeignKey(x => x.ClienteID);
+
+                e.HasOne(x => x.Estado)
+                 .WithMany()
+                 .HasForeignKey(x => x.EstadoReservaID);
+
+                e.HasIndex(r => new { r.FechaCheckIn, r.FechaCheckOut });
+            });
+
+            modelBuilder.Entity<DetalleReserva>(e =>
+            {
+                e.ToTable("DETALLE_RESERVA");
+                e.HasKey(x => x.DetalleReservaID);
+
+                e.Property(x => x.PrecioPorNoche).HasColumnType("decimal(18,2)");
+                e.Property(x => x.TotalLinea).HasColumnType("decimal(18,2)");
+
+                e.HasOne(d => d.Reserva)
+                 .WithMany(r => r.Detalles)
+                 .HasForeignKey(d => d.ReservaID);
+
+                e.HasOne(d => d.Habitacion)
+                 .WithMany()
+                 .HasForeignKey(d => d.HabitacionID);
+
+                e.HasOne(d => d.Tarifa)
+                 .WithMany()
+                 .HasForeignKey(d => d.TarifaID);
+            });
+
+            modelBuilder.Entity<PagoReserva>(e =>
+            {
+                e.ToTable("PAGO_RESERVA");
+                e.HasKey(x => x.PagoReservaID);
+                e.Property(x => x.MontoPagado).HasColumnType("decimal(18,2)");
+
+                e.HasOne(p => p.Reserva).WithMany(r => r.Pagos).HasForeignKey(p => p.ReservaID);
+                e.HasOne(p => p.FormaPago).WithMany().HasForeignKey(p => p.FormaPagoID);
+                e.HasOne(p => p.TipoPago).WithMany().HasForeignKey(p => p.TipoPagoID);
+                e.HasOne(p => p.Plataforma).WithMany().HasForeignKey(p => p.PlataformaID);
+            });
+
         }
     }
 }

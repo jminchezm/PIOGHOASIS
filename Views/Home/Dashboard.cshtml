@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="~/css/dashboard.css" />
 
 </head>
+
 <body>
 
     <!-- ======= HEADER ======= -->
@@ -94,11 +95,23 @@
                     </a>
                 </li>
 
-                <li>
-                    <a href="/Reservas/Index" data-url="/Reservas/Index">
+                <li class="has-children">
+                    <a href="#" class="toggle" data-toggle="submenu">
+                        <i class="bi bi-calendar-check"></i> <span>Reservaciones</span>
+                        <i class="bi bi-caret-down-fill caret"></i>
+                    </a>
+                    <ul class="submenu">
+                        <li><a href="/Reservas/ElegirHabitacion" data-url="/Reservas/ElegirHabitacion"><span>Reservar</span></a></li>
+                        <li><a href="/Reservas/Index" data-url="/Reservas/Index"><span>Listado de reservaciones</span></a></li>
+                        @* <li><a href="" data-url=""><span>Confirmadas</span></a></li> *@
+                    </ul>
+                </li>
+
+                @* <li>
+                    <a href="/Reservas/ElegirHabitacion" data-url="/Reservas/ElegirHabitacion">
                         <i class="bi bi-calendar-check"></i> <span>Reservaciones</span>
                     </a>
-                </li>
+                </li> *@
 
                 <!-- REPORTES -->
                 <li class="has-children">
@@ -465,6 +478,36 @@ document.querySelectorAll('.menu .has-children > a[data-toggle="submenu"]').forE
   host.addEventListener('submit', async (ev) => {
     const form = ev.target.closest('form');
     if (!form) return;
+
+             // ===== Handler específico para frmBuscar (GET a /Reservas/Buscar) =====
+          if (form.id === 'frmBuscar') {
+            ev.preventDefault();
+
+            const btn = form.querySelector('button[type="submit"], button:not([type])');
+            if (btn) { btn.disabled = true; btn.textContent = 'Buscando...'; }
+
+            try {
+              const qs = new URLSearchParams(new FormData(form));
+              qs.append('_', Date.now()); // rompe-caché
+              const r = await fetch(`${form.action}?${qs.toString()}`, {
+                method: 'GET',
+                cache: 'no-store',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+              });
+              const html = await r.text();
+              const panel = document.getElementById('resultados');
+              if (panel) panel.innerHTML = html;
+            } catch (e) {
+              console.error(e);
+              const panel = document.getElementById('resultados');
+              if (panel) panel.innerHTML = `<div class="alert alert-danger">Ocurrió un error al buscar.</div>`;
+            } finally {
+              if (btn) { btn.disabled = false; btn.textContent = 'Buscar'; }
+            }
+            return; // IMPORTANTE: no seguir con el handler genérico
+          }
+
     ev.preventDefault();
 
     // Limpia errores previos
@@ -900,6 +943,7 @@ window.swapContentIntoHost = function (html) {
 
   window.scrollTo(0, 0);
 };
+
 </script>
 
 

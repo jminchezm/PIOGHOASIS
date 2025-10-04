@@ -1,0 +1,45 @@
+﻿@model PIOGHOASIS.Models.PagoReserva
+@{
+    bool hasFile = Model != null && !string.IsNullOrWhiteSpace(Model.ComprobantePath);
+    bool isImg = Model != null && !string.IsNullOrWhiteSpace(Model.ComprobanteMime) && Model.ComprobanteMime.StartsWith("image/", StringComparison.OrdinalIgnoreCase);
+    bool isPdf = Model != null && !string.IsNullOrWhiteSpace(Model.ComprobanteMime) && Model.ComprobanteMime.Contains("pdf", StringComparison.OrdinalIgnoreCase);
+}
+
+<h6 class="pc-subtitle">Comprobante de pago</h6>
+
+@if (Model == null)
+{
+    <div class="text-muted">Selecciona un pago para ver su comprobante.</div>
+}
+else if (!hasFile)
+{
+    <div class="text-muted">Este pago no tiene comprobante adjunto.</div>
+}
+else
+{
+    <div class="preview-box">
+        @if (isImg)
+        {
+            <img src="@Model.ComprobantePath" alt="Comprobante" class="img-fluid rounded" />
+        }
+        else if (isPdf)
+        {
+            <embed src="@($"{Model.ComprobantePath}#toolbar=1&navpanes=0")"
+                   type="application/pdf" width="100%" style="height:520px;border-radius:.5rem;" />
+        }
+        else
+        {
+            <div class="text-muted">Archivo adjunto: @Model.ComprobanteNombre</div>
+        }
+
+        <div class="preview-actions">
+            <a class="btn btn-outline-secondary btn-sm" href="@Model.ComprobantePath" target="_blank" rel="noopener">
+                <i class="bi bi-box-arrow-up-right"></i> Abrir
+            </a>
+            <a class="btn btn-primary btn-sm"
+               href="@Url.Action("DescargarComprobante", "Pagos", new { pagoId = Model.PagoReservaID })">
+                <i class="bi bi-download"></i> Descargar
+            </a>
+        </div>
+    </div>
+}

@@ -1,0 +1,151 @@
+﻿@model PIOGHOASIS.Models.Reserva
+@{
+    Layout = null;
+    var clienteNombre = (Model?.Cliente?.Persona?.PrimerNombre + " " + Model?.Cliente?.Persona?.PrimerApellido)?.Trim();
+    string fmt(decimal v) => v.ToString("N2");
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Reserva @Model?.Codigo</title>
+
+<style>
+/* ====== Setup de página A4 ====== */
+@@page {
+  size: A4;
+  margin: 18mm 14mm 16mm 14mm;
+}
+html, body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif; color:#111827; }
+* { box-sizing: border-box; }
+small, .muted { color:#6b7280; }
+
+/* ====== Encabezado ====== */
+.doc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 8px;
+  margin-bottom: 14px;
+}
+.brand {
+  display: flex; align-items: center; gap: 12px;
+}
+.brand img {
+  width: 64px; height: 64px; object-fit: contain; border-radius: 12px; border:1px solid #e5e7eb; padding: 6px;
+}
+.brand .name { font-size: 20px; font-weight: 800; line-height: 1.1; }
+.meta { text-align: right; font-size: 14px; }
+
+/* ====== Bloque datos ====== */
+.block { margin-bottom: 16px; }
+h2.title { font-size: 16px; margin: 0 0 6px 0; font-weight: 800; }
+.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; font-size: 14px; }
+.kv .row { display:flex; justify-content:space-between; }
+.badge {
+  display:inline-block; padding:4px 8px; border-radius:999px; background:#eef2ff; border:1px solid #e5e7eb; font-weight:700;
+}
+
+/* ====== Tabla ====== */
+.table {
+  width: 100%; border-collapse: collapse; font-size: 14px;
+  border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;
+}
+.table thead th {
+  background:#f9fafb; text-align: left; padding: 10px; border-bottom:1px solid #e5e7eb; font-weight:800;
+}
+.table tbody td {
+  padding: 10px; border-bottom:1px solid #f1f5f9;
+}
+.table tbody tr:last-child td { border-bottom: none; }
+.text-end { text-align: right; }
+
+/* ====== Totales ====== */
+.totals {
+  width: 280px; margin-left: auto; margin-top: 10px; font-size: 14px;
+}
+.totals .line { display:flex; justify-content: space-between; margin: 6px 0; }
+.totals .grand { font-size: 18px; font-weight: 800; }
+
+/* ====== Footer (número de página si tu engine lo soporta) ====== */
+.footer {
+  position: fixed;
+  bottom: 10mm; left: 14mm; right: 14mm;
+  display:flex; justify-content: space-between; font-size: 12px; color:#6b7280;
+}
+.page-num:after { content: counter(page); }
+</style>
+</head>
+
+<body>
+
+<header class="doc-header">
+  <div class="brand">
+    <img src="/img/logo-oasis.png" alt="Hotel Oasis" onerror="this.src='/img/logo.png'">
+    <div>
+      <div class="name">Hotel Oasis</div>
+      <div class="muted">Comprobante de Reserva</div>
+    </div>
+  </div>
+
+  <div class="meta">
+    <div><strong>Código:</strong> @Model?.Codigo</div>
+    <div><strong>Fecha de emisión:</strong> @DateTime.Now</div>
+  </div>
+</header>
+
+<section class="block">
+  <h2 class="title">Datos de la Reserva</h2>
+  <div class="kv">
+    <div><strong>Cliente:</strong> @clienteNombre</div>
+    <div><strong>Noches:</strong> @((Model?.FechaCheckOut - Model?.FechaCheckIn)?.TotalDays ?? 0)</div>
+    <div><strong>Check-in:</strong> @Model?.FechaCheckIn.ToString("dd/MM/yyyy")</div>
+    <div><strong>Check-out:</strong> @Model?.FechaCheckOut.ToString("dd/MM/yyyy")</div>
+    <div><strong>Estado:</strong> @Model?.Estado?.Nombre</div>
+    <div><span class="badge">@((Model?.FechaCheckOut - Model?.FechaCheckIn)?.TotalDays ?? 0) noche(s)</span></div>
+  </div>
+</section>
+
+<section class="block">
+  <h2 class="title">Detalle</h2>
+  <table class="table">
+    <thead>
+      <tr>
+        <th style="width:28%">Habitación</th>
+        <th style="width:12%">Personas</th>
+        <th style="width:12%">Noches</th>
+        <th style="width:18%">Precio por noche</th>
+        <th class="text-end" style="width:18%">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach (var d in Model.Detalles)
+      {
+        <tr>
+          <td>@d.Habitacion?.TipoHabitacion?.Nombre #@d.Habitacion?.NumeroHabitacion</td>
+          <td>@d.Personas</td>
+          <td>@d.Noches</td>
+          <td>Q @fmt(d.PrecioPorNoche)</td>
+          <td class="text-end">Q @fmt(d.TotalLinea)</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <div class="line"><span>Subtotal </span><strong>Q @fmt(Model.Subtotal)</strong></div>
+    <div class="line"><span>Impuestos </span><strong>Q @fmt(Model.Impuestos)</strong></div>
+    <div class="line grand"><span>Total </span><strong>Q @fmt(Model.Total)</strong></div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div>© @DateTime.Now.Year Hotel Oasis</div>
+  @* <div>Página <span class="page-num"></span></div> *@
+</footer>
+
+</body>
+</html>

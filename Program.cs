@@ -2,13 +2,30 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using PIOGHOASIS.Infraestructure.Data;
 using PIOGHOASIS.Infraestructure.Email;
+using PIOGHOASIS.Services;
 using Rotativa.AspNetCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+// Program.cs  (ConfigureServices)
+builder.Services.AddDistributedMemoryCache();           // almacenamiento para Session
+builder.Services.AddSession(opt =>
+{
+    opt.IdleTimeout = TimeSpan.FromHours(2);           // lo que prefieras
+    opt.Cookie.HttpOnly = true;
+    opt.Cookie.IsEssential = true;                      // necesario si usas consentimiento de cookies
+});
+
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddHttpContextAccessor();
+
+//Reservaciones
+builder.Services.AddScoped<IReservaPricingService, ReservaPricingService>();
 
 
 // AUTENTICACIÓN POR COOKIES
@@ -64,8 +81,12 @@ RotativaConfiguration.Setup(app.Environment.WebRootPath, "Rotativa");
 
 app.UseRouting();
 
+
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseSession();
 
 app.MapControllerRoute(
     name: "default",

@@ -1,0 +1,367 @@
+﻿@model PIOGHOASIS.Models.Reserva
+@{
+    Layout = null;
+
+    var tiposPago = (IEnumerable<PIOGHOASIS.Models.TipoPago>)ViewBag.TiposPago ?? Enumerable.Empty<PIOGHOASIS.Models.TipoPago>();
+    var formasPago = (IEnumerable<PIOGHOASIS.Models.FormaPago>)ViewBag.FormasPago ?? Enumerable.Empty<PIOGHOASIS.Models.FormaPago>();
+    var plataformas = (IEnumerable<PIOGHOASIS.Models.PlataformaReserva>)ViewBag.Plataformas ?? Enumerable.Empty<PIOGHOASIS.Models.PlataformaReserva>();
+
+    decimal pagado = ViewBag.Pagado ?? 0m;
+    decimal pendiente = ViewBag.Pendiente ?? 0m;
+}
+
+<style>
+    /* ====== LAYOUT (mismo estilo que Habitaciones/Create) ====== */
+    .pay-create {
+        position: relative;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+        background-attachment: fixed;
+        background-position: center center;
+        background-size: cover;
+    }
+
+    .pc-back {
+        position: sticky;
+        top: calc(var(--header-h) + 8px);
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        background: #4b5563;
+        color: #fff;
+        border: none;
+        border-radius: .5rem;
+        padding: .4rem .75rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.15)
+    }
+
+        .pc-back:hover {
+            filter: brightness(.95);
+            color: #fff
+        }
+
+    .pc-card {
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 8px 28px rgba(0,0,0,.08);
+        backdrop-filter: blur(2px)
+    }
+
+    .pc-header {
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .75rem 1rem;
+        border-top-left-radius: .75rem;
+        border-top-right-radius: .75rem;
+        border-bottom: 2px solid #d7a536;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px
+    }
+
+    .pc-subtitle {
+        font-weight: 800;
+        color: #1f2a37;
+        border-left: 4px solid #f0a100;
+        padding-left: .5rem;
+        margin: .25rem 0 1rem;
+    }
+
+    .badge-soft {
+        display: inline-block;
+        padding: .2rem .5rem;
+        border-radius: 999px;
+        background: #eef2ff;
+        border: 1px solid #e5e7eb;
+        font-weight: 700
+    }
+
+    .form-label {
+        font-weight: 700;
+        color: #1f2a37
+    }
+
+    /* ====== MODAL simple (mismo look) ====== */
+    .modal-mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.35);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050
+    }
+
+    .modal-card {
+        background: #fff;
+        border-radius: .75rem;
+        box-shadow: 0 20px 50px rgba(0,0,0,.2);
+        width: min(640px,92%);
+        overflow: hidden
+    }
+
+    .modal-head {
+        padding: 12px 16px;
+        border-bottom: 1px solid #eee;
+        font-weight: 800
+    }
+
+    .modal-body {
+        padding: 16px
+    }
+
+    .modal-foot {
+        padding: 12px 16px;
+        border-top: 1px solid #eee;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end
+    }
+</style>
+
+<div class="pay-create">
+    <div class="d-flex justify-content-end mb-2">
+        <a class="pc-back ajax-nav" href="/Home/Dashboard" data-url="@Url.Action("Index", "Reservas")">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <div class="pc-card">
+        <div class="pc-header">
+            <div>
+                <div class="h6 mb-0">Confirmación de Pago</div>
+                <small class="text-muted">Reserva @Model.Codigo · @Model.Cliente?.Persona?.PrimerNombre @Model.Cliente?.Persona?.PrimerApellido</small>
+            </div>
+            <div class="text-end small">
+                <div>Pagado: <strong>Q @pagado.ToString("N2")</strong></div>
+                <div>Pendiente: <span class="badge-soft">Q @pendiente.ToString("N2")</span></div>
+            </div>
+        </div>
+
+        <div class="p-3 p-md-4">
+            <h6 class="pc-subtitle">Detalle del pago</h6>
+
+            <form asp-action="Crear" asp-controller="Pagos" method="post" enctype="multipart/form-data" class="row g-3" id="frmPago">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ReservaID" value="@Model.ReservaID" />
+
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Fecha de pago*</label>
+                    <input type="date" name="FechaPago" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                </div>
+
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Forma de pago*</label>
+                    <select name="FormaPagoID" id="FormaPagoID" class="form-select" required>
+                        @foreach (var f in formasPago)
+                        {
+                            <option value="@f.FormaPagoID">@f.Nombre</option>
+                        }
+                    </select>
+                    <div class="form-text">Completo o Anticipo.</div>
+                </div>
+
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Tipo de pago*</label>
+                    <select name="TipoPagoID" id="TipoPagoID" class="form-select" required>
+                        @foreach (var t in tiposPago)
+                        {
+                            <option value="@t.TipoPagoID">@t.Nombre</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Plataforma de reserva</label>
+                    <select name="PlataformaID" id="PlataformaID" class="form-select">
+                        <option value="">(No aplica)</option>
+                        @foreach (var p in plataformas)
+                        {
+                            <option value="@p.PlataformaID">@p.Nombre</option>
+                        }
+                    </select>
+                    <div class="form-text">Requerido si el tipo implica plataforma.</div>
+                </div>
+
+                <div class="col-12 col-md-3">
+                    <label class="form-label">Monto*</label>
+                    <input type="number" step="0.01" name="MontoPagado" class="form-control" value="@pendiente.ToString("0.##")" required />
+                </div>
+
+                <div class="col-12 col-md-5">
+                    <label class="form-label">Número de referencia</label>
+                    <input type="text" name="NumeroReferencia" id="NumeroReferencia" class="form-control" placeholder="Requerido salvo efectivo" />
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label">Comprobante</label>
+                    <input type="file" name="Comprobante" id="Comprobante" class="form-control" accept=".pdf,image/*" />
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Observaciones</label>
+                    <textarea name="Observaciones" rows="2" class="form-control" placeholder="Notas del pago…"></textarea>
+                </div>
+
+                <div class="col-12 d-flex flex-wrap gap-2 mt-2">
+                   @*  <a class="btn btn-outline-secondary ajax-nav" href="/Home/Dashboard" data-url="@Url.Action("Index", "Reservas")">
+                        Volver
+                    </a> *@
+                    <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Registrar</button>
+
+                    @* <button type="button" class="btn btn-danger ms-auto" id="btnOpenCancel">
+                        <i class="bi bi-x-circle"></i> Cancelar reserva
+                    </button> *@
+
+                    <button type="button" class="btn btn-danger ms-auto" id="btnOpenCancel">
+                        <i class="bi bi-x-circle"></i> Cancelar reserva
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Modal Cancelación ===== -->
+<div class="modal-mask" id="cancelMask" aria-hidden="true">
+    <div class="modal-card">
+        <div class="modal-head">Cancelar reserva @Model.Codigo</div>
+        <div class="modal-body">
+            <p class="mb-2">
+                Esta acción marcará la reserva como <strong>Cancelada</strong>.
+                La habitación volverá a estar disponible para nuevas reservas.
+            </p>
+            <form id="frmCancel" method="post" action="@Url.Action("Cancelar","Reservas", new { id = Model.ReservaID })">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="estadoNombre" value="Cancelada" />
+                <label class="form-label">Motivo (opcional)</label>
+                <textarea name="motivo" rows="3" class="form-control" placeholder="Escribe el motivo de la cancelación…"></textarea>
+            </form>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn btn-outline-secondary" id="btnCancelClose">Cerrar</button>
+            <button type="button" class="btn btn-danger" id="btnDoCancel">
+                <i class="bi bi-check2-circle"></i> Confirmar cancelación
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+      // ... (tu código actual)
+
+      const mask  = document.getElementById('cancelMask');
+      const open  = document.getElementById('btnOpenCancel');
+      const close = document.getElementById('btnCancelClose');
+      const doIt  = document.getElementById('btnDoCancel');
+      const frm   = document.getElementById('frmCancel');
+
+      const show = ()=>{ mask.style.display='flex'; mask.setAttribute('aria-hidden','false'); }
+      const hide = ()=>{ mask.style.display='none';  mask.setAttribute('aria-hidden','true'); }
+
+      open?.addEventListener('click', show);
+      close?.addEventListener('click', hide);
+      mask?.addEventListener('click', e => { if (e.target === mask) hide(); });
+
+      // Enviar cancelación por AJAX
+          // Enviar cancelación por AJAX
+    doIt?.addEventListener('click', async () => {
+      const url = frm.getAttribute('action');
+      const fd  = new FormData(frm);
+
+      try {
+        const r = await fetch(url, {
+          method: 'POST',
+          body: fd,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await r.json();
+
+        if (data.ok && data.redirectUrl) {
+          // 1) Busca el contenedor donde inyectas páginas (ajusta el selector a tu layout)
+          const host =
+            document.querySelector('#contentHost') ||        // tu host principal
+            document.querySelector('[data-ajax-host]') ||    // alternativa
+            document.body;                                   // último recurso
+
+          // 2) Pide el Index como partial
+          const r2   = await fetch(data.redirectUrl, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          });
+          const html = await r2.text();
+
+          // 3) Inyéctalo en el host
+          host.innerHTML = html;
+
+          // 4) Actualiza la URL del navegador
+          history.replaceState(null, '', data.redirectUrl);
+
+          // 5) (Opcional) Re-inicializa scripts del listado si tienes alguno
+          if (window.initPuestosPager) {
+            const printArea = host.querySelector('#printArea') || host;
+            window.initPuestosPager(printArea);
+          }
+        } else {
+          alert(data.msg || 'No se pudo cancelar la reserva.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error cancelando la reserva.');
+      } finally {
+        hide();
+      }
+    });
+    })();
+</script>
+
+
+@* <script>
+    (function () {
+      // Reglas dinámicas según tipo de pago
+      const tipoSel = document.getElementById('TipoPagoID');
+      const refInp  = document.getElementById('NumeroReferencia');
+      const compInp = document.getElementById('Comprobante');
+      const platSel = document.getElementById('PlataformaID');
+
+      function recomputeReq(){
+        const txt = (tipoSel.options[tipoSel.selectedIndex]?.text || '').toLowerCase();
+        const isEfectivo      = txt.includes('efectivo');
+        const requiereArchivo = txt.includes('transfer') || txt.includes('dep') || txt.includes('plataforma');
+
+        refInp.required  = !isEfectivo;
+        compInp.required = requiereArchivo;
+        platSel.required = txt.includes('plataforma');
+      }
+      tipoSel?.addEventListener('change', recomputeReq);
+      recomputeReq();
+
+      // Modal Cancelación
+      const mask  = document.getElementById('cancelMask');
+      const open  = document.getElementById('btnOpenCancel');
+      const close = document.getElementById('btnCancelClose');
+      const doIt  = document.getElementById('btnDoCancel');
+      const frm   = document.getElementById('frmCancel');
+
+      const show = ()=>{ mask.style.display='flex'; mask.setAttribute('aria-hidden','false'); }
+      const hide = ()=>{ mask.style.display='none';  mask.setAttribute('aria-hidden','true'); }
+
+      open?.addEventListener('click', show);
+      close?.addEventListener('click', hide);
+      mask?.addEventListener('click', e => { if (e.target === mask) hide(); });
+
+      doIt?.addEventListener('click', ()=>{
+        // if(confirm('¿Seguro que quieres cancelar esta reserva? Esta acción no se puede deshacer.')){
+          frm.submit();
+        // }
+      });
+    })();
+</script> *@

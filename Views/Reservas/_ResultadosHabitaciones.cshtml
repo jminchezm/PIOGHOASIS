@@ -1,0 +1,93 @@
+﻿@model IEnumerable<PIOGHOASIS.Models.ViewModels.HabitacionDisponibleVM>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-warning mb-0">No hay disponibilidad para ese rango/personas.</div>
+}
+else
+{
+    <div class="vstack gap-4">
+        @foreach (var h in Model)
+        {
+            @* @{ *@
+                // variables por tarjeta
+                var jsonTarifas = System.Text.Json.JsonSerializer.Serialize(h.Tarifas);
+                var tarifasIniciales = h.Tarifas.Where(t => t.Personas == h.PersonasSeleccionadas).ToList();
+
+                var precioIni = (tarifasIniciales.FirstOrDefault()?.PrecioNoche ?? h.PrecioNoche);
+                var totalIni  = (tarifasIniciales.FirstOrDefault()?.TotalConImpuestos ?? h.TotalConImpuestos);
+            @* } *@
+
+            <div class="rs-room"
+                 data-tarifas='@Html.Raw(jsonTarifas)'
+                 data-personas="@h.PersonasSeleccionadas"
+                 data-tarifa="@h.TarifaSeleccionadaID">
+
+                <div class="rs-room__media">
+                    <img src="@h.Imagen" alt="Habitación @h.Codigo" />
+                </div>
+
+                <div class="rs-room__body">
+                    <div class="rs-room__head">
+                        <h5 class="rs-room__title">@h.Titulo</h5>
+
+                        <div class="rs-room__price text-end">
+                            <div class="label">Precio por noche</div>
+                            <div class="amount price-night">Q. @precioIni.ToString("N2")</div>
+
+                            <div class="text-muted small mt-1">Total c/ impuestos</div>
+                            <div class="amount total-night">Q. @totalIni.ToString("N2")</div>
+                        </div>
+                    </div>
+
+                    <div class="rs-room__meta">
+                        <div class="item">
+                            <i class="bi bi-people"></i><span>Ocupación Máxima</span><strong>@h.Capacidad</strong>
+                        </div>
+                        <div class="item"><i class="bi bi-moon"></i><span>1 Noche</span></div>
+                    </div>
+
+                    <hr class="rs-sep" />
+
+                    <div class="rs-room__actions">
+                        <div class="left d-flex align-items-center gap-3 flex-wrap">
+                            <div>
+                                <label class="me-2">Personas</label>
+                                <select class="form-select form-select-sm w-auto js-personas">
+                                    @for (var i = 1; i <= h.Capacidad; i++)
+                                    {
+                                        if (i == h.PersonasSeleccionadas)
+                                        { <option value="@i" selected>@i</option> }
+                                        else
+                                        { <option value="@i">@i</option> }
+                                    }
+                                </select>
+                            </div>
+
+                            @* Si en algún momento quieres mostrar el combo de tarifa, descomenta esto *@
+                            @* <div>
+                                <label class="me-2">Tarifa</label>
+                                <select class="form-select form-select-sm w-auto js-tarifa"></select>
+                            </div> *@
+                        </div>
+
+                        <div class="right">
+                            <form method="post" action="/Reservas/Seleccionar" class="d-inline js-form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="habitacionId" value="@h.HabitacionID" />
+                                <input type="hidden" name="checkIn"  value="@Context.Request.Query["checkIn"]" />
+                                <input type="hidden" name="checkOut" value="@Context.Request.Query["checkOut"]" />
+                                <input type="hidden" name="personas" value="@h.PersonasSeleccionadas" class="js-personas-hidden" />
+                                <input type="hidden" name="tarifaId"  value="@h.TarifaSeleccionadaID" class="js-tarifa-hidden" />
+                                <button class="rs-toggle" title="Seleccionar">
+                                    <span class="rs-toggle__label me-2">Seleccionar</span>
+                                    @* <span class="rs-toggle__switch" aria-hidden="true"></span> *@
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+} 

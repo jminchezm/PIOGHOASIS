@@ -6,7 +6,9 @@ namespace PIOGHOASIS.Models
     [Table("TARIFA_HABITACION")]
     public class TarifaHabitacion
     {
-        [Key] public int TarifaID { get; set; }
+        [Key]
+        [Column("TarifaID")]
+        public int TarifaID { get; set; }
 
         [Required] public int HabitacionID { get; set; }
 

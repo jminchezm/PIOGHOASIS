@@ -1,0 +1,320 @@
+﻿@model IEnumerable<PIOGHOASIS.Models.Reserva>
+@{
+    Layout = null;
+
+    var q = Context.Request.Query;
+    string qCodigo = q["codigo"];
+    string qCliente = q["cliente"];
+    string qDesde = q["desde"];
+    string qHasta = q["hasta"];
+    // Por defecto “Reservada”
+    string qEstado = q.ContainsKey("estado") ? q["estado"].ToString() : "Reservada";
+
+    // Estados disponibles (vienen del ViewBag, pero pongo guardas)
+    var estados = (IEnumerable<string>)(ViewBag.Estados ?? new[] { "Reservada", "Confirmada", "Cancelada", "Todos" });
+}
+
+<style>
+    .res-ui {
+        position: relative;
+        margin-top: 0;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+        padding: 30px
+    }
+
+        .res-ui .card-filtros {
+            background: rgba(255,255,255,.85);
+            box-shadow: 0 6px 22px rgba(0,0,0,.08);
+            border: 1px solid rgba(0,0,0,.06);
+            border-radius: .75rem
+        }
+
+        .res-ui .tt {
+            font-size: clamp(1.25rem,1.8vw,1.75rem);
+            font-weight: 800;
+            color: #1f2a37
+        }
+
+        .res-ui thead th {
+            background: #f3c259;
+            color: #222;
+            border-bottom: 2px solid #d7a536;
+            vertical-align: middle
+        }
+
+    .pill {
+        display: inline-block;
+        padding: .15rem .5rem;
+        border-radius: 999px;
+        font-size: .84rem;
+        font-weight: 700
+    }
+
+    .pill-warn {
+        background: #fff7ed;
+        color: #a16207;
+        border: 1px solid #f8d39a
+    }
+
+    .pill-ok {
+        background: #e8f7e9;
+        color: #16803d;
+        border: 1px solid #bfe8c2
+    }
+
+    .pill-off {
+        background: #fff0f0;
+        color: #b42318;
+        border: 1px solid #f5c2c7
+    }
+
+    .btn-icon {
+        --bs-btn-padding-y: .25rem;
+        --bs-btn-padding-x: .45rem;
+        --bs-btn-border-radius: .35rem
+    }
+
+    .btn-confirm {
+        color: #1f6aff;
+        border-color: #bfd7ff;
+        background: #e9f1ff
+    }
+
+    .btn-pdf {
+        color: #0aa2c0;
+        border-color: #beeaf3;
+        background: #e7f9fd;
+        /* margin-left:5px; */
+    }
+
+    .empty-state {
+        min-height: 320px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column
+    }
+
+    .empty-illus {
+        max-width: 160px;
+        opacity: .85
+    }
+</style>
+
+<div class="res-ui">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="tt mb-0">Listado de Reservaciones</h2>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card-filtros p-3 mb-3">
+        <form id="frmFiltros" class="row g-3 align-items-end" data-endpoint="/Reservas/Index">
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold">Código</label>
+                <input id="fCodigo" class="form-control" value="@qCodigo" placeholder="RES0000123…" />
+            </div>
+
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold">Cliente</label>
+                <input id="fCliente" class="form-control" value="@qCliente" placeholder="Nombre / Apellido" />
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-semibold">Desde</label>
+                <input id="fDesde" type="date" class="form-control" value="@qDesde" />
+            </div>
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-semibold">Hasta</label>
+                <input id="fHasta" type="date" class="form-control" value="@qHasta" />
+            </div>
+
+            <div class="col-12 col-md-2">
+                <label class="form-label fw-semibold">Estado</label>
+                <select id="fEstado" class="form-select">
+                    @foreach (var e in estados)
+                    {
+                        <option value="@e" selected="@(string.Equals(qEstado, e, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@e</option>
+                    }
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <div id="printArea" class="card p-0">
+        @if (!(Model?.Any() ?? false))
+        {
+            <div class="empty-state p-5 text-center">
+                <img src="~/img/empty-search.svg" asp-append-version="true" class="mb-3 empty-illus" alt="Sin resultados" />
+                <h5 class="fw-bold mb-1">No se encontró ningún registro</h5>
+                <p class="text-muted mb-3">Ajusta los filtros o limpia la búsqueda.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="tblNumPaginador" class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width:120px">Código</th>
+                            <th style="width:150px">Habitación</th>
+                            <th style="width:180px">Cliente</th>
+                            <th style="width:140px">Check-in</th>
+                            <th style="width:140px">Check-out</th>
+                            <th style="width:120px">Total</th>
+                            <th style="width:140px">Estado</th>
+                            <th style="width:220px" class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Model)
+                        {
+                            var cliente = $"{r.Cliente?.Persona?.PrimerNombre} {r.Cliente?.Persona?.PrimerApellido}".Trim();
+                            var estado = r.Estado?.Nombre ?? "";
+                            var pill = estado.Equals("Confirmada", StringComparison.OrdinalIgnoreCase) ? "pill-ok"
+                            : estado.Equals("Cancelada", StringComparison.OrdinalIgnoreCase) ? "pill-off" : "pill-warn";
+                            var det = r.Detalles?.FirstOrDefault();
+                            var hab = det?.Habitacion;
+                            var habTxt = hab == null
+                            ? "—"
+                            : $"{hab.Codigo} · {hab.TipoHabitacion?.Nombre} #{hab.NumeroHabitacion}";
+                            <tr data-codigo="@r.Codigo"
+                                data-cliente="@cliente"
+                                data-desde="@r.FechaCheckIn.ToString("yyyy-MM-dd")"
+                                data-hasta="@r.FechaCheckOut.ToString("yyyy-MM-dd")"
+                                data-estado="@estado">
+                                <td>@r.Codigo</td>
+                                <td>@habTxt</td>
+                                <td>@cliente</td>
+                                <td>@r.FechaCheckIn.ToString("yyyy-MM-dd")</td>
+                                <td>@r.FechaCheckOut.ToString("yyyy-MM-dd")</td>
+                                <td>Q @r.Total.ToString("N2")</td>
+                                <td><span class="pill @pill">@estado</span></td>
+                                <td class="text-center">
+                                    <div class="btn-group">
+                                        @if (estado.Equals("Reservada", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <!-- Flujo de Confirmación (anticipos / 100%) -->
+                                            <a class="btn btn-sm btn-outline-primary btn-icon btn-confirm ajax-nav"
+                                               href="/Pagos/Nueva?reservaId=@r.ReservaID"
+                                               data-url="/Pagos/Nueva?reservaId=@r.ReservaID"
+                                               title="Confirmación / Pagos">
+                                                <i class="bi bi-cash-coin"></i> Confirmación
+                                            </a>
+                                            <a class="btn btn-sm btn-outline-info btn-icon btn-pdf"
+                                               href="/Reservas/ReservaPdf/@r.ReservaID"
+                                               target="_blank" rel="noopener"
+                                               title="Ver PDF">
+                                                <i class="bi bi-filetype-pdf"></i> Ver PDF
+                                            </a>
+                                        }
+                                        @* else if (estado.Equals("Confirmada", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <!-- Ver PDF de confirmación -->
+                                            <a class="btn btn-sm btn-outline-info btn-icon btn-pdf"
+                                               href="/Reservas/ReservaPdf/@r.ReservaID"
+                                               target="_blank" rel="noopener"
+                                               title="Ver PDF">
+                                                <i class="bi bi-filetype-pdf"></i> Ver PDF
+                                            </a>
+                                        } *@
+                                        @* else if (estado.Equals("Confirmada", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                        <a class="btn btn-sm btn-outline-primary btn-icon ajax-nav"
+                                           href="/Pagos/PorReserva/@r.ReservaID"
+                                           data-url="/Pagos/PorReserva/@r.ReservaID"
+                                           title="Ver pagos">
+                                            <i class="bi bi-credit-card-2-front"></i> Pagos
+                                        </a>
+
+                                        <a class="btn btn-sm btn-outline-info btn-icon btn-pdf"
+                                           href="/Reservas/ReservaPdf/@r.ReservaID"
+                                           target="_blank" rel="noopener"
+                                           title="Ver PDF">
+                                            <i class="bi bi-filetype-pdf"></i> Ver PDF
+                                        </a>
+                                        } *@
+
+                                        else if (estado.Equals("Confirmada", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <a class="btn btn-sm btn-outline-primary btn-icon ajax-nav"
+                                               href="/Pagos/DetalleReserva/@r.ReservaID"
+                                               data-url="/Pagos/DetalleReserva/@r.ReservaID"
+                                               title="Pagos / Comprobantes">
+                                                <i class="bi bi-credit-card-2-front"></i> Pagos
+                                            </a>
+
+                                            @* <a class="btn btn-sm btn-outline-info btn-icon btn-pdf"
+                                               href="/Reservas/ReservaPdf?id=@r.ReservaID&_=@DateTimeOffset.Now.ToUnixTimeSeconds()"
+                                               target="_blank" rel="noopener"
+                                               title="Ver PDF">
+                                                <i class="bi bi-filetype-pdf"></i> Ver PDF
+                                            </a> *@
+                                        }
+                                        else
+                                        {
+                                            <a class="btn btn-sm btn-outline-info btn-icon btn-pdf"
+                                               href="/Reservas/ReservaPdf/@r.ReservaID"
+                                               target="_blank" rel="noopener"
+                                               title="Ver PDF">
+                                                <i class="bi bi-filetype-pdf"></i> Ver PDF
+                                            </a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center p-2">
+                <div class="small text-muted"><span id="infoRows"></span></div>
+                <nav><ul id="pager" class="pagination mb-0"></ul></nav>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    (function(){
+      const debounce=(fn,ms=450)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
+
+      const fCodigo=document.getElementById('fCodigo');
+      const fCliente=document.getElementById('fCliente');
+      const fDesde=document.getElementById('fDesde');
+      const fHasta=document.getElementById('fHasta');
+      const fEstado=document.getElementById('fEstado');
+
+      function buildUrl(){
+        const qs=new URLSearchParams();
+        const c=(fCodigo?.value||'').trim();
+        const cli=(fCliente?.value||'').trim();
+        const d=(fDesde?.value||'').trim();
+        const h=(fHasta?.value||'').trim();
+        const e=(fEstado?.value||'Reservada').trim();
+        if(c)qs.set('codigo',c);
+        if(cli)qs.set('cliente',cli);
+        if(d)qs.set('desde',d);
+        if(h)qs.set('hasta',h);
+        qs.set('estado',e || 'Reservada');
+        return '/Reservas/Index'+(qs.toString()?('?'+qs.toString()):'');
+      }
+
+      const run=debounce(async ()=>{
+        const url=buildUrl();
+        await window.swapInHost(url,'#printArea'); // dentro de #contentHost
+        history.replaceState(null,'',url);
+        window.initPuestosPager(document.getElementById('printArea'));
+      });
+
+      fCodigo?.addEventListener('input', e=>{ const v=e.target.value.trim(); if(v.length===0||v.length>=2) run(); });
+      fCliente?.addEventListener('input', e=>{ const v=e.target.value.trim(); if(v.length===0||v.length>=2) run(); });
+      fDesde?.addEventListener('change',run);
+      fHasta?.addEventListener('change',run);
+      fEstado?.addEventListener('change',run);
+
+      window.addEventListener('DOMContentLoaded',()=>{ window.initPuestosPager(document.getElementById('printArea')); });
+    })();
+</script>

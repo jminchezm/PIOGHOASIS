@@ -1,0 +1,791 @@
+﻿@model PIOGHOASIS.Models.ViewModels.BusquedaHabitacionVM
+@{
+    Layout = null;
+}
+
+<style>
+    /* ====== Fondo y layout (reusa el estilo de Puestos) ====== */
+    .reservas-wrap {
+        position: relative;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)), url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+    }
+
+    /* Reuso de tu “card” y header naranja */
+    .rs-card {
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 8px 28px rgba(0,0,0,.08);
+        backdrop-filter: blur(2px);
+    }
+
+    .rs-header {
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .75rem 1rem;
+        border-top-left-radius: .75rem;
+        border-top-right-radius: .75rem;
+        border-bottom: 2px solid #d7a536;
+    }
+
+    /* Botón volver (idéntico a pc-back) */
+    .rs-back {
+        position: sticky;
+        top: calc(var(--header-h) + 8px);
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        background: #4b5563;
+        color: #fff;
+        border: none;
+        border-radius: .5rem;
+        padding: .4rem .75rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.15);
+    }
+
+        .rs-back:hover {
+            filter: brightness(.95);
+            color: #fff;
+        }
+
+    /* ====== Barra de búsqueda estilo prototipo ====== */
+    .rs-searchbar {
+        background: #ffa800;
+        border-radius: .65rem;
+        padding: 14px;
+        box-shadow: 0 6px 14px rgba(0,0,0,.08);
+    }
+
+    .rs-searchbar__form {
+        display: grid;
+        grid-template-columns: 1fr 1fr .6fr auto;
+        gap: 14px;
+        align-items: end;
+    }
+    @@media (max-width: 992px) {
+        .rs-searchbar__form
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    }
+
+    .rs-field label {
+        font-size: .9rem;
+        margin-bottom: .25rem;
+        font-weight: 700;
+        color: #1f2a37;
+    }
+
+    .rs-input {
+        position: relative;
+        background: #fff;
+        border-radius: 8px;
+        padding: 8px 12px 8px 36px;
+        border: 1px solid rgba(0,0,0,.08);
+    }
+
+        .rs-input i {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: .6;
+            font-size: 1rem;
+        }
+
+        .rs-input input[type="date"], .rs-input input[type="number"] {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            height: 28px;
+        }
+
+    .rs-btn {
+        background: #1f6aff;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 18px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .35rem;
+        transition: .15s ease;
+    }
+
+        .rs-btn:hover {
+            filter: brightness(.97);
+        }
+
+    /* ====== Resumen lateral ====== */
+    .rs-summary {
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 10px 24px rgba(0,0,0,.06);
+        position: sticky;
+        top: 16px;
+    }
+
+    .rs-summary__title {
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .rs-summary__empty {
+        color: #666;
+        font-size: .95rem;
+        padding: 6px 0 14px;
+    }
+
+    .rs-summary__footer {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .rs-btn-muted {
+        background: #8aa2ff;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 10px 16px;
+        font-weight: 700;
+    }
+
+    /* ====== Cards de resultados (coincide con prototipo) ====== */
+    .rs-room {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 18px;
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(0,0,0,.06);
+    }
+    @@media (max-width: 992px) {
+        .rs-room
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    }
+
+    .rs-room__media img {
+        width: 100%;
+        height: 220px;
+        object-fit: cover;
+    }
+
+    .rs-room__body {
+        padding: 16px;
+    }
+
+    .rs-room__head {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: start;
+    }
+
+    .rs-room__title {
+        margin: 0;
+        font-weight: 800;
+    }
+
+    .rs-room__price .label {
+        font-size: .8rem;
+        color: #666;
+    }
+
+    .rs-room__price .amount {
+        font-weight: 800;
+        font-size: 1.05rem;
+    }
+
+    .rs-room__meta {
+        margin-top: 8px;
+        display: flex;
+        gap: 22px;
+        flex-wrap: wrap;
+        color: #333;
+    }
+
+        .rs-room__meta .item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+    .rs-sep {
+        margin: 12px 0;
+    }
+
+    .rs-room__actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+        .rs-room__actions .left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+    /* “Switch” seleccionar (decorativo) */
+    .rs-toggle {
+        border: 1px solid rgba(0,0,0,.12);
+        background: #f7f8ff;
+        padding: 6px 10px 6px 12px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .rs-toggle__label {
+        font-weight: 600;
+    }
+
+    .rs-toggle__switch {
+        width: 42px;
+        height: 24px;
+        background: #c9d3ff;
+        border-radius: 999px;
+        position: relative;
+    }
+
+        .rs-toggle__switch::after {
+            content: "";
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            box-shadow: 0 2px 6px rgba(0,0,0,.2);
+        }
+</style>
+
+<div class="reservas-wrap">
+    <!-- Volver -->
+    @* <div class="d-flex justify-content-end mb-2">
+        <a class="rs-back ajax-nav" href="/Home/Dashboard" data-url="/Home/Dashboard" title="Volver a la lista">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div> *@
+
+    <!-- Card principal -->
+    <div class="rs-card">
+        @* <div class="rs-header">Elige una habitación</div> *@
+
+        <div class="p-3 p-md-4">
+            <!-- Barra de búsqueda -->
+            <div class="rs-searchbar mb-3">
+                <form id="frmBuscar" class="rs-searchbar__form" action="/Reservas/Buscar" method="get">
+                    <div class="rs-field">
+                        <label>Check-in</label>
+                        <div class="rs-input">
+                            <i class="bi bi-calendar3"></i>
+                            @* <input type="date" id="checkIn" name="checkIn" min="@DateTime.Today.ToString("yyyy-MM-dd")" /> *@
+                            <input type="date" id="checkIn" name="checkIn"
+                                   value="@Model.CheckIn?.ToString("yyyy-MM-dd")"
+                                   min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <div class="rs-field">
+                        <label>Check-out</label>
+                        <div class="rs-input">
+                            <i class="bi bi-calendar3"></i>
+                            @* <input type="date" id="checkOut" name="checkOut" min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" /> *@
+                            <input type="date" id="checkOut" name="checkOut"
+                                   value="@Model.CheckOut?.ToString("yyyy-MM-dd")"
+                                   min="@DateTime.Today.AddDays(1).ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <div class="rs-field">
+                        <label>Personas</label>
+                        <div class="rs-input">
+                            <i class="bi bi-people"></i>
+                            @* <input type="number" min="1" value="1" name="personas" /> *@
+                            <input type="number" min="1"
+                                   value="@(Model.Personas > 0 ? Model.Personas : 1)"
+                                   name="personas" />
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-end">
+                        <button type="submit" class="rs-btn"><i class="bi bi-search"></i> Buscar</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Resultados + Resumen -->
+            <div class="row g-4">
+                <div class="col-lg-12">
+                    <div id="resultados"></div>
+                </div>
+                @* <div class="col-lg-4">
+                    <aside class="rs-summary" id="resumen">
+                        <div class="rs-summary__title">Resumen de Reserva</div>
+                        <div class="rs-summary__content" id="resumenContent">
+                            <div class="rs-summary__empty">Selecciona una habitación para ver el resumen aquí.</div>
+                        </div>
+                    </aside>
+
+                </div> *@
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    const frm = document.getElementById('frmBuscar');
+    const btn = frm.querySelector('button[type="submit"]');
+
+    frm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      btn.disabled = true;
+      const old = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Buscando...';
+
+      try {
+        const p = new URLSearchParams(new FormData(frm));
+        p.append('_', Date.now());
+        const r = await fetch(`/Reservas/Buscar?${p.toString()}`, {
+          method: 'GET', cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const html = await r.text();
+        document.getElementById('resultados').innerHTML = html;
+
+        // IMPORTANTE: como el partial trae tarjetas nuevas y los <script> embebidos no corren,
+        // inicializamos y dejamos listeners delegados desde aquí.
+        initCards();
+        window.scrollTo({ top: document.getElementById('resultados').offsetTop - 16, behavior: 'smooth' });
+      } catch (e) {
+        console.error(e);
+        document.getElementById('resultados').innerHTML =
+          `<div class="alert alert-danger">Ocurrió un error al buscar.</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = old;
+      }
+    });
+
+    (function () {
+      function fmt(n) {
+        return new Intl.NumberFormat('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+      }
+
+      // --- Delegación: cambios en PERSONAS/TARIFA para CUALQUIER tarjeta que exista o llegue luego ---
+      document.addEventListener('change', function (ev) {
+
+        // PERSONAS
+        if (ev.target.matches('.js-personas')) {
+          const card = ev.target.closest('.rs-room');
+          if (!card) return;
+
+          const p = parseInt(ev.target.value || '1', 10);
+          const tarifasAll = JSON.parse(card.getAttribute('data-tarifas') || '[]');
+          const list = tarifasAll.filter(t => Number(t.Personas) === p);
+
+          const selTarifa = card.querySelector('.js-tarifa');     // puede NO existir
+          const priceEl   = card.querySelector('.price-night');
+          const totalEl   = card.querySelector('.total-night');
+          const hPersonas = card.querySelector('.js-personas-hidden');
+          const hTarifa   = card.querySelector('.js-tarifa-hidden');
+
+          if (hPersonas) hPersonas.value = String(p);
+
+          // Si NO hay combo de tarifa: modo AUTO -> usa la primera tarifa disponible para ese #personas
+          if (!selTarifa) {
+            if (list.length > 0) {
+              const t = list[0];
+              if (priceEl) priceEl.textContent = 'Q. ' + fmt(Number(t.PrecioNoche || 0));
+              if (totalEl) totalEl.textContent = 'Q. ' + fmt(Number(t.TotalConImpuestos || 0));
+              if (hTarifa) hTarifa.value = t.TarifaID ?? '';
+            } else {
+              if (priceEl) priceEl.textContent = 'Q. ' + fmt(0);
+              if (totalEl) totalEl.textContent = 'Q. ' + fmt(0);
+              if (hTarifa) hTarifa.value = '';
+            }
+            return; // fin modo AUTO
+          }
+
+          // Con combo de tarifa: reconstruir opciones
+          selTarifa.innerHTML = '';
+          list.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = (t.TarifaID ?? '');
+            opt.textContent = t.Etiqueta || 'Tarifa estándar';
+            opt.dataset.precio = t.PrecioNoche;
+            opt.dataset.total  = t.TotalConImpuestos;
+            selTarifa.appendChild(opt);
+          });
+
+          if (selTarifa.options.length) {
+            selTarifa.selectedIndex = 0;
+            selTarifa.dispatchEvent(new Event('change'));
+          } else {
+            if (priceEl) priceEl.textContent = 'Q. ' + fmt(0);
+            if (totalEl) totalEl.textContent = 'Q. ' + fmt(0);
+            if (hTarifa) hTarifa.value = '';
+          }
+        }
+
+        // TARIFA (solo si existe combo)
+        if (ev.target.matches('.js-tarifa')) {
+          const card    = ev.target.closest('.rs-room');
+          if (!card) return;
+
+          const priceEl = card.querySelector('.price-night');
+          const totalEl = card.querySelector('.total-night');
+          const hTarifa = card.querySelector('.js-tarifa-hidden');
+          const opt     = ev.target.selectedOptions[0];
+          if (!opt) return;
+
+          const precio = Number(opt.dataset.precio || '0');
+          const total  = Number(opt.dataset.total  || '0');
+
+          if (priceEl) priceEl.textContent = 'Q. ' + fmt(precio);
+          if (totalEl) totalEl.textContent = 'Q. ' + fmt(total);
+          if (hTarifa) hTarifa.value = opt.value || '';
+        }
+      });
+
+      // Inicializa las tarjetas actualmente renderizadas (después de cada búsqueda)
+      window.initCards = function initCards() {
+        document.querySelectorAll('.rs-room').forEach(card => {
+          const selPersonas = card.querySelector('.js-personas');
+          const p = parseInt(selPersonas?.value || card.dataset.personas || '1', 10);
+
+          // Dispara el handler de personas para que calcule y pinte montos (funciona con/ sin combo)
+          if (selPersonas) {
+            selPersonas.dispatchEvent(new Event('change'));
+          } else {
+            // Sin select (por si acaso)
+            const evt = new Event('change');
+            Object.defineProperty(evt, 'target', { value: { matches: () => true, value: String(p) } });
+            document.dispatchEvent(evt);
+          }
+        });
+      };
+
+      // Si ya hubieran tarjetas al cargar, inicializa
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initCards);
+      } else {
+        initCards();
+      }
+    })();
+
+    // --- Interceptar el SUBMIT de "Seleccionar" para pintar el resumen por AJAX ---
+      //       document.addEventListener('submit', async (ev) => {
+      // const form = ev.target;
+      // if (!form.matches('.js-form')) return;
+      // ev.preventDefault();
+
+      // // sincroniza los hidden con lo seleccionado
+      // const card = form.closest('.rs-room');
+      // if (card) {
+      //   const selPersonas = card.querySelector('.js-personas');
+      //   const hPersonas   = card.querySelector('.js-personas-hidden');
+      //   if (selPersonas && hPersonas) hPersonas.value = String(selPersonas.value || '1');
+
+      //   const selTarifa = card.querySelector('.js-tarifa');
+      //   const hTarifa   = card.querySelector('.js-tarifa-hidden');
+      //   if (selTarifa && hTarifa && selTarifa.value) hTarifa.value = selTarifa.value;
+      // }
+
+      // try {
+      //   const fd = new FormData(form);              // incluye __RequestVerificationToken del punto 1
+      //   const resp = await fetch(form.action, {
+      //     method: 'POST',
+      //     body: fd,
+      //     headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      //     credentials: 'same-origin',
+      //     redirect: 'follow'
+      //   });
+
+      //   if (resp.redirected) {                      // por si el servidor decide mandar a otra vista
+      //     window.location.href = resp.url;
+      //     return;
+      //   }
+      //   if (!resp.ok) {
+      //     const t = await resp.text().catch(()=>'(sin cuerpo)');
+      //     console.error('Seleccionar ->', resp.status, t);
+      //     throw new Error('HTTP ' + resp.status);
+      //   }
+
+      //   const html = await resp.text();             // debe ser el HTML de _ResumenReserva
+      //   document.getElementById('resumenContent').innerHTML = html;
+      // } catch (err) {
+      //   console.error(err);
+      //   alert('No se pudo generar el resumen. Intenta de nuevo.');
+      // }
+    // });
+
+    // document.addEventListener('submit', async (ev) => {
+    //   const form = ev.target;
+    //   if (!form.matches('.js-form')) return;
+
+    //   ev.preventDefault();
+
+    //   // Asegura que los hidden llevan lo seleccionado ahora mismo
+    //   const card = form.closest('.rs-room');
+    //   if (card) {
+    //     const selPersonas = card.querySelector('.js-personas');
+    //     const hPersonas   = card.querySelector('.js-personas-hidden');
+    //     if (selPersonas && hPersonas) hPersonas.value = String(selPersonas.value || '1');
+
+    //     const selTarifa = card.querySelector('.js-tarifa');
+    //     const hTarifa   = card.querySelector('.js-tarifa-hidden');
+    //     if (selTarifa && hTarifa && selTarifa.value) hTarifa.value = selTarifa.value;
+    //   }
+
+    //   try {
+    //     const fd = new FormData(form);
+    //     const resp = await fetch(form.action, {
+    //       method: 'POST',
+    //       body: fd,
+    //       headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    //     });
+    //     if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+    //     // El controlador devuelve el partial _ResumenReserva.cshtml
+    //     const html = await resp.text();
+    //     const cont = document.getElementById('resumenContent');
+    //     cont.innerHTML = html;
+    //   } catch (err) {
+    //     console.error(err);
+    //     alert('No se pudo generar el resumen. Intenta de nuevo.');
+    //   }
+    // });
+</script>
+
+
+@* <script>
+    const frm = document.getElementById('frmBuscar');
+    const btn = frm.querySelector('button[type="submit"]');
+
+    frm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      btn.disabled = true;
+      const old = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Buscando...';
+
+      try {
+        const p = new URLSearchParams(new FormData(frm));
+        p.append('_', Date.now());
+        const r = await fetch(`/Reservas/Buscar?${p.toString()}`, {
+          method: 'GET', cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const html = await r.text();
+        document.getElementById('resultados').innerHTML = html;
+        window.scrollTo({ top: document.getElementById('resultados').offsetTop - 16, behavior: 'smooth' });
+      } catch (e) {
+        console.error(e);
+        document.getElementById('resultados').innerHTML =
+          `<div class="alert alert-danger">Ocurrió un error al buscar.</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = old;
+      }
+    });
+
+      (function () {
+    function fmt(n) {
+      return new Intl.NumberFormat('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+    }
+
+    // Delegación para cualquier rs-room que aparezca después
+    document.addEventListener('change', function (ev) {
+      // Cambio de PERSONAS
+      if (ev.target.matches('.js-personas')) {
+        const card = ev.target.closest('.rs-room');
+        if (!card) return;
+
+        const p = parseInt(ev.target.value || '1');
+        const tarifasAll = JSON.parse(card.getAttribute('data-tarifas') || '[]');
+        const selTarifa = card.querySelector('.js-tarifa');
+        const hPersonas = card.querySelector('.js-personas-hidden');
+
+        if (hPersonas) hPersonas.value = String(p);
+
+        // reconstruir combo de tarifas según #personas
+        const list = tarifasAll.filter(t => t.Personas === p);
+        selTarifa.innerHTML = '';
+        list.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = (t.TarifaID ?? '');
+          opt.textContent = t.Etiqueta || 'Tarifa estándar';
+          opt.dataset.precio = t.PrecioNoche;
+          opt.dataset.total  = t.TotalConImpuestos;
+          selTarifa.appendChild(opt);
+        });
+
+        // seleccionar primera y actualizar montos
+        if (selTarifa.options.length) {
+          selTarifa.selectedIndex = 0;
+          selTarifa.dispatchEvent(new Event('change'));
+        }
+      }
+
+      // Cambio de TARIFA
+      if (ev.target.matches('.js-tarifa')) {
+        const card    = ev.target.closest('.rs-room');
+        if (!card) return;
+
+        const priceEl = card.querySelector('.price-night');
+        const totalEl = card.querySelector('.total-night');
+        const hTarifa = card.querySelector('.js-tarifa-hidden');
+        const opt     = ev.target.selectedOptions[0];
+        if (!opt) return;
+
+        const precio = Number(opt.dataset.precio || '0');
+        const total  = Number(opt.dataset.total  || '0');
+
+        if (priceEl) priceEl.textContent = 'Q. ' + fmt(precio);
+        if (totalEl) totalEl.textContent = 'Q. ' + fmt(total);
+        if (hTarifa) hTarifa.value = opt.value || '';
+      }
+    });
+
+    // Inicializa los cards ya presentes al cargar la página
+    function initCards() {
+      document.querySelectorAll('.rs-room').forEach(card => {
+        const selPersonas = card.querySelector('.js-personas');
+        const selTarifa   = card.querySelector('.js-tarifa');
+
+        // “Dispara” los cambios para que los montos queden correctos
+        if (selPersonas) selPersonas.dispatchEvent(new Event('change')); // reconstruye tarifas
+        if (selTarifa)   selTarifa.dispatchEvent(new Event('change'));   // actualiza montos
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initCards);
+    } else {
+      initCards();
+    }
+
+
+        // Interceptar el submit de "Seleccionar" para cargar el resumen por AJAX
+    document.addEventListener('submit', async (ev) => {
+      const form = ev.target;
+      if (!form.matches('.js-form')) return;
+
+      ev.preventDefault();
+
+      // Por si acaso, aseguramos que los hidden tengan lo último seleccionado
+      const card = form.closest('.rs-room');
+      if (card) {
+        const selPersonas = card.querySelector('.js-personas');
+        const hPersonas   = card.querySelector('.js-personas-hidden');
+        if (selPersonas && hPersonas) hPersonas.value = String(selPersonas.value || '1');
+
+        const selTarifa = card.querySelector('.js-tarifa');
+        const hTarifa   = card.querySelector('.js-tarifa-hidden');
+        if (selTarifa && hTarifa && selTarifa.value) hTarifa.value = selTarifa.value;
+      }
+
+      try {
+        const fd = new FormData(form);
+        const resp = await fetch(form.action, {
+          method: 'POST',
+          body: fd,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+        const html = await resp.text();
+        const cont = document.getElementById('resumenContent');
+        cont.innerHTML = html; // pegamos el partial del resumen
+      } catch (err) {
+        console.error(err);
+        alert('No se pudo generar el resumen. Intenta de nuevo.');
+      }
+    });
+
+</script> *@
+
+
+
+
+
+@* @model PIOGHOASIS.Models.ViewModels.BusquedaHabitacionVM
+@{
+    Layout = null;
+}
+<div class="hc-card p-3">
+    <h3>Elige una habitación</h3>
+    <form id="frmBuscar" class="row g-3" action="/Reservas/Buscar" method="get">
+        <div class="col-md-3">
+            <label>Check-in</label>
+            <input type="date" class="form-control" name="checkIn" />
+        </div>
+        <div class="col-md-3">
+            <label>Check-out</label>
+            <input type="date" class="form-control" name="checkOut" />
+        </div>
+        <div class="col-md-2">
+            <label>Personas</label>
+            <input type="number" min="1" value="1" class="form-control" name="personas" />
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Buscar</button>
+        </div>
+    </form>
+
+    <div id="resultados" class="mt-3"></div>
+</div>
+
+<script>
+    const frm = document.getElementById('frmBuscar');
+    const btn = frm.querySelector('button[type="submit"]');
+
+    frm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+
+      btn.disabled = true;
+      btn.textContent = 'Buscando...';
+
+      try {
+        const p = new URLSearchParams(new FormData(frm));
+        // rompe-caché
+        p.append('_', Date.now());
+
+        const r = await fetch(`/Reservas/Buscar?${p.toString()}`, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
+        if (!r.ok) throw new Error(`Error ${r.status}`);
+        const html = await r.text();
+        document.getElementById('resultados').innerHTML = html;
+      } catch (err) {
+        console.error(err);
+        document.getElementById('resultados').innerHTML =
+          `<div class="alert alert-danger">Ocurrió un error al buscar.</div>`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Buscar';
+      }
+    });
+</script> *@
