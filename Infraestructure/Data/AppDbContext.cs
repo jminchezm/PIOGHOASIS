@@ -38,6 +38,10 @@ namespace PIOGHOASIS.Infraestructure.Data
         //public DbSet<PlataformaReserva> plataformas => Set<PlataformaReserva>();
         public DbSet<PlataformaReserva> plataformasReserva { get; set; } = null!;
 
+        public DbSet<Modulo> modulos { get; set; } = default!;
+
+        public DbSet<RolModuloPermiso> rolModuloPermisos { get; set; } = default!;
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

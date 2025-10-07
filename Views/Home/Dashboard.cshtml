@@ -1,4 +1,9 @@
-﻿@{
+﻿@using PIOGHOASIS.Utils
+@functions {
+    bool Can(string code) => User.HasModule(code);
+}
+
+@{
     Layout = null; /* Déjalo así si esta vista es independiente.
               Si quieres convertirla en layout, reemplaza el cuerpo por @RenderBody() en #app-content */
     ViewData["Title"] = "Dashboard";
@@ -95,18 +100,19 @@
                     </a>
                 </li>
 
-                <li class="has-children">
-                    <a href="#" class="toggle" data-toggle="submenu">
-                        <i class="bi bi-calendar-check"></i> <span>Reservaciones</span>
-                        <i class="bi bi-caret-down-fill caret"></i>
-                    </a>
-                    <ul class="submenu">
-                        <li><a href="/Reservas/ElegirHabitacion" data-url="/Reservas/ElegirHabitacion"><span>Reservar</span></a></li>
-                        <li><a href="/Reservas/Index" data-url="/Reservas/Index"><span>Listado de reservaciones</span></a></li>
-                        @* <li><a href="" data-url=""><span>Confirmadas</span></a></li> *@
-                    </ul>
-                </li>
-
+                @if (Can("MOD0000001")) {
+                    <li class="has-children">
+                        <a href="#" class="toggle" data-toggle="submenu">
+                            <i class="bi bi-calendar-check"></i> <span>Reservaciones</span>
+                            <i class="bi bi-caret-down-fill caret"></i>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="/Reservas/ElegirHabitacion" data-url="/Reservas/ElegirHabitacion"><span>Reservar</span></a></li>
+                            <li><a href="/Reservas/Index" data-url="/Reservas/Index"><span>Listado de reservaciones</span></a></li>
+                            @* <li><a href="" data-url=""><span>Confirmadas</span></a></li> *@
+                        </ul>
+                    </li>
+                }
                 @* <li>
                     <a href="/Reservas/ElegirHabitacion" data-url="/Reservas/ElegirHabitacion">
                         <i class="bi bi-calendar-check"></i> <span>Reservaciones</span>
@@ -114,78 +120,92 @@
                 </li> *@
 
                 <!-- REPORTES -->
-                <li class="has-children">
-                    <a href="#" class="toggle" data-toggle="submenu">
-                        <i class="bi bi-bar-chart"></i> <span>Reportes</span>
-                        <i class="bi bi-caret-down-fill caret"></i>
-                    </a>
-                    <ul class="submenu">
-                        <li><a href="/Reportes/Reservas" data-url="/Reportes/Reservas"><span>Reporte de reservas</span></a></li>
-                        <li><a href="/Reportes/PagosIngresos" data-url="/Reportes/PagosIngresos"><span>Reporte de pagos / ingresos</span></a></li>
-                        <li><a href="/Reportes/Clientes" data-url="/Reportes/Clientes"><span>Reporte de Clientes</span></a></li>
-                    </ul>
-                </li>
+                @if (Can("MOD0000002")) {
+                    <li class="has-children">
+                        <a href="#" class="toggle" data-toggle="submenu">
+                            <i class="bi bi-bar-chart"></i> <span>Reportes</span>
+                            <i class="bi bi-caret-down-fill caret"></i>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="/Reportes/Reservas" data-url="/Reportes/Reservas"><span>Reporte de reservas</span></a></li>
+                            <li><a href="/Reportes/PagosIngresos" data-url="/Reportes/PagosIngresos"><span>Reporte de pagos / ingresos</span></a></li>
+                            <li><a href="/Reportes/Clientes" data-url="/Reportes/Clientes"><span>Reporte de Clientes</span></a></li>
+                        </ul>
+                    </li>
+                }
 
                 <!-- HABITACIONES -->
-                <li class="has-children">
-                    <a href="#" class="toggle" data-toggle="submenu">
-                        <i class="bi bi-door-open"></i> <span>Habitaciones</span>
-                        <i class="bi bi-caret-down-fill caret"></i>
-                    </a>
-                    <ul class="submenu">
-                        <li><a href="/habitaciones/Index" data-url="/habitaciones/Index"><span>Habitaciones</span></a></li>
-                        <li><a href="/TiposHabitacion/Index" data-url="/TiposHabitacion/Index"><span>Tipo de Habitación</span></a></li>
-                    </ul>
-                </li>
+                @if (Can("MOD0000003")) {
+                    <li class="has-children">
+                        <a href="#" class="toggle" data-toggle="submenu">
+                            <i class="bi bi-door-open"></i> <span>Habitaciones</span>
+                            <i class="bi bi-caret-down-fill caret"></i>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="/habitaciones/Index" data-url="/habitaciones/Index"><span>Habitaciones</span></a></li>
+                            <li><a href="/TiposHabitacion/Index" data-url="/TiposHabitacion/Index"><span>Tipo de Habitación</span></a></li>
+                        </ul>
+                    </li>
+                }
 
-                <li>
-                    <a href="/Clientes/Index" data-url="/Clientes/Index">
-                        <i class="bi bi-people"></i> <span>Clientes</span>
-                    </a>
-                </li>
+                @if (Can("MOD0000004")) {
+                    <li>
+                        <a href="/Clientes/Index" data-url="/Clientes/Index">
+                            <i class="bi bi-people"></i> <span>Clientes</span>
+                        </a>
+                    </li>
+                }
 
                 <!-- EMPLEADOS -->
-                <li class="has-children">
-                    <a href="#" class="toggle" data-toggle="submenu">
-                        <i class="bi bi-person-badge"></i> <span>Empleados</span>
-                        <i class="bi bi-caret-down-fill caret"></i>
-                    </a>
-                    <ul class="submenu">
-                        <li><a href="/Empleados/Index" data-url="/Empleados/Index"><span>Empleados</span></a></li>
-                        <li><a href="/Puestos/Index" data-url="/Puestos/Index"><span>Puestos</span></a></li>
-                    </ul>
-                </li>
+                 @if (Can("MOD0000005")) {
+                    <li class="has-children">
+                        <a href="#" class="toggle" data-toggle="submenu">
+                            <i class="bi bi-person-badge"></i> <span>Empleados</span>
+                            <i class="bi bi-caret-down-fill caret"></i>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="/Empleados/Index" data-url="/Empleados/Index"><span>Empleados</span></a></li>
+                            <li><a href="/Puestos/Index" data-url="/Puestos/Index"><span>Puestos</span></a></li>
+                        </ul>
+                    </li>
+                }
 
                 <!-- USUARIOS -->
-                <li class="has-children">
-                    <a href="#" class="toggle" data-toggle="submenu">
-                        <i class="bi bi-person"></i> <span>Usuarios</span>
-                        <i class="bi bi-caret-down-fill caret"></i>
-                    </a>
-                    <ul class="submenu">
-                        <li><a href="/Usuarios/Index" data-url="/Usuarios/Index"><span>Usuarios</span></a></li>
-                        <li><a href="/Roles/Index" data-url="/Roles/Index"><span>Roles</span></a></li>
-                    </ul>
-                </li>
+                @if (Can("MOD0000006")) {
+                    <li class="has-children">
+                        <a href="#" class="toggle" data-toggle="submenu">
+                            <i class="bi bi-person"></i> <span>Usuarios</span>
+                            <i class="bi bi-caret-down-fill caret"></i>
+                        </a>
+                        <ul class="submenu">
+                            <li><a href="/Usuarios/Index" data-url="/Usuarios/Index"><span>Usuarios</span></a></li>
+                            <li><a href="/Roles/Index" data-url="/Roles/Index"><span>Roles</span></a></li>
+                        </ul>
+                    </li>
+                }
 
-                <li>
-                    <a href="/Caja/Index" data-url="/Caja/Index">
-                        <i class="bi bi-cash-stack"></i> <span>Caja</span>
-                    </a>
-                </li>
+                @if (Can("MOD0000007")) {
+                    <li>
+                        <a href="/Caja/Index" data-url="/Caja/Index">
+                            <i class="bi bi-cash-stack"></i> <span>Caja</span>
+                        </a>
+                    </li>
+                }
 
                 <!-- CONFIGURACIONES -->
+                @if (Can("MOD0000008")) {
                 <li class="has-children">
                     <a href="#" class="toggle" data-toggle="submenu">
                         <i class="bi bi-gear"></i> <span>Configuraciones</span>
                         <i class="bi bi-caret-down-fill caret"></i>
                     </a>
                     <ul class="submenu">
-                        <li><a href="/Configuraciones/Modulos" data-url="/Configuraciones/Modulos"><span>Módulos</span></a></li>
-                        <li><a href="/Configuraciones/Permisos" data-url="/Configuraciones/Permisos"><span>Permisos</span></a></li>
+                        <li><a href="/Modulos/Index" data-url="/Modulos/Index"><span>Módulos</span></a></li>
+                        <li><a href="/Permisos/Index" data-url="/Permisos/Index"><span>Permisos</span></a></li>
                         <li><a href="/TipoDocumentos/Index" data-url="/TipoDocumentos/Index"><span>Tipos de documento</span></a></li>
                     </ul>
                 </li>
+                }
             </ul>
         </nav>
 
@@ -351,17 +371,31 @@ document.querySelectorAll('.menu .has-children > a[data-toggle="submenu"]').forE
         return;
       }
 
-      if (data.reason === 'nochanges') {
-        const warnEl = host.querySelector('#noChangesModal');
-        if (warnEl) {
-          const msg = warnEl.querySelector('.js-msg');
-          if (msg && data.message) msg.textContent = data.message;
-          showModalFromHost(warnEl);
-        } else {
-          showModalFromHost(warnEl, data.message || 'No has modificado ningún campo.');
+        if (data.reason === 'nochanges') {
+          const warnEl = host.querySelector('#noChangesModal');
+          if (warnEl && window.bootstrap) {
+            const inst = bootstrap.Modal.getOrCreateInstance(warnEl);
+            warnEl.addEventListener('shown.bs.modal', () => {
+              setTimeout(() => inst.hide(), 1500);
+            }, { once: true });
+            inst.show();
+          } else {
+            alert(data.message || 'No has modificado ningún campo.');
+          }
+          return;
         }
-        return;
-      }
+
+      // if (data.reason === 'nochanges') {
+      //   const warnEl = host.querySelector('#noChangesModal');
+      //   if (warnEl) {
+      //     const msg = warnEl.querySelector('.js-msg');
+      //     if (msg && data.message) msg.textContent = data.message;
+      //     showModalFromHost(warnEl);
+      //   } else {
+      //     showModalFromHost(warnEl, data.message || 'No has modificado ningún campo.');
+      //   }
+      //   return;
+      // }
 
       if (data.errors) {
         const anyForm = host.querySelector('form');
@@ -600,64 +634,80 @@ document.querySelectorAll('.menu .has-children > a[data-toggle="submenu"]').forE
 
     if (data) {
       if (data.ok) {
+            const doReload = async () => {
+                if (data.redirectUrl) {
+                cleanupModals();                 // por si quedó algún backdrop
+                await loadToHost(data.redirectUrl); // vuelve al Index por AJAX
+                }
+            };
 
-        // // 1) si hay URL de retorno, SIEMPRE recarga el parcial por AJAX
+            // Mostrar modal solo 1.5s y luego recargar
+            const okEl = document.getElementById('saveOkModal');
+            if (okEl && window.bootstrap) {
+                const inst = bootstrap.Modal.getOrCreateInstance(okEl);
+
+                // Cierra automáticamente a los 1500 ms cuando se muestre
+                okEl.addEventListener('shown.bs.modal', () => {
+                setTimeout(() => inst.hide(), 1500);
+                }, { once: true });
+
+                // Al cerrarse, recarga el Index
+                okEl.addEventListener('hidden.bs.modal', () => {
+                doReload();
+                }, { once: true });
+
+                inst.show();
+            } else {
+                await doReload(); // si no hay modal, ve directo al Index
+            }
+            return;
+        // // lo que debe ocurrir DESPUÉS del modal
+        // const doReload = async () => {
         // if (data.redirectUrl) {
-        //     await loadToHost(data.redirectUrl);
+        //     cleanupModals();              // por si quedó algún backdrop
+        //     await loadToHost(data.redirectUrl);  // recarga el parcial en #contentHost
         // }
-        // // 2) opcional: muestra modal de éxito si existe
+        // };
+
+        // // si existe un modal de éxito, muéstralo y recarga al cerrarlo
         // const okEl = document.getElementById('saveOkModal');
         // if (okEl && window.bootstrap) {
-        //     bootstrap.Modal.getOrCreateInstance(okEl).show();
+        // okEl.addEventListener('hidden.bs.modal', () => { doReload(); }, { once: true });
+        // bootstrap.Modal.getOrCreateInstance(okEl).show();
+        // } else {
+        // // si no hay modal de éxito, recarga directo
+        // await doReload();
         // }
-
-        // lo que debe ocurrir DESPUÉS del modal
-        const doReload = async () => {
-        if (data.redirectUrl) {
-            cleanupModals();              // por si quedó algún backdrop
-            await loadToHost(data.redirectUrl);  // recarga el parcial en #contentHost
-        }
-        };
-
-        // si existe un modal de éxito, muéstralo y recarga al cerrarlo
-        const okEl = document.getElementById('saveOkModal');
-        if (okEl && window.bootstrap) {
-        okEl.addEventListener('hidden.bs.modal', () => { doReload(); }, { once: true });
-        bootstrap.Modal.getOrCreateInstance(okEl).show();
-        } else {
-        // si no hay modal de éxito, recarga directo
-        await doReload();
-        }
-
-        // const okEl = document.getElementById('saveOkModal');
-        // if (okEl && window.bootstrap) {
-        //   const inst = bootstrap.Modal.getOrCreateInstance(okEl);
-        //   inst.show();
-        //   if (data.redirectUrl) okEl.addEventListener('hidden.bs.modal', () => {
-        //     const host = document.getElementById('contentHost');
-        //     if (host) {
-        //       fetch(data.redirectUrl, { headers: { 'X-Requested-With':'XMLHttpRequest' } })
-        //         .then(r => r.text()).then(html => { host.innerHTML = html; wireUpValidation(host); initPageFeatures(host); });
-        //     } else {
-        //       window.location.href = data.redirectUrl;
-        //     }
-        //   }, { once: true });
-        // } else if (data.redirectUrl) {
-        //   window.location.href = data.redirectUrl;
-        // }
-        return;
+        // return;
       }
-      if (data.reason === 'nochanges') {
-        const warnEl = document.getElementById('noChangesModal');
-        if (warnEl && window.bootstrap) {
-          const msg = warnEl.querySelector('.js-msg');
-          if (msg && data.message) msg.textContent = data.message;
-          bootstrap.Modal.getOrCreateInstance(warnEl).show();
-        } else {
-          alert(data.message || 'No has modificado ningún campo.');
+
+        if (data.reason === 'nochanges') {
+          const warnEl = document.getElementById('noChangesModal');
+          if (warnEl && window.bootstrap) {
+            const msg = warnEl.querySelector('.js-msg');
+            if (msg && data.message) msg.textContent = data.message;
+            const inst = bootstrap.Modal.getOrCreateInstance(warnEl);
+            warnEl.addEventListener('shown.bs.modal', () => {
+              setTimeout(() => inst.hide(), 1500);
+            }, { once: true });
+            inst.show();
+          } else {
+            alert(data.message || 'No has modificado ningún campo.');
+          }
+          return;
         }
-        return;
-      }
+
+      // if (data.reason === 'nochanges') {
+      //   const warnEl = document.getElementById('noChangesModal');
+      //   if (warnEl && window.bootstrap) {
+      //     const msg = warnEl.querySelector('.js-msg');
+      //     if (msg && data.message) msg.textContent = data.message;
+      //     bootstrap.Modal.getOrCreateInstance(warnEl).show();
+      //   } else {
+      //     alert(data.message || 'No has modificado ningún campo.');
+      //   }
+      //   return;
+      // }
       if (data.errors) {
         for (const key in data.errors) {
           const msgs = data.errors[key];

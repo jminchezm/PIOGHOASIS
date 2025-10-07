@@ -1,0 +1,187 @@
+﻿@model PIOGHOASIS.Models.Modulo
+@{
+    Layout = null;
+
+    var isActive = Model?.Estado ?? false;
+    var actionText = isActive ? "Desactivar" : "Activar";
+    var question = isActive
+        ? $"¿Estás seguro que deseas desactivar el módulo {Model?.Codigo}?"
+        : $"¿Estás seguro que deseas activar el módulo {Model?.Codigo}?";
+}
+
+<style>
+    .puestos-delete {
+        position: relative;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)), url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden
+    }
+
+    .del-card {
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 8px 28px rgba(0,0,0,.08);
+        backdrop-filter: blur(2px)
+    }
+
+    .del-header {
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .9rem 1rem;
+        border-top-left-radius: .75rem;
+        border-top-right-radius: .75rem;
+        border-bottom: 2px solid #d7a536
+    }
+
+    .del-row {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid rgba(0,0,0,.08)
+    }
+    @@media (max-width:768px) {
+        .del-row
+
+    {
+        grid-template-columns: 1fr
+    }
+
+    }
+
+    .pill {
+        display: inline-block;
+        padding: .15rem .5rem;
+        border-radius: 999px;
+        font-weight: 700;
+        border: 1px solid transparent
+    }
+
+    .pill-ok {
+        background: #e8f7e9;
+        color: #16803d;
+        border-color: #bfe8c2
+    }
+
+    .pill-off {
+        background: #fff0f0;
+        color: #b42318;
+        border-color: #f5c2c7
+    }
+
+    .btn-danger-soft {
+        background: #fce2e2;
+        color: #b42318;
+        border: 1px solid #f5c2c7;
+        font-weight: 800;
+        padding: .7rem 1.25rem;
+        box-shadow: 0 10px 22px rgba(220,53,69,.15)
+    }
+
+    .pe-back {
+        position: sticky;
+        top: calc(var(--header-h) + 8px);
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        background: #4b5563;
+        color: #fff;
+        border: none;
+        border-radius: .5rem;
+        padding: .4rem .75rem;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(0,0,0,.15)
+    }
+
+        .pe-back:hover {
+            filter: brightness(.95);
+            color: #fff
+        }
+
+    /* estilos del modal*/
+    #saveOkModal .modal-content {
+        box-shadow: 0 20px 50px rgba(0,0,0,.18);
+        border-radius: 12px;
+    }
+
+    .ok-circle {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 4px solid #c8f5d1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f6fff8;
+    }
+
+        .ok-circle i {
+            font-size: 36px;
+            color: red;
+        }
+
+    .ok-img {
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+    }
+</style>
+
+<div class="puestos-delete">
+    <!-- Volver -->
+    <div class="d-flex justify-content-end mb-2">
+        <a class="pe-back ajax-nav" href="/Modulos/Index" data-url="/Modulos/Index">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <!-- Tarjeta -->
+    <div id="delPrint" class="del-card">
+        <div class="del-header">@question</div>
+
+        <div class="p-3">
+            <div class="del-row">
+                <div><strong>Código:</strong></div>
+                <div>@Model?.Codigo</div>
+            </div>
+            <div class="del-row">
+                <div><strong>Nombre:</strong></div>
+                <div>@Model?.Nombre</div>
+            </div>
+            <div class="del-row" style="border-bottom:none;">
+                <div><strong>Estado:</strong></div>
+                <div>
+                    @Html.Raw(isActive ? "<span class='pill pill-ok'>Activo</span>" : "<span class='pill pill-off'>Inactivo</span>")
+                </div>
+            </div>
+        </div>
+
+        <div class="p-3 d-flex justify-content-center">
+            <form id="frmToggle" asp-action="ToggleEstado" method="post" class="m-0" data-ajax="true">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model?.ModuloID" />
+                <button type="submit" class="btn btn-danger-soft">
+                    <i class="bi bi-trash3 me-1"></i> @actionText
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal éxito minimal (DELETE) -->
+<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 p-4 text-center">
+            <div class="ok-circle mx-auto mb-3">
+                <img src="~/img/desactivar.png" alt="Éxito" class="ok-img">
+            </div>
+            <h4 class="fw-bold mb-1">MÓDULOS</h4>
+            <p class="text-muted mb-0">¡Módulo desactivado exitosamente!</p>
+        </div>
+    </div>
+</div>

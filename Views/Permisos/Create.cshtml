@@ -1,0 +1,178 @@
+﻿@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@model PIOGHOASIS.Models.ViewModels.PermisosRolVM
+@{
+    Layout = null;
+    var isEdit = false; // esta vista es Create
+}
+
+<style>
+    .perm-form {
+        position: relative;
+        min-height: calc(100vh - var(--header-h));
+        padding: 24px;
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000
+    }
+
+    .pf-card {
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem;
+        box-shadow: 0 8px 28px rgba(0,0,0,.08)
+    }
+
+    .pf-header {
+        background: #f0a100;
+        color: #1f2a37;
+        font-weight: 800;
+        padding: .75rem 1rem;
+        border-top-left-radius: .75rem;
+        border-top-right-radius: .75rem;
+        border-bottom: 2px solid #d7a536
+    }
+
+    thead th {
+        background: #f3c259;
+        color: #222;
+        border-bottom: 2px solid #d7a536
+    }
+
+    /* estilos del modal*/
+    #saveOkModal .modal-content {
+        box-shadow: 0 20px 50px rgba(0,0,0,.18);
+        border-radius: 12px;
+    }
+
+    .ok-circle {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 4px solid #c8f5d1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f6fff8;
+    }
+
+        .ok-circle i {
+            font-size: 36px;
+            color: #22c55e;
+        }
+
+    .ok-img {
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+    }
+</style>
+
+<div class="perm-form">
+    <div class="d-flex justify-content-end mb-2">
+        <a class="btn btn-secondary ajax-nav" href="/Permisos/Index" data-url="/Permisos/Index">
+            <i class="bi bi-arrow-left"></i> Volver a la lista
+        </a>
+    </div>
+
+    <div class="pf-card">
+        <div class="pf-header">Asignar Permisos por Rol</div>
+
+        <div class="p-3 p-md-4">
+            <form asp-action="Create" method="post" data-ajax="true" novalidate>
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Rol</label>
+                    <select asp-for="RolID" asp-items="Model.Roles" class="form-select">
+                        <option value="">Seleccione un rol</option>
+                    </select>
+                    <span asp-validation-for="RolID" class="text-danger"></span>
+                </div>
+
+                <div class="table-responsive mb-3">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Módulo</th>
+                                <th style="width:160px" class="text-center">¿Puede acceder?</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < Model.Items.Count; i++)
+                            {
+                                <tr>
+                                    <td>
+                                        @Model.Items[i].Nombre
+                                        <input type="hidden" asp-for="Items[i].ModuloID" />
+                                        <input type="hidden" asp-for="Items[i].Nombre" />
+                                        <input type="hidden" asp-for="Items[i].Codigo" />
+                                    </td>
+                                    <td class="text-center">
+                                        <input asp-for="Items[i].PuedeAcceder" class="form-check-input" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary fw-bold">
+                        <i class="bi bi-download me-1"></i> Guardar Permisos
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal éxito -->
+<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 p-4 text-center">
+            <div class="mx-auto mb-3" style="width:72px;height:72px;border-radius:50%;border:4px solid #c8f5d1;display:flex;align-items:center;justify-content:center;background:#f6fff8">
+                <i class="bi bi-check-lg" style="font-size:36px;color:#22c55e"></i>
+            </div>
+            <h4 class="fw-bold mb-1">PERMISOS</h4>
+            <p class="text-muted mb-0">¡Permisos guardados!</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+      const form = document.querySelector('form[data-ajax="true"]');
+      if (!form) return;
+
+      const modalEl = document.getElementById('saveOkModal');
+      let nextUrl = '/Permisos/Index';
+
+      modalEl.addEventListener('shown.bs.modal', () => {
+        setTimeout(() => bootstrap.Modal.getOrCreateInstance(modalEl).hide(), 1500);
+      });
+      modalEl.addEventListener('hidden.bs.modal', () => {
+        if (window.swapInHost) window.swapInHost(nextUrl, '#contentHost'); else location.href = nextUrl;
+      });
+
+      form.addEventListener('submit', async (ev) => {
+        const host = window.parent?.document?.getElementById?.('contentHost') || document.getElementById('contentHost');
+        if (!host) return; // submit normal fuera del dashboard
+        ev.preventDefault();
+
+        const fd = new FormData(form);
+        const resp = await fetch(form.action, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const ctype = (resp.headers.get('content-type') || '').toLowerCase();
+
+        if (ctype.includes('application/json')) {
+          const data = await resp.json();
+          if (data.ok) {
+            nextUrl = data.redirectUrl || nextUrl;
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            return;
+          }
+        }
+        // si devolvió HTML (validaciones), re-render
+        const html = await resp.text();
+        host.innerHTML = html;
+      });
+    })();
+</script>

@@ -59,8 +59,37 @@
   .form-label{ font-weight:700; color:#1f2a37; }
   .form-text-muted{ color:#8a93a2; }
 
-  #imgModal{ width:50px; height:auto; }
-  #tituloModal{ color:#009E42; font-weight:bold; }
+  /* #imgModal{ width:50px; height:auto; }
+  #tituloModal{ color:#009E42; font-weight:bold; } */
+
+    /* estilos del modal*/
+    #saveOkModal .modal-content {
+        box-shadow: 0 20px 50px rgba(0,0,0,.18);
+        border-radius: 12px;
+    }
+
+    .ok-circle {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        border: 4px solid #c8f5d1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f6fff8;
+    }
+
+        .ok-circle i {
+            font-size: 36px;
+            color: #22c55e;
+        }
+
+    .ok-img {
+        width: 50px;
+        height: 50px;
+        object-fit: contain;
+    }
+
 </style>
 
 <div class="puestos-create">
@@ -129,7 +158,7 @@
 </div>
 
 <!-- Modal de éxito (igual a Puestos) -->
-<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
+@* <div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-sm modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header bg-success text-white py-2">
@@ -148,7 +177,21 @@
         <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
       </div>
     </div>
-  </div>
+  </div> *@
+</div>
+
+<!-- Modal éxito minimal -->
+<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 p-4 text-center">
+            <div class="ok-circle mx-auto mb-3">
+                @* <i class="bi bi-check-lg"></i> *@
+                <img src="~/img/exito.png" alt="Éxito" class="ok-img">
+            </div>
+            <h4 class="fw-bold mb-1">TIPO DE DOCUMENTO</h4>
+            <p class="text-muted mb-0">¡Tipo de documento creado exitosamente!</p>
+        </div>
+    </div>
 </div>
 
 @section Scripts {

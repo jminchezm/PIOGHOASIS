@@ -356,7 +356,7 @@ namespace PIOGHOASIS.Controllers
         {
             if (id != vm.Habitacion.HabitacionID) return NotFound();
 
-            // validación de la parte Habitacion
+            // Validación de la parte Habitacion
             if (!ModelState.IsValid)
             {
                 await CargarTiposAsync();
@@ -368,7 +368,7 @@ namespace PIOGHOASIS.Controllers
                             .FirstOrDefaultAsync(x => x.HabitacionID == id);
             if (actual == null) return NotFound();
 
-            // Imagen (igual que ya lo hacías)
+            // Imagen
             if (QuitarImagen)
             {
                 if (!string.IsNullOrWhiteSpace(actual.Imagen))
@@ -428,6 +428,82 @@ namespace PIOGHOASIS.Controllers
                 return IsAjax ? PartialView(vm) : View(vm);
             }
 
+            // ====== DETECCIÓN DE "SIN CAMBIOS" ======
+            var oldTarifas = await _db.tarifasHabitacion
+                .Where(x => x.HabitacionID == id)
+                .AsNoTracking()
+                .Select(x => new {
+                    x.NumeroPersonas,
+                    x.FechaInicio,
+                    x.FechaFin,
+                    x.PrecioNoche,
+                    x.EtiquetaTemporada
+                })
+                .ToListAsync();
+
+            var newTarifasSimple = nuevasTarifas
+                .Select(x => new {
+                    x.NumeroPersonas,
+                    x.FechaInicio,
+                    x.FechaFin,
+                    x.PrecioNoche,
+                    x.EtiquetaTemporada
+                })
+                .ToList();
+
+            var oldOrdered = oldTarifas
+                .OrderBy(t => t.NumeroPersonas)
+                .ThenBy(t => t.FechaInicio)
+                .ThenBy(t => t.FechaFin)
+                .ThenBy(t => t.PrecioNoche)
+                .ThenBy(t => t.EtiquetaTemporada ?? "")
+                .ToList();
+
+            var newOrdered = newTarifasSimple
+                .OrderBy(t => t.NumeroPersonas)
+                .ThenBy(t => t.FechaInicio)
+                .ThenBy(t => t.FechaFin)
+                .ThenBy(t => t.PrecioNoche)
+                .ThenBy(t => t.EtiquetaTemporada ?? "")
+                .ToList();
+
+            bool imageChanged = QuitarImagen || fileImagen != null;
+
+            // OJO: si tus propiedades son bool? usa ?? false en ambos lados
+            bool habitacionChanged =
+                actual.NumeroHabitacion != vm.Habitacion.NumeroHabitacion ||
+                actual.Piso != vm.Habitacion.Piso ||
+                actual.TipoHabitacionID != vm.Habitacion.TipoHabitacionID ||
+                actual.CapacidadPersonas != vm.Habitacion.CapacidadPersonas ||
+                (actual.DescripcionCamas ?? "") != (vm.Habitacion.DescripcionCamas ?? "") ||
+                actual.Estado != vm.Habitacion.Estado ||
+                (actual.Descripcion ?? "") != (vm.Habitacion.Descripcion ?? "") ||
+                // ===== SERVICIOS (aquí estaba el faltante) =====
+                (actual.AireAcondicionado ?? false) != (vm.Habitacion.AireAcondicionado ?? false) ||
+                (actual.Ventilador ?? false) != (vm.Habitacion.Ventilador ?? false) ||
+                (actual.TV ?? false) != (vm.Habitacion.TV ?? false) ||
+                (actual.BanoPrivado ?? false) != (vm.Habitacion.BanoPrivado ?? false) ||
+                (actual.WIFI ?? false) != (vm.Habitacion.WIFI ?? false) ||
+                (actual.Parqueo ?? false) != (vm.Habitacion.Parqueo ?? false) ||
+                // Imagen (ya resuelta arriba)
+                (actual.Imagen ?? "") != (vm.Habitacion.Imagen ?? "");
+
+            bool tarifasChanged = oldOrdered.Count != newOrdered.Count
+                || !oldOrdered.SequenceEqual(newOrdered);
+
+            bool noChanges = !habitacionChanged && !imageChanged && !tarifasChanged;
+
+            if (noChanges)
+            {
+                if (IsAjax)
+                    return Ok(new { ok = false, reason = "nochanges", message = "Realiza un cambio antes de guardar." });
+
+                TempData["NoChanges"] = true;
+                await CargarTiposAsync();
+                return View(vm);
+            }
+
+
             // ===== Persistencia en transacción =====
             using var tx = await _db.Database.BeginTransactionAsync();
 
@@ -443,7 +519,6 @@ namespace PIOGHOASIS.Controllers
                 await _db.SaveChangesAsync();
 
                 // (opcional) validación anti-solape entre nuevas
-                // puedes chequear aquí que en 'nuevasTarifas' no haya traslapes por (NumeroPersonas)
                 bool solape = nuevasTarifas
                     .GroupBy(t => t.NumeroPersonas)
                     .Any(g => g.Select(x => (x.FechaInicio, x.FechaFin))
@@ -474,6 +549,133 @@ namespace PIOGHOASIS.Controllers
             if (IsAjax) return Json(new { ok = true, message = "¡Habitación y tarifas actualizadas!", redirectUrl = Url.Action("Index") });
             return RedirectToAction(nameof(Edit), new { id });
         }
+
+
+        //[HttpPost("Edit/{id:int}")]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Edit(int id, HabitacionCreateVM vm, IFormFile? fileImagen, bool QuitarImagen = false)
+        //{
+        //    if (id != vm.Habitacion.HabitacionID) return NotFound();
+
+        //    // validación de la parte Habitacion
+        //    if (!ModelState.IsValid)
+        //    {
+        //        await CargarTiposAsync();
+        //        return IsAjax ? PartialView(vm) : View(vm);
+        //    }
+
+        //    // Cargar el estado actual para manejar la imagen
+        //    var actual = await _db.habitaciones.AsNoTracking()
+        //                    .FirstOrDefaultAsync(x => x.HabitacionID == id);
+        //    if (actual == null) return NotFound();
+
+        //    // Imagen (igual que ya lo hacías)
+        //    if (QuitarImagen)
+        //    {
+        //        if (!string.IsNullOrWhiteSpace(actual.Imagen))
+        //        {
+        //            var physical = Path.Combine(_env.WebRootPath, actual.Imagen.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+        //            if (System.IO.File.Exists(physical))
+        //                System.IO.File.Delete(physical);
+        //        }
+        //        vm.Habitacion.Imagen = null;
+        //    }
+        //    else if (fileImagen != null)
+        //    {
+        //        vm.Habitacion.Imagen = await GuardarImagenAsync(fileImagen);
+        //    }
+        //    else
+        //    {
+        //        vm.Habitacion.Imagen = actual.Imagen; // conservar
+        //    }
+
+        //    // ===== VALIDACIÓN Y CONVERSIÓN DE TARIFAS =====
+        //    if (vm.TarifaItems == null || vm.TarifaItems.Count == 0)
+        //        ModelState.AddModelError("", "Debe agregar al menos una tarifa.");
+
+        //    var nuevasTarifas = new List<TarifaHabitacion>();
+
+        //    if (vm.TarifaItems != null)
+        //    {
+        //        foreach (var t in vm.TarifaItems)
+        //        {
+        //            if (t.FechaFin < t.FechaInicio)
+        //                ModelState.AddModelError("", $"Rango inválido ({t.FechaInicio:yyyy-MM-dd} – {t.FechaFin:yyyy-MM-dd}).");
+
+        //            if (vm.Habitacion.CapacidadPersonas.HasValue && t.NumeroPersonas > vm.Habitacion.CapacidadPersonas.Value)
+        //                ModelState.AddModelError("", $"La ocupación {t.NumeroPersonas} supera la capacidad de la habitación.");
+
+        //            var limpio = (t.PrecioNocheStr ?? "").Replace(",", "");
+        //            if (!decimal.TryParse(limpio, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var precio))
+        //                ModelState.AddModelError("", "Precio inválido en una de las filas de tarifas.");
+        //            else if (precio <= 0)
+        //                ModelState.AddModelError("", "El precio debe ser mayor a 0.");
+
+        //            nuevasTarifas.Add(new TarifaHabitacion
+        //            {
+        //                HabitacionID = id,
+        //                NumeroPersonas = t.NumeroPersonas,
+        //                PrecioNoche = precio,
+        //                FechaInicio = t.FechaInicio.Date,
+        //                FechaFin = t.FechaFin.Date,
+        //                EtiquetaTemporada = t.EtiquetaTemporada
+        //            });
+        //        }
+        //    }
+
+        //    if (!ModelState.IsValid)
+        //    {
+        //        await CargarTiposAsync();
+        //        return IsAjax ? PartialView(vm) : View(vm);
+        //    }
+
+        //    // ===== Persistencia en transacción =====
+        //    using var tx = await _db.Database.BeginTransactionAsync();
+
+        //    try
+        //    {
+        //        // actualizar la habitación
+        //        _db.Entry(vm.Habitacion).State = EntityState.Modified;
+        //        await _db.SaveChangesAsync();
+
+        //        // eliminar tarifas anteriores
+        //        var old = await _db.tarifasHabitacion.Where(x => x.HabitacionID == id).ToListAsync();
+        //        _db.tarifasHabitacion.RemoveRange(old);
+        //        await _db.SaveChangesAsync();
+
+        //        // (opcional) validación anti-solape entre nuevas
+        //        // puedes chequear aquí que en 'nuevasTarifas' no haya traslapes por (NumeroPersonas)
+        //        bool solape = nuevasTarifas
+        //            .GroupBy(t => t.NumeroPersonas)
+        //            .Any(g => g.Select(x => (x.FechaInicio, x.FechaFin))
+        //                       .OrderBy(x => x.FechaInicio)
+        //                       .Zip(g.Select(x => (x.FechaInicio, x.FechaFin))
+        //                             .OrderBy(x => x.FechaInicio).Skip(1),
+        //                            (a, b) => a.FechaFin >= b.FechaInicio).Any(s => s));
+        //        if (solape)
+        //        {
+        //            await tx.RollbackAsync();
+        //            ModelState.AddModelError("", "Hay tarifas nuevas que se solapan en fechas para la misma ocupación.");
+        //            await CargarTiposAsync();
+        //            return IsAjax ? PartialView(vm) : View(vm);
+        //        }
+
+        //        // insertar nuevas
+        //        _db.tarifasHabitacion.AddRange(nuevasTarifas);
+
+        //        await _db.SaveChangesAsync();
+
+        //        await tx.CommitAsync();
+        //    }
+        //    catch
+        //    {
+        //        await tx.RollbackAsync();
+        //        throw;
+        //    }
+
+        //    if (IsAjax) return Json(new { ok = true, message = "¡Habitación y tarifas actualizadas!", redirectUrl = Url.Action("Index") });
+        //    return RedirectToAction(nameof(Edit), new { id });
+        //}
 
 
         //[HttpPost("Edit/{id:int}")]
@@ -595,58 +797,5 @@ namespace PIOGHOASIS.Controllers
             if (descargar) pdf.FileName = $"Habitaciones_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
             return pdf;
         }
-
-
-        //[HttpGet("ExportPdf")]
-        //public async Task<IActionResult> ExportPdf(string? codigo, string? tipo, int? personas, string? estado, bool descargar = false)
-        //{
-        //    var tieneEstado = Request.Query.ContainsKey("estado");
-        //    if (!tieneEstado) estado = "";
-
-        //    var q = _db.habitaciones.Include(h => h.TipoHabitacion).AsNoTracking().AsQueryable();
-        //    if (!string.IsNullOrWhiteSpace(codigo)) q = q.Where(h => h.Codigo.Contains(codigo));
-        //    if (!string.IsNullOrWhiteSpace(tipo)) q = q.Where(h => h.TipoHabitacionID == tipo);
-        //    if (personas.HasValue && personas > 0) q = q.Where(h => h.CapacidadPersonas == personas);
-        //    if (!string.IsNullOrWhiteSpace(estado))
-        //        q = estado == "1" ? q.Where(h => h.Estado) : q.Where(h => !h.Estado);
-
-        //    var model = await q.OrderBy(h => h.Codigo).ToListAsync();
-
-        //    ViewBag.Codigo = codigo;
-        //    ViewBag.Tipo = tipo;
-        //    ViewBag.Personas = personas;
-        //    ViewBag.Estado = estado;
-
-
-        //    // IDs de las habitaciones del reporte
-        //    var ids = model.Select(h => h.HabitacionID).ToList();
-
-        //    // Traer todas las tarifas de esas habitaciones
-        //    var tarifas = await _db.tarifasHabitacion
-        //        .Where(t => ids.Contains(t.HabitacionID))
-        //        .OrderBy(t => t.HabitacionID)
-        //        .ThenBy(t => t.NumeroPersonas)
-        //        .ThenBy(t => t.FechaInicio)
-        //        .AsNoTracking()
-        //        .ToListAsync();
-
-        //    // Agrupar en un diccionario: HabitaciónID => IEnumerable<TarifaHabitacion>
-        //    var tarifasPorHab = tarifas
-        //        .GroupBy(t => t.HabitacionID)
-        //        .ToDictionary(g => g.Key, g => (IEnumerable<TarifaHabitacion>)g.ToList());
-
-        //    // Pasarlo a la vista (lo que lee ReportePdf.cshtml)
-        //    ViewBag.TarifasPorHab = tarifasPorHab;
-
-        //    var pdf = new ViewAsPdf("ReportePdf", model)
-        //    {
-        //        PageSize = Size.A4,
-        //        PageOrientation = Orientation.Landscape,
-        //        CustomSwitches = "--footer-center \"Página [page] de [toPage]\" --footer-font-size 8 --footer-spacing 5",
-        //        ContentDisposition = descargar ? ContentDisposition.Attachment : ContentDisposition.Inline
-        //    };
-        //    if (descargar) pdf.FileName = $"Habitaciones_{DateTime.Now:yyyyMMdd_HHmm}.pdf";
-        //    return pdf;
-        //}
     }
 }

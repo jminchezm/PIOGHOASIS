@@ -1,0 +1,174 @@
+﻿@model IEnumerable<PIOGHOASIS.Models.ViewModels.RolPermisosRowVM>
+@{
+    Layout = null;
+}
+
+<style>
+    .perm-ui {
+        position: relative;
+        min-height: calc(100vh - var(--header-h));
+        padding: 30px;
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)),url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000
+    }
+
+    .perm-tt {
+        font-weight: 800;
+        color: #1f2a37
+    }
+
+    .btn-nuevo {
+        background: #f0a100;
+        border: none;
+        color: #222;
+        font-weight: 800;
+        box-shadow: 0 10px 22px rgba(240,161,0,.35)
+    }
+
+        .btn-nuevo:hover {
+            background: #db9400
+        }
+
+    .perm-ui thead th {
+        background: #f3c259;
+        color: #222;
+        border-bottom: 2px solid #d7a536
+    }
+
+    .pill-list {
+        margin: 0;
+        padding-left: 1.25rem
+    }
+</style>
+
+<div class="perm-ui">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="perm-tt mb-0">Permisos por Rol</h3>
+        <a class="btn btn-nuevo ajax-nav" href="/Permisos/Create" data-url="/Permisos/Create">
+            <i class="bi bi-plus-circle me-1"></i> Asignar Permisos
+        </a>
+    </div>
+
+    <div class="card p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:240px">Rol</th>
+                        <th>Módulos Permitidos</th>
+                        <th style="width:120px" class="text-center">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@r.RolNombre</td>
+                            <td>
+                                <ul class="pill-list">
+                                    @foreach (var m in r.ModulosPermitidos)
+                                    {
+                                        <li>@m</li>
+                                    }
+                                </ul>
+                            </td>
+                            <td class="text-center">
+                                <a class="btn btn-sm btn-outline-primary ajax-nav" href="/Permisos/Edit/@r.RolID" data-url="/Permisos/Edit/@r.RolID" title="Editar">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+@* @model IEnumerable<PIOGHOASIS.Models.RolModuloPermiso>
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Index</title>
+</head>
+<body>
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.PuedeAcceder)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PuedeCrear)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PuedeEditar)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.PuedeEliminar)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Estado)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.FechaRegistro)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rol)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Modulo)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.PuedeAcceder)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PuedeCrear)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PuedeEditar)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PuedeEliminar)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Estado)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.FechaRegistro)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Rol.RolID)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Modulo.Codigo)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.RolModuloPermisoID">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.RolModuloPermisoID">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.RolModuloPermisoID">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+</body>
+</html>
+ *@
