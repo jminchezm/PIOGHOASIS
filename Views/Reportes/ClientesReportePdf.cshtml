@@ -1,0 +1,269 @@
+﻿@model PIOGHOASIS.Models.ViewModels.ReporteClientesVM
+@using System.Linq
+@using System.Globalization
+@{
+    Layout = null;
+    var inv = CultureInfo.InvariantCulture;
+    string Money(decimal v) => "Q. " + v.ToString("N2");
+    string DateShort(DateTime? dt) => dt?.ToString("dd/MM/yyyy") ?? "—";
+
+    string[] PALETTE = new[]{
+        "#3B82F6","#EF4444","#22C55E","#EAB308","#8B5CF6",
+        "#06B6D4","#F97316","#10B981","#F43F5E","#6366F1"
+    };
+}
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Reporte de Clientes</title>
+<style>
+html,body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#1f2a37}
+.container{padding:10mm}
+.brand{display:table;width:100%;border-bottom:3px solid #d7a536;padding-bottom:8px;margin-bottom:10px}
+.brand .left{display:table-cell;vertical-align:middle;width:1%}
+.brand .right{display:table-cell;vertical-align:middle;padding-left:10px}
+.logo{width:150px;height:auto}
+.title{margin:0;font-size:20px;font-weight:800}
+.meta{margin-top:2px;color:#6b7280}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0 14px}
+.kpi{border:1px solid #ddd;padding:6px;border-radius:6px}
+.kpi .lbl{color:#6b7280;font-size:12px}
+.kpi .val{font-size:16px;font-weight:700}
+.card{border:1px solid #ddd;border-radius:6px;margin-bottom:12px}
+.card .head{font-weight:700;border-bottom:1px solid #ddd;padding:6px}
+.card .body{padding:6px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #ddd;padding:6px}
+th{background:#f7e1a5;text-align:left}
+.right{text-align:right}
+tbody tr:nth-child(even){background:#fffaf0}
+.badge{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+.flex{display:flex;gap:12px;align-items:center}
+.legend{display:grid;gap:4px;margin-left:10px}
+</style>
+</head>
+<body>
+<div class="container">
+
+    <div class="brand">
+        <div class="left">
+            <img class="logo" src="@(Url.Content("~/img/login/logo-oasis.png"))" alt="Hotel Oasis" />
+        </div>
+        <div class="right">
+            <h1 class="title">Reporte de Clientes</h1>
+            <div class="meta">
+                Periodo: @(Model.Desde?.ToString("dd/MM/yyyy")) – @(Model.Hasta?.ToString("dd/MM/yyyy"))
+                | Solo activos: @(Model.SoloActivos ? "Sí" : "No")
+                | Generado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+            </div>
+        </div>
+    </div>
+
+    <div class="grid3">
+        <div class="kpi"><div class="lbl">Total clientes</div><div class="val">@Model.TotalClientes</div></div>
+        <div class="kpi"><div class="lbl">Nuevos en el periodo</div><div class="val">@Model.NuevosEnRango</div></div>
+        <div class="kpi"><div class="lbl">Clientes con reserva</div><div class="val">@Model.ClientesConReserva</div></div>
+        <div class="kpi"><div class="lbl">Repetidores (2+ reservas)</div><div class="val">@Model.Repetidores</div></div>
+        <div class="kpi"><div class="lbl">Ticket promedio por cliente</div><div class="val">@Money(Model.TicketPromedioCliente)</div></div>
+        <div class="kpi"><div class="lbl">Países distintos</div><div class="val">@Model.PaisTopCount</div></div>
+    </div>
+
+    @* ====== Por País (Dona) ====== *@
+    <div class="card">
+        <div class="head">Clientes por país</div>
+        <div class="body flex">
+@{
+    // Top 6 + Otros
+    var paisData = Model.PorPais.OrderByDescending(x => x.Conteo).ToList();
+    int topN = 6;
+    var topPais = paisData.Take(topN).ToList();
+    int otrosPais = paisData.Skip(topN).Sum(x => x.Conteo);
+    if (otrosPais > 0) topPais.Add(new PIOGHOASIS.Models.ViewModels.ItemClaveCount("Otros", otrosPais));
+
+    int totalPais = topPais.Sum(x => x.Conteo);
+    int rPais = 60; double cPais = Math.PI * 2 * rPais; double offPais = 0; int iPais = 0;
+}
+@if (totalPais == 0)
+{
+    @:<div>No hay datos.</div>
+}
+else
+{
+    <svg width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Clientes por país">
+        <circle cx="80" cy="80" r="@rPais" fill="none" stroke="#F3F4F6" stroke-width="22"></circle>
+        @foreach (var s in topPais)
+        {
+            var frac = (double)s.Conteo / totalPais;
+            var dash = Math.Min(cPais - 0.001, cPais * frac);
+            var color = PALETTE[iPais++ % PALETTE.Length];
+            var o = (offPais % cPais);
+            <circle cx="80" cy="80" r="@rPais" fill="none"
+                    stroke="@color" stroke-width="22"
+                    stroke-dasharray="@dash.ToString(inv) @cPais.ToString(inv)"
+                    stroke-dashoffset="-@o.ToString(inv)"
+                    transform="rotate(-90 80 80)" />
+            offPais += dash;
+        }
+    </svg>
+    <div class="legend">
+        @{ iPais = 0; }
+        @foreach (var s in topPais)
+        {
+            var color = PALETTE[iPais++ % PALETTE.Length];
+            <div><span class="badge" style="background:@color"></span>@s.Clave — @s.Conteo</div>
+        }
+    </div>
+}
+        </div>
+    </div>
+
+    @* ====== Top departamentos (GTM) ====== *@
+    <div class="card">
+        <div class="head">Clientes por departamento (GTM)</div>
+        <div class="body">
+@{
+    var deps = Model.PorDepartamento;
+    if (!deps.Any())
+    {
+        @:<div>No hay datos.</div>
+    }
+    else
+    {
+        var maxDep = deps.Max(x => x.Conteo);
+        int idxDep = 0;
+        <div style="display:grid;gap:8px">
+        @foreach (var it in deps)
+        {
+            var w = maxDep == 0 ? 0 : (int)Math.Round((double)it.Conteo / maxDep * 100);
+            var color = PALETTE[idxDep++ % PALETTE.Length];
+            <div style="display:grid;grid-template-columns:140px 1fr 60px;align-items:center">
+                <div>@it.Clave</div>
+                <div style="height:12px;background:#F3F4F6;border-radius:6px;overflow:hidden">
+                    <span style="display:block;height:100%;width:@w%;background:@color"></span>
+                </div>
+                <div style="text-align:right">@it.Conteo</div>
+            </div>
+        }
+        </div>
+    }
+}
+        </div>
+    </div>
+
+    @* ====== Altas por mes ====== *@
+    <div class="card">
+        <div class="head">Nuevos clientes por mes</div>
+        <div class="body">
+@{
+    var arr = Model.NuevosPorMes;
+    if (!arr.Any())
+    {
+        @:<div>No hay datos.</div>
+    }
+    else
+    {
+        int W=560,H=200, ml=40, mr=10, mt=14, mb=44;
+        int CH=H-mt-mb, CW=W-ml-mr;
+        int n=arr.Count;
+        int max = arr.Max(x=>x.Conteo);
+        if (max<1) max=1;
+        Func<int,double> X = k => ml + (k+0.5) * (CW/(double)n);
+        Func<int,double> Y = v => mt + (CH - (v/(double)max)*CH);
+        double step = CW/(double)n; double barW = Math.Max(10, step*0.6);
+        <svg width="@W" height="@H" viewBox="0 0 @W @H">
+            @for(int t=0;t<=5;t++){
+                var y = mt + CH*t/5.0;
+                <line x1="@ml" y1="@y" x2="@(W-mr)" y2="@y" stroke="#E5E7EB" stroke-width="1" />
+                var val = (int)Math.Round(max*t/5.0);
+                @:<text x="@(ml-6)" y="@(y+3)" font-size="10" text-anchor="end" fill="#6b7280">@val</text>
+            }
+            @for(int k=0;k<n;k++){
+                var cx=X(k);
+                var hBar = (Y(0) - Y(arr[k].Conteo));
+                var y=Y(arr[k].Conteo);
+                <rect x="@(cx-barW/2)" y="@y" width="@barW" height="@hBar" fill="#3B82F6" rx="2" ry="2" />
+                @:<text x="@cx" y="@(y-4)" font-size="10" text-anchor="middle" fill="#374151">@arr[k].Conteo</text>
+                @:<text x="@cx" y="@(H-mb+28)" font-size="10" text-anchor="middle" fill="#6b7280">@arr[k].Fecha.ToString("MM/yyyy")</text>
+            }
+        </svg>
+    }
+}
+        </div>
+    </div>
+
+    @* ====== Top clientes por gasto ====== *@
+    <div class="card">
+        <div class="head">Top 10 clientes por gasto (en el periodo)</div>
+        <div class="body">
+@{
+    var topClientes = Model.TopClientes;
+    if (!topClientes.Any())
+    {
+        @:<div>No hay datos.</div>
+    }
+    else
+    {
+        var maxTop = topClientes.Max(x => x.TotalPagado);
+        int iTop = 0;
+        <div style="display:grid;gap:8px">
+        @foreach (var t in topClientes)
+        {
+            var w = maxTop == 0 ? 0 : (int)Math.Round((double)(t.TotalPagado / maxTop) * 100);
+            var color = PALETTE[iTop++ % PALETTE.Length];
+            <div style="display:grid;grid-template-columns:280px 1fr 120px 60px;align-items:center">
+                <div>@t.Nombre</div>
+                <div style="height:12px;background:#F3F4F6;border-radius:6px;overflow:hidden">
+                    <span style="display:block;height:100%;width:@w%;background:@color"></span>
+                </div>
+                <div class="right">@Money(t.TotalPagado)</div>
+                <div class="right">@t.Reservas x</div>
+            </div>
+        }
+        </div>
+    }
+}
+        </div>
+    </div>
+
+    <h3>Detalle de Clientes</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:90px">Código</th>
+                <th>Nombre</th>
+                <th>DPI</th>
+                <th style="width:70px">País</th>
+                <th style="width:110px">Registro</th>
+                <th style="width:90px">Reservas</th>
+                <th style="width:110px" class="right">Pagado</th>
+                <th style="width:110px">Últ. visita</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (!Model.Detalle.Any())
+        {
+            <tr><td colspan="8">Sin datos.</td></tr>
+        }
+        else
+        {
+            foreach (var r in Model.Detalle)
+            {
+                <tr>
+                    <td>@r.ClienteID</td>
+                    <td>@r.Nombre</td>
+                    <td>@(string.IsNullOrWhiteSpace(r.DPI) ? "—" : r.DPI)</td>
+                    <td>@(string.IsNullOrWhiteSpace(r.PaisID) ? "—" : r.PaisID)</td>
+                    <td>@DateShort(r.FechaRegistro)</td>
+                    <td>@r.Reservas</td>
+                    <td class="right">@Money(r.TotalPagado)</td>
+                    <td>@DateShort(r.UltimaVisita)</td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+
+</div>
+</body>
+</html>

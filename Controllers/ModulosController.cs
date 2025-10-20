@@ -1,10 +1,11 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PIOGHOASIS.Infraestructure.Data;
-using PIOGHOASIS.Models;
 using PIOGHOASIS.Infraestructure.Security;
+using PIOGHOASIS.Models;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PIOGHOASIS.Controllers
 {
@@ -85,10 +86,24 @@ namespace PIOGHOASIS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Codigo,Nombre,Descripcion,Estado,FechaRegistro")] Modulo modulo)
         {
+            // Normaliza antes de validar/guardar
+            modulo.Nombre = N(modulo.Nombre);
+            modulo.Descripcion = N(modulo.Descripcion);
+            modulo.Estado = true;
+
             if (!ModelState.IsValid)
                 return IsAjax ? PartialView(modulo) : View(modulo);
 
-            // Si no trae código válido, o no comienza con “MOD”, genera uno
+            // Nombre único (APP)
+            var nombreTomado = await _context.modulos
+                .AnyAsync(m => m.Nombre == modulo.Nombre); // si tu collation es CI, esto ya es insensible a may/min
+            if (nombreTomado)
+            {
+                ModelState.AddModelError(nameof(modulo.Nombre), "Ya existe un módulo con ese nombre.");
+                return IsAjax ? PartialView(modulo) : View(modulo);
+            }
+
+            // Si no trae código válido, genera uno con prefijo MOD
             if (string.IsNullOrWhiteSpace(modulo.Codigo) || !modulo.Codigo.StartsWith("MOD"))
                 modulo.Codigo = await NextCodigoAsync();
 
@@ -100,17 +115,27 @@ namespace PIOGHOASIS.Controllers
             modulo.FechaRegistro = DateTime.Now;
 
             _context.Add(modulo);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex) when (IsUniqueViolation(ex))
+            {
+                // respaldo si hay índice único a nivel BD
+                ModelState.AddModelError(nameof(modulo.Nombre), "Ya existe un módulo con ese nombre.");
+                return IsAjax ? PartialView(modulo) : View(modulo);
+            }
 
             if (IsAjax) return Json(new { ok = true, redirectUrl = Url.Action(nameof(Index)) });
             return RedirectToAction(nameof(Index));
         }
 
 
+
         // ===== EDIT =====
         public async Task<IActionResult> Edit(int id)
         {
-            var modulo = await _context.modulos.FindAsync(id);
+            var modulo = await _context.modulos.AsNoTracking().FirstOrDefaultAsync(m => m.ModuloID == id);
             if (modulo == null) return NotFound();
             return IsAjax ? PartialView(modulo) : View(modulo);
         }
@@ -121,46 +146,65 @@ namespace PIOGHOASIS.Controllers
         {
             if (id != modulo.ModuloID) return NotFound();
 
+            // Normaliza entrada
+            var nuevoNombre = N(modulo.Nombre);
+            var nuevaDesc = N(modulo.Descripcion);
+
             if (!ModelState.IsValid)
                 return IsAjax ? PartialView(modulo) : View(modulo);
 
             // Trae el registro actual de BD para comparar
-            var db = await _context.modulos.AsNoTracking().FirstOrDefaultAsync(m => m.ModuloID == id);
+            var db = await _context.modulos.FirstOrDefaultAsync(m => m.ModuloID == id);
             if (db == null) return NotFound();
 
-            // Normaliza para comparar (evita falsos positivos por espacios o nulls)
-            string N(string? s) => (s ?? "").Trim();
+            // Nombre único (excluyendo el propio registro)
+            var nombreTomado = await _context.modulos
+                .AnyAsync(m => m.ModuloID != id && m.Nombre == nuevoNombre);
+            if (nombreTomado)
+            {
+                ModelState.AddModelError(nameof(modulo.Nombre), "Ya existe un módulo con ese nombre.");
+                return IsAjax ? PartialView(modulo) : View(modulo);
+            }
 
+            // Detecta cambios con valores normalizados
             bool hadChanges =
                 !string.Equals(N(db.Codigo), N(modulo.Codigo), StringComparison.Ordinal) ||
-                !string.Equals(N(db.Nombre), N(modulo.Nombre), StringComparison.Ordinal) ||
-                !string.Equals(N(db.Descripcion), N(modulo.Descripcion), StringComparison.Ordinal) ||
+                !string.Equals(N(db.Nombre), nuevoNombre, StringComparison.Ordinal) ||
+                !string.Equals(N(db.Descripcion), nuevaDesc, StringComparison.Ordinal) ||
                 db.Estado != modulo.Estado
-                // FechaRegistro en tu UI es solo lectura; si cambia, también cuenta:
+                // Si en la UI la fecha es solo lectura, normalmente no debería cambiar:
                 || db.FechaRegistro != modulo.FechaRegistro;
+
+            // Aplica cambios
+            db.Nombre = nuevoNombre;
+            db.Descripcion = nuevaDesc;
+            db.Estado = modulo.Estado;
+            db.Codigo = N(modulo.Codigo);        // si no se edita, puedes omitir
+            db.FechaRegistro = modulo.FechaRegistro;   // si es RO, también puedes omitir esta línea
 
             if (!hadChanges)
             {
                 if (IsAjax)
                     return Ok(new { ok = false, reason = "nochanges", message = "Realiza un cambio antes de guardar." });
 
-                // Flujo no-AJAX: vuelve a la vista con un aviso sencillo (opcional)
                 TempData["NoChanges"] = true;
                 return View(modulo);
             }
 
-            // Sí hubo cambios -> guarda
             try
             {
-                _context.Update(modulo);
                 await _context.SaveChangesAsync();
 
                 if (IsAjax) return Json(new { ok = true, redirectUrl = Url.Action(nameof(Index)) });
                 return RedirectToAction(nameof(Index));
             }
+            catch (Exception ex) when (IsUniqueViolation(ex))
+            {
+                ModelState.AddModelError(nameof(modulo.Nombre), "Ya existe un módulo con ese nombre.");
+                return IsAjax ? PartialView(modulo) : View(modulo);
+            }
             catch (Exception ex)
             {
-                // Manejo simple de error
                 ModelState.AddModelError(string.Empty, "Error al actualizar: " + ex.Message);
                 return IsAjax ? PartialView(modulo) : View(modulo);
             }
@@ -222,5 +266,15 @@ namespace PIOGHOASIS.Controllers
         }
 
         private bool ModuloExists(int id) => _context.modulos.Any(e => e.ModuloID == id);
+
+        // Helper de normalización (trim; si quieres fuerza CI usa ToUpper())
+        private static string N(string? s) => (s ?? "").Trim();
+
+        // (Opcional) Helper para atrapar violaciones de UNIQUE/PK de SQL Server
+        private static bool IsUniqueViolation(Exception ex) =>
+            ex is DbUpdateException dbu &&
+            dbu.InnerException is SqlException sql &&
+            (sql.Number == 2627 || sql.Number == 2601);
+
     }
 }

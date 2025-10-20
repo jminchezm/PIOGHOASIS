@@ -1,0 +1,203 @@
+﻿@model PIOGHOASIS.Models.ViewModels.DetalleCajaVM
+@{
+    Layout = null;
+
+    // URL absoluta del logo para wkhtmltopdf
+    var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var logoUrl = baseUrl + Url.Content("~/img/login/logo-oasis.png"); // ajusta la ruta si tu logo está en otro folder
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Detalle de Caja @Model.Codigo</title>
+    <style>
+        /* ===== Tipografía y layout general ===== */
+        html, body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            color: #1f2a37;
+        }
+
+        .container {
+            padding: 10mm 10mm;
+        }
+
+        /* ===== Encabezado ===== */
+        .brand {
+            display: table;
+            width: 100%;
+            border-bottom: 3px solid #d7a536;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+            .brand .left {
+                display: table-cell;
+                vertical-align: middle;
+                width: 1%;
+            }
+
+            .brand .right {
+                display: table-cell;
+                vertical-align: middle;
+                padding-left: 10px;
+            }
+
+        .logo {
+            width: 150px;
+            height: auto;
+        }
+
+        .title {
+            margin: 0;
+            font-size: 20px;
+            line-height: 1.2;
+            font-weight: 800;
+            color: #1f2a37;
+        }
+
+        .meta {
+            margin-top: 2px;
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        /* ===== Secciones ===== */
+        h2, h3 {
+            margin: 10px 0 6px;
+        }
+
+        .muted {
+            color: #666;
+        }
+
+        /* ===== Tablas ===== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px;
+        }
+
+        th {
+            background: #f7e1a5;
+            text-align: left;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        /* ===== Grid simple ===== */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        /* Zebra suave para cuerpo de tablas grandes (opcional) */
+        tbody tr:nth-child(even) {
+            background: #fffaf0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Header con logo -->
+        <div class="brand">
+            <div class="left">
+                <img class="logo" src="@logoUrl" alt="Hotel Oasis" />
+            </div>
+            <div class="right">
+                <h1 class="title">Detalle de Caja (@Model.Codigo)</h1>
+                <div class="meta">Generado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+            </div>
+        </div>
+
+        <p class="muted" style="margin-top:0;">
+            Abierta: @Model.FechaApertura
+            @if (Model.EstaCerrada)
+            {
+                <text> | Cerrada: @Model.FechaCierre</text>
+            }
+        </p>
+
+        <h3>Ingresos del Turno</h3>
+        <div class="grid">
+            <div>Efectivo</div><div class="right">Q. @Model.Resumen.Efectivo</div>
+            <div>Transferencia</div><div class="right">Q. @Model.Resumen.Transferencia</div>
+            <div>Depósito</div><div class="right">Q. @Model.Resumen.Deposito</div>
+            <div>Compra clic</div><div class="right">Q. @Model.Resumen.CompraClick</div>
+            <div>Plataforma</div><div class="right">Q. @Model.Resumen.PlataformaReservas</div>
+        </div>
+
+        <h3 style="margin-top:12px">Pagos</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Reservación</th>
+                    <th class="right">Monto</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Pagos)
+                {
+                    <tr>
+                        <td>@p.Nro</td>
+                        <td>@p.Fecha</td>
+                        <td>@p.Cliente</td>
+                        <td>
+                            @(string.IsNullOrWhiteSpace(p.ReservaCodigo)
+                                                    ? (p.ReservaID.HasValue ? "#" + p.ReservaID : "—")
+                                                    : p.ReservaCodigo)
+                    </td>
+                    <td class="right">Q. @p.Monto.ToString("N2")</td>
+                </tr>
+                                }
+            </tbody>
+        </table>
+
+        <h3 style="margin-top:12px">Totales y Ajustes</h3>
+        <div class="grid">
+            <div class="fw-bold">TOTAL INGRESOS</div><div class="right">Q. @Model.TotalIngresos.ToString("N2")</div>
+            <div class="fw-bold">MONTO APERTURA</div><div class="right">Q. @Model.MontoApertura.ToString("N2")</div>
+            <div class="fw-bold">AJUSTES (+)</div><div class="right">Q. @Model.Resumen.AjustesIngreso.ToString("N2")</div>
+            <div class="fw-bold">AJUSTES (−)</div><div class="right">Q. @Model.Resumen.AjustesEgreso.ToString("N2")</div>
+            <div class="fw-bold">TOTAL FINAL</div><div class="right"><strong>Q. @Model.TotalFinal.ToString("N2")</strong></div>
+        </div>
+
+        <h3 style="margin-top:12px">Ajustes</h3>
+        @if (!(Model.Ajustes?.Any() ?? false))
+        {
+            <div class="muted">No hay ajustes registrados.</div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr><th>Fecha</th><th>Tipo</th><th>Motivo</th><th class="right">Monto</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model.Ajustes)
+                    {
+                        <tr>
+                            <td>@a.Fecha</td>
+                            <td>@a.TipoTxt</td>
+                            <td>@a.Motivo</td>
+                            <td class="right">Q. @a.Monto.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</body>
+</html>

@@ -63,6 +63,29 @@
         object-fit: contain;
     }
 
+    #notaCaObligatorio {
+        width: 100%;
+        text-align: right;
+    }
+
+    /* Muestra el estilo de error de Bootstrap (borde rojo + ícono) aun si
+       jQuery Unobtrusive solo aplicó 'input-validation-error' */
+    .input-validation-error.form-control,
+    .input-validation-error.form-select {
+        border-color: var(--bs-form-invalid-border-color) !important;
+        padding-right: calc(1.5em + .75rem) !important;
+        background-image: var(--bs-form-invalid-bg-image);
+        background-repeat: no-repeat;
+        background-position: right calc(.375em + .1875rem) center;
+        background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+    }
+
+    /* Asegura visibilidad de mensajes como en las otras pantallas */
+    span.field-validation-error {
+        display: block;
+        color: #dc3545;
+    }
+
 </style>
 
 <div class="usr-form">
@@ -81,10 +104,15 @@
 
                 @* <div asp-validation-summary="All" class="text-danger mb-2"></div> *@
 
+                <div id="notaCaObligatorio">
+                    <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
+                </div>
+
                 <div class="row g-3">
                     <div class="col-12 col-md-4">
                         <label class="form-label fw-semibold">Código*</label>
                         <input asp-for="UsuarioID" class="form-control" readonly required/>
+                        <span class="form-text text-muted">Se genera automáticamente.</span>
                     </div>
 
                     <div class="col-12 col-md-8">
@@ -128,21 +156,22 @@
                     </div>
 
                     <div class="col-12 col-md-6">
-                        <label class="form-label fw-semibold">Estado*</label>
-                        <select id="Estado" name="Estado" class="form-select" required>
-                            <option value="">Selecciona el estado</option>
-                            <option value="true" selected="@(Model?.Estado == true  ? "selected" : null)">Activo</option>
-                            <option value="false" selected="@(Model?.Estado == false ? "selected" : null)">Inactivo</option>
-                        </select>
-                    </div>
-
-                    <div class="col-12">
                         <label class="form-label fw-semibold">Empleado*</label>
                         <select asp-for="EmpleadoID" asp-items="empleados" class="form-select" required>
                             <option value="">Selecciona al empleado</option>
                         </select>
                         <span asp-validation-for="EmpleadoID" class="text-danger"></span>
                     </div>
+
+                    @* <div class="col-12 col-md-6">
+                        <label class="form-label fw-semibold">Estado*</label>
+                        <select id="Estado" name="Estado" class="form-select" required>
+                            <option value="">Selecciona el estado</option>
+                            <option value="true" selected="@(Model?.Estado == true  ? "selected" : null)">Activo</option>
+                            <option value="false" selected="@(Model?.Estado == false ? "selected" : null)">Inactivo</option>
+                        </select>
+                    </div> *@
+
 
                     <div class="col-12 mt-2">
                         <button type="submit" class="btn btn-primary-oasis">

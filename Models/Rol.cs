@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 namespace PIOGHOASIS.Models
 {
     [PrimaryKey(nameof(RolID))]
+    //[Index(nameof(Nombre), IsUnique = true)]
     [Table("ROL", Schema = "dbo")]
     public class Rol
     {

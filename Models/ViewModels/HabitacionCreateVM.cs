@@ -5,8 +5,6 @@ namespace PIOGHOASIS.Models.ViewModels
     public class HabitacionCreateVM
     {
         public Habitacion Habitacion { get; set; } = new Habitacion();
-
-        // Lo usaremos para binder de listas con índices: TarifaItems[0].NumeroPersonas ...
         public List<TarifaItemVM> TarifaItems { get; set; } = new();
     }
 
@@ -15,7 +13,6 @@ namespace PIOGHOASIS.Models.ViewModels
         [Range(1, 99, ErrorMessage = "Ocupación inválida")]
         public int NumeroPersonas { get; set; }
 
-        // Usaremos string para aceptar “1,234.50” y luego normalizar a decimal en el POST
         [Required] public string PrecioNocheStr { get; set; } = string.Empty;
 
         [DataType(DataType.Date)]

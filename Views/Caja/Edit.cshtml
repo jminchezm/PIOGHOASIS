@@ -1,0 +1,78 @@
+﻿@model PIOGHOASIS.Models.Caja
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Edit</title>
+</head>
+<body>
+
+<h4>Caja</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="CajaID" />
+            <div class="form-group">
+                <label asp-for="Codigo" class="control-label"></label>
+                <input asp-for="Codigo" class="form-control" />
+                <span asp-validation-for="Codigo" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="FechaApertura" class="control-label"></label>
+                <input asp-for="FechaApertura" class="form-control" />
+                <span asp-validation-for="FechaApertura" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="UsuarioAperturaID" class="control-label"></label>
+                <input asp-for="UsuarioAperturaID" class="form-control" />
+                <span asp-validation-for="UsuarioAperturaID" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="MontoApertura" class="control-label"></label>
+                <input asp-for="MontoApertura" class="form-control" />
+                <span asp-validation-for="MontoApertura" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="EstadoCajaID" class="control-label"></label>
+                <select asp-for="EstadoCajaID" class="form-control" asp-items="ViewBag.EstadoCajaID"></select>
+                <span asp-validation-for="EstadoCajaID" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="FechaCierre" class="control-label"></label>
+                <input asp-for="FechaCierre" class="form-control" />
+                <span asp-validation-for="FechaCierre" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="UsuarioCierreID" class="control-label"></label>
+                <input asp-for="UsuarioCierreID" class="form-control" />
+                <span asp-validation-for="UsuarioCierreID" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Observaciones" class="control-label"></label>
+                <input asp-for="Observaciones" class="form-control" />
+                <span asp-validation-for="Observaciones" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+</body>
+</html>

@@ -152,62 +152,19 @@
     </div>
 </div>
 
-
-
-
-@* @model IEnumerable<PIOGHOASIS.Models.TipoHabitacion>
-
-@{
-    Layout = null;
-}
-
-<!DOCTYPE html>
-
-<html>
-<head>
-    <meta name="viewport" content="width=device-width" />
-    <title>Index</title>
-</head>
-<body>
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Nombre)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Descripcion)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Estado)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Nombre)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Descripcion)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Estado)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.TipoHabitacionID">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.TipoHabitacionID">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.TipoHabitacionID">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
-</body>
-</html>
- *@
+<script>
+    // Botón "Limpiar filtros" (delegado en un contenedor estable)
+        document.querySelector('.puestos-ui')?.addEventListener('click', (ev) => {
+            const btn = ev.target.closest('.js-clear-filters');
+            if (!btn) return;
+            // limpia los campos escribibles
+            fCodigo.value = '';
+            fNombre.value = '';
+            // si quieres que Estado vuelva a "Todos":
+            fEstado.value = '';
+            // dispara eventos para que se ejecute tu debounce + recarga
+            fCodigo.dispatchEvent(new Event('input', { bubbles: true }));
+            fNombre.dispatchEvent(new Event('input', { bubbles: true }));
+            fEstado.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+</script>

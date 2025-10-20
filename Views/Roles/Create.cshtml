@@ -92,6 +92,30 @@
         height: 50px;
         object-fit: contain;
     }
+
+    #notaCaObligatorio{
+        width: 100%;
+        text-align: right;
+    }
+
+    /* Muestra el estilo de error de Bootstrap (borde rojo + ícono) aun si
+       jQuery Unobtrusive solo aplicó 'input-validation-error' */
+    .input-validation-error.form-control,
+    .input-validation-error.form-select {
+        border-color: var(--bs-form-invalid-border-color) !important;
+        padding-right: calc(1.5em + .75rem) !important;
+        background-image: var(--bs-form-invalid-bg-image);
+        background-repeat: no-repeat;
+        background-position: right calc(.375em + .1875rem) center;
+        background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+    }
+
+    /* Asegura visibilidad de mensajes como en las otras pantallas */
+    span.field-validation-error {
+        display: block;
+        color: #dc3545;
+    }
+
 </style>
 
 <div class="puestos-create">
@@ -108,17 +132,19 @@
     <!-- Card formulario -->
     <div class="pc-card">
         <div class="pc-header">Registrar Nuevo Rol</div>
-
         <div class="p-3 p-md-4">
             <form asp-action="Create" method="post" data-ajax="true" novalidate>
                 @Html.AntiForgeryToken()
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
-
+                <div id="notaCaObligatorio">
+                    <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
+                </div>                
                 <div class="row g-3">
                     <!-- Código -->
                     <div class="col-12 col-md-4">
                         <label asp-for="RolID" class="form-label">Código*</label>
                         <input asp-for="RolID" class="form-control" readonly />
+                        <span class="form-text text-muted">Se genera automáticamente.</span>
                         <span asp-validation-for="RolID" class="text-danger"></span>
                     </div>
 
@@ -138,15 +164,13 @@
                     </div>
 
                     <!-- Estado -->
-                    <div class="col-12 col-md-4">
+                    @* <div class="col-12 col-md-4">
                         <label class="form-label">Estado*</label>
                         <select asp-for="Estado" class="form-select">
                             <option value="true" selected="@(Model?.Estado != false ? "selected" : null)">Activo</option>
-                            @* Si quisieras permitir crear inactivo desde aquí, agrega:
-                            <option value="false">Inactivo</option> *@
                         </select>
                         <span asp-validation-for="Estado" class="text-danger"></span>
-                    </div>
+                    </div> *@
                 </div>
 
                 <div class="mt-4 d-flex justify-content-end">
@@ -164,7 +188,6 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 p-4 text-center">
             <div class="ok-circle mx-auto mb-3">
-                @* <i class="bi bi-check-lg"></i> *@
                 <img src="~/img/exito.png" alt="Éxito" class="ok-img">
             </div>
             <h4 class="fw-bold mb-1">ROL</h4>

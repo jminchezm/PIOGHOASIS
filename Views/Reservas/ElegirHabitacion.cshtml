@@ -280,6 +280,7 @@
         }
 </style>
 
+
 <div class="reservas-wrap">
     <!-- Volver -->
     @* <div class="d-flex justify-content-end mb-2">
@@ -335,17 +336,8 @@
             <!-- Resultados + Resumen -->
             <div class="row g-4">
                 <div class="col-lg-12">
-                    <div id="resultados"></div>
+                    <div id="resultados"> @Html.Raw(ViewData["Resultados"] as string ?? "") </div>
                 </div>
-                @* <div class="col-lg-4">
-                    <aside class="rs-summary" id="resumen">
-                        <div class="rs-summary__title">Resumen de Reserva</div>
-                        <div class="rs-summary__content" id="resumenContent">
-                            <div class="rs-summary__empty">Selecciona una habitación para ver el resumen aquí.</div>
-                        </div>
-                    </aside>
-
-                </div> *@
             </div>
 
         </div>
@@ -353,45 +345,58 @@
 </div>
 
 <script>
-    const frm = document.getElementById('frmBuscar');
-    const btn = frm.querySelector('button[type="submit"]');
+    /* --- Submit AJAX del formulario de búsqueda --- */
+    document.addEventListener('DOMContentLoaded', () => {
+      const frm = document.getElementById('frmBuscar');
+      if (!frm) return;
 
-    frm.addEventListener('submit', async (ev) => {
-      ev.preventDefault();
-      btn.disabled = true;
-      const old = btn.innerHTML;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Buscando...';
+      const btn = frm.querySelector('button[type="submit"]');
 
-      try {
-        const p = new URLSearchParams(new FormData(frm));
-        p.append('_', Date.now());
-        const r = await fetch(`/Reservas/Buscar?${p.toString()}`, {
-          method: 'GET', cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        const html = await r.text();
-        document.getElementById('resultados').innerHTML = html;
+      frm.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
 
-        // IMPORTANTE: como el partial trae tarjetas nuevas y los <script> embebidos no corren,
-        // inicializamos y dejamos listeners delegados desde aquí.
-        initCards();
-        window.scrollTo({ top: document.getElementById('resultados').offsetTop - 16, behavior: 'smooth' });
-      } catch (e) {
-        console.error(e);
-        document.getElementById('resultados').innerHTML =
-          `<div class="alert alert-danger">Ocurrió un error al buscar.</div>`;
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = old;
-      }
+        let oldHtml = '';
+        if (btn) {
+          btn.disabled = true;
+          oldHtml = btn.innerHTML;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Buscando...';
+        }
+
+        try {
+          const p = new URLSearchParams(new FormData(frm));
+          p.append('_', Date.now());
+          const r = await fetch(`/Reservas/Buscar?${p.toString()}`, {
+            method: 'GET',
+            cache: 'no-store',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+          });
+
+          const html = await r.text();
+          const cont = document.getElementById('resultados');
+          if (cont) cont.innerHTML = html;
+
+          if (window.initCards) window.initCards();
+          if (cont) window.scrollTo({ top: cont.offsetTop - 16, behavior: 'smooth' });
+        } catch (e) {
+          console.error(e);
+          const cont = document.getElementById('resultados');
+          if (cont) cont.innerHTML = '<div class="alert alert-danger">Ocurrió un error al buscar.</div>';
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
+          }
+        }
+      });
     });
 
+    /* --- Delegación y helpers para tarjetas de resultados --- */
     (function () {
       function fmt(n) {
         return new Intl.NumberFormat('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
       }
 
-      // --- Delegación: cambios en PERSONAS/TARIFA para CUALQUIER tarjeta que exista o llegue luego ---
+      // Delegación global: PERSONAS y TARIFA
       document.addEventListener('change', function (ev) {
 
         // PERSONAS
@@ -411,7 +416,7 @@
 
           if (hPersonas) hPersonas.value = String(p);
 
-          // Si NO hay combo de tarifa: modo AUTO -> usa la primera tarifa disponible para ese #personas
+          // Sin combo de tarifa: modo AUTO
           if (!selTarifa) {
             if (list.length > 0) {
               const t = list[0];
@@ -423,7 +428,7 @@
               if (totalEl) totalEl.textContent = 'Q. ' + fmt(0);
               if (hTarifa) hTarifa.value = '';
             }
-            return; // fin modo AUTO
+            return;
           }
 
           // Con combo de tarifa: reconstruir opciones
@@ -473,7 +478,6 @@
           const selPersonas = card.querySelector('.js-personas');
           const p = parseInt(selPersonas?.value || card.dataset.personas || '1', 10);
 
-          // Dispara el handler de personas para que calcule y pinte montos (funciona con/ sin combo)
           if (selPersonas) {
             selPersonas.dispatchEvent(new Event('change'));
           } else {
@@ -485,307 +489,11 @@
         });
       };
 
-      // Si ya hubieran tarjetas al cargar, inicializa
+      // Si ya hubiera contenido al cargar la página
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initCards);
+        document.addEventListener('DOMContentLoaded', window.initCards);
       } else {
-        initCards();
+        window.initCards();
       }
     })();
-
-    // --- Interceptar el SUBMIT de "Seleccionar" para pintar el resumen por AJAX ---
-      //       document.addEventListener('submit', async (ev) => {
-      // const form = ev.target;
-      // if (!form.matches('.js-form')) return;
-      // ev.preventDefault();
-
-      // // sincroniza los hidden con lo seleccionado
-      // const card = form.closest('.rs-room');
-      // if (card) {
-      //   const selPersonas = card.querySelector('.js-personas');
-      //   const hPersonas   = card.querySelector('.js-personas-hidden');
-      //   if (selPersonas && hPersonas) hPersonas.value = String(selPersonas.value || '1');
-
-      //   const selTarifa = card.querySelector('.js-tarifa');
-      //   const hTarifa   = card.querySelector('.js-tarifa-hidden');
-      //   if (selTarifa && hTarifa && selTarifa.value) hTarifa.value = selTarifa.value;
-      // }
-
-      // try {
-      //   const fd = new FormData(form);              // incluye __RequestVerificationToken del punto 1
-      //   const resp = await fetch(form.action, {
-      //     method: 'POST',
-      //     body: fd,
-      //     headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      //     credentials: 'same-origin',
-      //     redirect: 'follow'
-      //   });
-
-      //   if (resp.redirected) {                      // por si el servidor decide mandar a otra vista
-      //     window.location.href = resp.url;
-      //     return;
-      //   }
-      //   if (!resp.ok) {
-      //     const t = await resp.text().catch(()=>'(sin cuerpo)');
-      //     console.error('Seleccionar ->', resp.status, t);
-      //     throw new Error('HTTP ' + resp.status);
-      //   }
-
-      //   const html = await resp.text();             // debe ser el HTML de _ResumenReserva
-      //   document.getElementById('resumenContent').innerHTML = html;
-      // } catch (err) {
-      //   console.error(err);
-      //   alert('No se pudo generar el resumen. Intenta de nuevo.');
-      // }
-    // });
-
-    // document.addEventListener('submit', async (ev) => {
-    //   const form = ev.target;
-    //   if (!form.matches('.js-form')) return;
-
-    //   ev.preventDefault();
-
-    //   // Asegura que los hidden llevan lo seleccionado ahora mismo
-    //   const card = form.closest('.rs-room');
-    //   if (card) {
-    //     const selPersonas = card.querySelector('.js-personas');
-    //     const hPersonas   = card.querySelector('.js-personas-hidden');
-    //     if (selPersonas && hPersonas) hPersonas.value = String(selPersonas.value || '1');
-
-    //     const selTarifa = card.querySelector('.js-tarifa');
-    //     const hTarifa   = card.querySelector('.js-tarifa-hidden');
-    //     if (selTarifa && hTarifa && selTarifa.value) hTarifa.value = selTarifa.value;
-    //   }
-
-    //   try {
-    //     const fd = new FormData(form);
-    //     const resp = await fetch(form.action, {
-    //       method: 'POST',
-    //       body: fd,
-    //       headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    //     });
-    //     if (!resp.ok) throw new Error('HTTP ' + resp.status);
-
-    //     // El controlador devuelve el partial _ResumenReserva.cshtml
-    //     const html = await resp.text();
-    //     const cont = document.getElementById('resumenContent');
-    //     cont.innerHTML = html;
-    //   } catch (err) {
-    //     console.error(err);
-    //     alert('No se pudo generar el resumen. Intenta de nuevo.');
-    //   }
-    // });
 </script>
-
-
-@* <script>
-    const frm = document.getElementById('frmBuscar');
-    const btn = frm.querySelector('button[type="submit"]');
-
-    frm.addEventListener('submit', async (ev) => {
-      ev.preventDefault();
-      btn.disabled = true;
-      const old = btn.innerHTML;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Buscando...';
-
-      try {
-        const p = new URLSearchParams(new FormData(frm));
-        p.append('_', Date.now());
-        const r = await fetch(`/Reservas/Buscar?${p.toString()}`, {
-          method: 'GET', cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        const html = await r.text();
-        document.getElementById('resultados').innerHTML = html;
-        window.scrollTo({ top: document.getElementById('resultados').offsetTop - 16, behavior: 'smooth' });
-      } catch (e) {
-        console.error(e);
-        document.getElementById('resultados').innerHTML =
-          `<div class="alert alert-danger">Ocurrió un error al buscar.</div>`;
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = old;
-      }
-    });
-
-      (function () {
-    function fmt(n) {
-      return new Intl.NumberFormat('es-GT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-    }
-
-    // Delegación para cualquier rs-room que aparezca después
-    document.addEventListener('change', function (ev) {
-      // Cambio de PERSONAS
-      if (ev.target.matches('.js-personas')) {
-        const card = ev.target.closest('.rs-room');
-        if (!card) return;
-
-        const p = parseInt(ev.target.value || '1');
-        const tarifasAll = JSON.parse(card.getAttribute('data-tarifas') || '[]');
-        const selTarifa = card.querySelector('.js-tarifa');
-        const hPersonas = card.querySelector('.js-personas-hidden');
-
-        if (hPersonas) hPersonas.value = String(p);
-
-        // reconstruir combo de tarifas según #personas
-        const list = tarifasAll.filter(t => t.Personas === p);
-        selTarifa.innerHTML = '';
-        list.forEach(t => {
-          const opt = document.createElement('option');
-          opt.value = (t.TarifaID ?? '');
-          opt.textContent = t.Etiqueta || 'Tarifa estándar';
-          opt.dataset.precio = t.PrecioNoche;
-          opt.dataset.total  = t.TotalConImpuestos;
-          selTarifa.appendChild(opt);
-        });
-
-        // seleccionar primera y actualizar montos
-        if (selTarifa.options.length) {
-          selTarifa.selectedIndex = 0;
-          selTarifa.dispatchEvent(new Event('change'));
-        }
-      }
-
-      // Cambio de TARIFA
-      if (ev.target.matches('.js-tarifa')) {
-        const card    = ev.target.closest('.rs-room');
-        if (!card) return;
-
-        const priceEl = card.querySelector('.price-night');
-        const totalEl = card.querySelector('.total-night');
-        const hTarifa = card.querySelector('.js-tarifa-hidden');
-        const opt     = ev.target.selectedOptions[0];
-        if (!opt) return;
-
-        const precio = Number(opt.dataset.precio || '0');
-        const total  = Number(opt.dataset.total  || '0');
-
-        if (priceEl) priceEl.textContent = 'Q. ' + fmt(precio);
-        if (totalEl) totalEl.textContent = 'Q. ' + fmt(total);
-        if (hTarifa) hTarifa.value = opt.value || '';
-      }
-    });
-
-    // Inicializa los cards ya presentes al cargar la página
-    function initCards() {
-      document.querySelectorAll('.rs-room').forEach(card => {
-        const selPersonas = card.querySelector('.js-personas');
-        const selTarifa   = card.querySelector('.js-tarifa');
-
-        // “Dispara” los cambios para que los montos queden correctos
-        if (selPersonas) selPersonas.dispatchEvent(new Event('change')); // reconstruye tarifas
-        if (selTarifa)   selTarifa.dispatchEvent(new Event('change'));   // actualiza montos
-      });
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initCards);
-    } else {
-      initCards();
-    }
-
-
-        // Interceptar el submit de "Seleccionar" para cargar el resumen por AJAX
-    document.addEventListener('submit', async (ev) => {
-      const form = ev.target;
-      if (!form.matches('.js-form')) return;
-
-      ev.preventDefault();
-
-      // Por si acaso, aseguramos que los hidden tengan lo último seleccionado
-      const card = form.closest('.rs-room');
-      if (card) {
-        const selPersonas = card.querySelector('.js-personas');
-        const hPersonas   = card.querySelector('.js-personas-hidden');
-        if (selPersonas && hPersonas) hPersonas.value = String(selPersonas.value || '1');
-
-        const selTarifa = card.querySelector('.js-tarifa');
-        const hTarifa   = card.querySelector('.js-tarifa-hidden');
-        if (selTarifa && hTarifa && selTarifa.value) hTarifa.value = selTarifa.value;
-      }
-
-      try {
-        const fd = new FormData(form);
-        const resp = await fetch(form.action, {
-          method: 'POST',
-          body: fd,
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-
-        const html = await resp.text();
-        const cont = document.getElementById('resumenContent');
-        cont.innerHTML = html; // pegamos el partial del resumen
-      } catch (err) {
-        console.error(err);
-        alert('No se pudo generar el resumen. Intenta de nuevo.');
-      }
-    });
-
-</script> *@
-
-
-
-
-
-@* @model PIOGHOASIS.Models.ViewModels.BusquedaHabitacionVM
-@{
-    Layout = null;
-}
-<div class="hc-card p-3">
-    <h3>Elige una habitación</h3>
-    <form id="frmBuscar" class="row g-3" action="/Reservas/Buscar" method="get">
-        <div class="col-md-3">
-            <label>Check-in</label>
-            <input type="date" class="form-control" name="checkIn" />
-        </div>
-        <div class="col-md-3">
-            <label>Check-out</label>
-            <input type="date" class="form-control" name="checkOut" />
-        </div>
-        <div class="col-md-2">
-            <label>Personas</label>
-            <input type="number" min="1" value="1" class="form-control" name="personas" />
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> Buscar</button>
-        </div>
-    </form>
-
-    <div id="resultados" class="mt-3"></div>
-</div>
-
-<script>
-    const frm = document.getElementById('frmBuscar');
-    const btn = frm.querySelector('button[type="submit"]');
-
-    frm.addEventListener('submit', async (ev) => {
-      ev.preventDefault();
-
-      btn.disabled = true;
-      btn.textContent = 'Buscando...';
-
-      try {
-        const p = new URLSearchParams(new FormData(frm));
-        // rompe-caché
-        p.append('_', Date.now());
-
-        const r = await fetch(`/Reservas/Buscar?${p.toString()}`, {
-          method: 'GET',
-          cache: 'no-store',
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-
-        if (!r.ok) throw new Error(`Error ${r.status}`);
-        const html = await r.text();
-        document.getElementById('resultados').innerHTML = html;
-      } catch (err) {
-        console.error(err);
-        document.getElementById('resultados').innerHTML =
-          `<div class="alert alert-danger">Ocurrió un error al buscar.</div>`;
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Buscar';
-      }
-    });
-</script> *@

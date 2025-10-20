@@ -359,13 +359,20 @@
         window.initPuestosPager?.(document.getElementById('printArea'));
       });
 
-      // botón "Limpiar filtros" en estado vacío
-      document.getElementById('printArea')?.addEventListener('click', (ev)=>{
-        const btn = ev.target.closest('.js-clear-filters'); if(!btn) return;
-        fCodigo.value=''; fNombre.value=''; fEstado.value='';
-        fCodigo.dispatchEvent(new Event('input'));
-        fNombre.dispatchEvent(new Event('input'));
-        fEstado.dispatchEvent(new Event('change'));
-      });
+        // Botón "Limpiar filtros" (Clientes)
+        document.querySelector('.clientes-ui')?.addEventListener('click', (ev) => {
+            const btn = ev.target.closest('.js-clear-filters');
+            if (!btn) return;
+
+            // limpia campos
+            fCodigo.value = '';
+            fNombre.value = '';
+            fEstado.value = ''; // "" = Todos
+
+            // dispara eventos para que corra el debounce + recarga
+            fCodigo.dispatchEvent(new Event('input',  { bubbles: true }));
+            fNombre.dispatchEvent(new Event('input',  { bubbles: true }));
+            fEstado.dispatchEvent(new Event('change', { bubbles: true }));
+        });
     })();
 </script>

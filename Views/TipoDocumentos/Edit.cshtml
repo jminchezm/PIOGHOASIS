@@ -97,6 +97,29 @@
         object-fit: contain
     }
 
+    #notaCaObligatorio {
+        width: 100%;
+        text-align: right;
+    }
+
+    /* Muestra el estilo de error de Bootstrap (borde rojo + ícono) aun si
+       jQuery Unobtrusive solo aplicó 'input-validation-error' */
+    .input-validation-error.form-control,
+    .input-validation-error.form-select {
+        border-color: var(--bs-form-invalid-border-color) !important;
+        padding-right: calc(1.5em + .75rem) !important;
+        background-image: var(--bs-form-invalid-bg-image);
+        background-repeat: no-repeat;
+        background-position: right calc(.375em + .1875rem) center;
+        background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+    }
+
+    /* Asegura visibilidad de mensajes como en las otras pantallas */
+    span.field-validation-error {
+        display: block;
+        color: #dc3545;
+    }
+
 </style>
 
 <div class="tdoc-edit">
@@ -117,6 +140,10 @@
       <form id="frmEdit" asp-action="Edit" method="post" data-ajax="true" novalidate>
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+        <div id="notaCaObligatorio">
+            <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
+        </div>
 
         <div class="row g-3">
           <!-- Código -->

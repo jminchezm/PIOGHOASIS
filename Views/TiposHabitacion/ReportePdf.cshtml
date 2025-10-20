@@ -156,13 +156,6 @@
             </div>
         </div>
 
-        <!-- Filtros -->
-        <div class="filters">
-            <span class="chip"><b>Código:</b> @(ViewBag.Codigo ?? "—")</span>
-            <span class="chip"><b>Nombre:</b> @(ViewBag.Nombre ?? "—")</span>
-            <span class="chip"><b>Estado:</b> @EstadoTxt</span>
-        </div>
-
         <!-- Tabla -->
         @if (!Model.Any())
         {

@@ -1,11 +1,12 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PIOGHOASIS.Infraestructure.Data;
 using PIOGHOASIS.Models;
 using Rotativa.AspNetCore;
 using Rotativa.AspNetCore.Options;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PIOGHOASIS.Controllers
 {
@@ -78,17 +79,42 @@ namespace PIOGHOASIS.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("TipoHabitacionID,Nombre,Descripcion,Estado")] TipoHabitacion t)
         {
-            if (!ModelState.IsValid)
-                return IsAjax ? PartialView(t) : View(t);
-
+            // Genera ID si viene vacío o mal formado
             if (string.IsNullOrWhiteSpace(t.TipoHabitacionID) || !t.TipoHabitacionID.StartsWith("TIPO"))
                 t.TipoHabitacionID = await NextTipoHabIdAsync();
 
+            // Normaliza antes de validar/guardar
+            t.Nombre = N(t.Nombre);
+            t.Descripcion = N(t.Descripcion);
+            t.Estado = true;
+
+            if (!ModelState.IsValid)
+                return IsAjax ? PartialView(nameof(Create), t) : View(nameof(Create), t);
+
+            // Validación app: nombre único
+            bool nombreTomado = await _db.tiposHabitacion.AnyAsync(x => x.Nombre == t.Nombre);
+            if (nombreTomado)
+            {
+                ModelState.AddModelError(nameof(t.Nombre), "Ya existe un tipo de habitación con ese nombre.");
+                return IsAjax ? PartialView(nameof(Create), t) : View(nameof(Create), t);
+            }
+
+            // (opcional) reintenta ID en caso de choque
             if (await _db.tiposHabitacion.AnyAsync(x => x.TipoHabitacionID == t.TipoHabitacionID))
                 t.TipoHabitacionID = await NextTipoHabIdAsync();
 
             _db.Add(t);
-            await _db.SaveChangesAsync();
+
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (Exception ex) when (IsUniqueViolation(ex))
+            {
+                // Respaldo por índice único en DB
+                ModelState.AddModelError(nameof(t.Nombre), "Ya existe un tipo de habitación con ese nombre.");
+                return IsAjax ? PartialView(nameof(Create), t) : View(nameof(Create), t);
+            }
 
             if (IsAjax)
                 return Json(new { ok = true, message = "¡Guardado exitosamente!", redirectUrl = Url.Action("Index") });
@@ -109,7 +135,7 @@ namespace PIOGHOASIS.Controllers
         [HttpGet("Edit/{id}")]
         public async Task<IActionResult> Edit(string id)
         {
-            var t = await _db.tiposHabitacion.FindAsync(id);
+            var t = await _db.tiposHabitacion.AsNoTracking().FirstOrDefaultAsync(x => x.TipoHabitacionID == id);
             if (t == null) return NotFound();
             return IsAjax ? PartialView(t) : View(t);
         }
@@ -119,29 +145,59 @@ namespace PIOGHOASIS.Controllers
         public async Task<IActionResult> Edit(string id, [Bind("TipoHabitacionID,Nombre,Descripcion,Estado")] TipoHabitacion t)
         {
             if (id != t.TipoHabitacionID) return NotFound();
-            if (!ModelState.IsValid) return IsAjax ? PartialView(t) : View(t);
 
-            var actual = await _db.tiposHabitacion.AsNoTracking().FirstOrDefaultAsync(x => x.TipoHabitacionID == id);
-            if (actual == null) return NotFound();
+            // Normaliza antes de validar/guardar
+            var nuevoNombre = N(t.Nombre);
+            var nuevaDesc = N(t.Descripcion);
 
-            string norm(string s) => (s ?? "").Trim();
+            if (!ModelState.IsValid)
+                return IsAjax ? PartialView(nameof(Edit), t) : View(nameof(Edit), t);
 
+            var db = await _db.tiposHabitacion.FirstOrDefaultAsync(x => x.TipoHabitacionID == id);
+            if (db == null) return NotFound();
+
+            // Validación app: nombre único excluyendo el propio registro
+            bool nombreTomado = await _db.tiposHabitacion
+                .AnyAsync(x => x.TipoHabitacionID != t.TipoHabitacionID && x.Nombre == nuevoNombre);
+            if (nombreTomado)
+            {
+                ModelState.AddModelError(nameof(t.Nombre), "Ya existe un tipo de habitación con ese nombre.");
+                return IsAjax ? PartialView(nameof(Edit), t) : View(nameof(Edit), t);
+            }
+
+            // Detectar cambios reales
             bool hayCambios =
-                !string.Equals(norm(actual.Nombre), norm(t.Nombre), System.StringComparison.Ordinal) ||
-                !string.Equals(norm(actual.Descripcion), norm(t.Descripcion), System.StringComparison.Ordinal) ||
-                actual.Estado != t.Estado;
+                !string.Equals(N(db.Nombre), nuevoNombre, StringComparison.Ordinal) ||
+                !string.Equals(N(db.Descripcion), nuevaDesc, StringComparison.Ordinal) ||
+                db.Estado != t.Estado;
 
             if (!hayCambios)
             {
-                if (IsAjax) return Json(new { ok = false, reason = "nochanges", message = "Realiza un cambio antes de guardar." });
+                if (IsAjax)
+                    return Json(new { ok = false, reason = "nochanges", message = "Realiza un cambio antes de guardar." });
+
                 ModelState.AddModelError(string.Empty, "Realiza un cambio antes de guardar.");
                 return View(t);
             }
 
-            _db.Update(t);
-            await _db.SaveChangesAsync();
+            // Aplicar cambios
+            db.Nombre = nuevoNombre;
+            db.Descripcion = nuevaDesc;
+            db.Estado = t.Estado;
 
-            if (IsAjax) return Json(new { ok = true, message = "¡Actualizado!", redirectUrl = Url.Action("Index") });
+            try
+            {
+                await _db.SaveChangesAsync();
+            }
+            catch (Exception ex) when (IsUniqueViolation(ex))
+            {
+                ModelState.AddModelError(nameof(t.Nombre), "Ya existe un tipo de habitación con ese nombre.");
+                return IsAjax ? PartialView(nameof(Edit), t) : View(nameof(Edit), t);
+            }
+
+            if (IsAjax)
+                return Json(new { ok = true, message = "¡Actualizado!", redirectUrl = Url.Action("Index") });
+
             return RedirectToAction(nameof(Edit), new { id = t.TipoHabitacionID });
         }
 
@@ -206,5 +262,16 @@ namespace PIOGHOASIS.Controllers
             if (descargar) pdf.FileName = $"TiposHabitacion_{System.DateTime.Now:yyyyMMdd_HHmm}.pdf";
             return pdf;
         }
+
+        // Normaliza texto (trim; si quieres *case-insensitive* forzado en app, usa .ToUpperInvariant())
+        private static string N(string? s) => (s ?? "").Trim();
+
+        // ¿La excepción es por UNIQUE/PK en SQL Server?
+        private static bool IsUniqueViolation(Exception ex) =>
+            ex is DbUpdateException dbu &&
+            dbu.InnerException is SqlException sql &&
+            (sql.Number == 2627 || sql.Number == 2601);
+
+
     }
 }

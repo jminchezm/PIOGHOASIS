@@ -364,13 +364,22 @@
         });
 
         // limpiar filtros desde empty-state
-        document.getElementById('printArea')?.addEventListener('click', (ev) => {
-            const btn = ev.target.closest('.js-clear-filters'); if (!btn) return;
-            fCodigo.value = ''; fNombre.value = ''; fRol.value = ''; fEstado.value = '';
-            fCodigo.dispatchEvent(new Event('input'));
-            fNombre.dispatchEvent(new Event('input'));
-            fRol.dispatchEvent(new Event('input'));
-            fEstado.dispatchEvent(new Event('change'));
+        document.querySelector('.puestos-ui')?.addEventListener('click', (ev) => {
+          const btn = ev.target.closest('.js-clear-filters');
+          if (!btn) return;
+
+          // limpia campos
+          fCodigo.value = '';
+          fNombre.value = '';
+          fRol.value    = '';
+          fEstado.value = '';   // "" = Todos
+
+          // dispara eventos para que se ejecute el debounce + recarga
+          fCodigo.dispatchEvent(new Event('input',  { bubbles: true }));
+          fNombre.dispatchEvent(new Event('input',  { bubbles: true }));
+          fRol.dispatchEvent(new Event('input',     { bubbles: true }));
+          fEstado.dispatchEvent(new Event('change', { bubbles: true }));
         });
+
     })();
 </script>

@@ -1,13 +1,16 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using PIOGHOASIS.Infraestructure.Data;
 using PIOGHOASIS.Models;
 using PIOGHOASIS.Models.Entities;
 using PIOGHOASIS.Models.ViewModels;
-using Rotativa.AspNetCore.Options;
 using Rotativa.AspNetCore;
+using Rotativa.AspNetCore.Options;
+using System.Data;
 
 namespace PIOGHOASIS.Controllers
 {
@@ -77,6 +80,8 @@ namespace PIOGHOASIS.Controllers
             return next;
         }
 
+
+
         private static string NombreCompleto(Persona? p)
         {
             if (p == null) return "—";
@@ -117,22 +122,47 @@ namespace PIOGHOASIS.Controllers
         // === Guardado de foto en wwwroot/img/uploads/clientes ===
         private async Task<string?> SaveClienteFotoAsync(string clienteId, IFormFile? file)
         {
-            if (file == null || file.Length == 0) return null;
+            if (file == null || file.Length == 0)
+                return null;
 
-            var ext = Path.GetExtension(file.FileName);
-            if (string.IsNullOrWhiteSpace(ext)) ext = ".jpg";
+            try
+            {
+                // Directorio base
+                var relDir = Path.Combine("img", "uploads", "clientes");
+                var absDir = Path.Combine(_env.WebRootPath, relDir);
+                Directory.CreateDirectory(absDir);
 
-            var relDir = Path.Combine("img", "uploads", "clientes");
-            var absDir = Path.Combine(_env.WebRootPath, relDir);
-            Directory.CreateDirectory(absDir);
+                // Nombre único de archivo
+                var ext = Path.GetExtension(file.FileName);
+                if (string.IsNullOrWhiteSpace(ext)) ext = ".jpg";
+                var fileName = $"{clienteId}_{DateTime.Now:yyyyMMddHHmmssfff}{ext}";
+                var absPath = Path.Combine(absDir, fileName);
 
-            var fileName = $"{clienteId}_{DateTime.UtcNow:yyyyMMddHHmmssfff}{ext}".Replace(" ", "");
-            var absPath = Path.Combine(absDir, fileName);
+                // 🔹 Si el archivo existe (raro, pero posible), lo eliminamos
+                if (System.IO.File.Exists(absPath))
+                    System.IO.File.Delete(absPath);
 
-            using (var fs = new FileStream(absPath, FileMode.Create))
-                await file.CopyToAsync(fs);
+                // 🔹 Guardamos el archivo con bloqueo exclusivo
+                using (var stream = new FileStream(absPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    await file.CopyToAsync(stream);
+                }
 
-            return Path.Combine(relDir, fileName).Replace("\\", "/");
+                // 🔹 Retornamos la ruta relativa (para BD o vista)
+                return Path.Combine(relDir, fileName).Replace("\\", "/");
+            }
+            catch (IOException ioEx)
+            {
+                // Este error ocurre si el archivo está siendo usado por otro proceso
+                Console.WriteLine($"⚠️ Error de IO en SaveClienteFotoAsync: {ioEx.Message}");
+                await Task.Delay(150); // Pequeño retraso para liberar el handle
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error inesperado en SaveClienteFotoAsync: {ex.Message}");
+                return null;
+            }
         }
 
         private void BorrarFotoFisicaCliente(string? relPath)
@@ -294,8 +324,21 @@ namespace PIOGHOASIS.Controllers
             ModelState.Remove("Persona.MunicipioID");
 
             vm.Persona.TipoDocumentoID = vm.Persona.TipoDocumentoID?.Trim();
+            vm.Persona.NumeroDocumento = vm.Persona.NumeroDocumento?.Trim();
+
             if (string.IsNullOrEmpty(vm.Persona.TipoDocumentoID))
                 ModelState.AddModelError("Persona.TipoDocumentoID", "El campo Tipo Documento es obligatorio.");
+
+            // ⛔ Validación de DPI duplicado (server-side)
+            if (!string.IsNullOrWhiteSpace(vm.Persona.NumeroDocumento))
+            {
+                var existeDpi = await _db.personas
+                    .AsNoTracking()
+                    .AnyAsync(p => p.NumeroDocumento == vm.Persona.NumeroDocumento);
+
+                if (existeDpi)
+                    ModelState.AddModelError("Persona.NumeroDocumento", "Este DPI ya está registrado.");
+            }
 
             if (!ModelState.IsValid)
             {
@@ -322,6 +365,25 @@ namespace PIOGHOASIS.Controllers
                 return IsAjax
                     ? Ok(new { ok = true, redirectUrl = Url.Action(nameof(Index)) })
                     : RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateException dbex) // Manejo elegante de UNIQUE en BD
+            {
+                // Si tienes UNIQUE en dbo.PERSONA(NumeroDocumento), atrapamos 2601/2627
+                var baseMsg = dbex.InnerException?.Message ?? dbex.Message;
+                if (baseMsg.Contains("2601") || baseMsg.Contains("2627") || baseMsg.Contains("UQ_") || baseMsg.Contains("UX_"))
+                {
+                    ModelState.AddModelError("Persona.NumeroDocumento", "Este DPI ya está registrado.");
+                    if (IsAjax) return BadRequest(new { ok = false, errors = ModelStateErrors() });
+
+                    await CargarCombosCreateAsync(vm.Persona?.TipoDocumentoID, vm.Persona?.PaisID, vm.Persona?.DepartamentoID, vm.Persona?.MunicipioID);
+                    return View(vm);
+                }
+
+                if (IsAjax) return StatusCode(500, new { ok = false, message = "Error al guardar: " + dbex.Message });
+
+                ModelState.AddModelError(string.Empty, "Error al guardar: " + dbex.Message);
+                await CargarCombosCreateAsync(vm.Persona?.TipoDocumentoID, vm.Persona?.PaisID, vm.Persona?.DepartamentoID, vm.Persona?.MunicipioID);
+                return View(vm);
             }
             catch (Exception ex)
             {
@@ -370,15 +432,37 @@ namespace PIOGHOASIS.Controllers
 
             if (Foto is { Length: > 0 }) ValidarFotoCliente(Foto);
 
+            // Normalizamos antes de validar y comparar
+            vm.Persona.TipoDocumentoID = vm.Persona.TipoDocumentoID?.Trim();
+            vm.Persona.NumeroDocumento = vm.Persona.NumeroDocumento?.Trim();
+
+            // ⛔ Validación de DPI duplicado (excluye la misma Persona)
+            if (!string.IsNullOrWhiteSpace(vm.Persona.NumeroDocumento))
+            {
+                var dupDpi = await _db.personas
+                    .AsNoTracking()
+                    .AnyAsync(p => p.NumeroDocumento == vm.Persona.NumeroDocumento
+                                && p.PersonaID != vm.Persona.PersonaID);
+
+                if (dupDpi)
+                    ModelState.AddModelError("Persona.NumeroDocumento", "Este DPI ya está registrado.");
+            }
+
             if (!ModelState.IsValid)
-                return BadRequest(new { ok = false, errors = ModelStateErrors() });
+            {
+                if (IsAjax) return BadRequest(new { ok = false, errors = ModelStateErrors() });
+
+                // Si llegas aquí por post NO-AJAX, recarga combos y devuelve vista
+                await CargarCombosCreateAsync(vm.Persona?.TipoDocumentoID, vm.Persona?.PaisID, vm.Persona?.DepartamentoID, vm.Persona?.MunicipioID);
+                return View(nameof(Edit), vm);
+            }
 
             var db = await _db.clientes
                 .Include(c => c.Persona)
                 .FirstOrDefaultAsync(c => c.ClienteID == vm.Cliente.ClienteID);
             if (db == null) return NotFound();
 
-            // ======== NUEVO: detección de cambios (igual enfoque que Empleados) ========
+            // ======== Detección de cambios ========
             bool hadChanges =
                 db.Estado != vm.Cliente.Estado ||
                 !string.Equals(db.Persona.PrimerNombre, vm.Persona.PrimerNombre, StringComparison.Ordinal) ||
@@ -411,7 +495,7 @@ namespace PIOGHOASIS.Controllers
                 var vmBack = new ClienteFormVm { Cliente = db, Persona = db.Persona };
                 return View(nameof(Edit), vmBack);
             }
-            // ======== FIN NUEVO ========
+            // ======== FIN Detección de cambios ========
 
             using var tx = await _db.Database.BeginTransactionAsync();
             try
@@ -467,6 +551,24 @@ namespace PIOGHOASIS.Controllers
                     ? Ok(new { ok = true, message = "Cliente actualizado correctamente.", redirectUrl = Url.Action(nameof(Index)) })
                     : RedirectToAction(nameof(Index));
             }
+            catch (DbUpdateException dbex)
+            {
+                // Choque con UNIQUE en NumeroDocumento
+                var baseMsg = dbex.InnerException?.Message ?? dbex.Message;
+                if (baseMsg.Contains("2601") || baseMsg.Contains("2627") || baseMsg.Contains("UQ_") || baseMsg.Contains("UX_"))
+                {
+                    ModelState.AddModelError("Persona.NumeroDocumento", "Este DPI ya está registrado.");
+                    if (IsAjax) return BadRequest(new { ok = false, errors = ModelStateErrors() });
+
+                    await CargarCombosCreateAsync(vm.Persona?.TipoDocumentoID, vm.Persona?.PaisID, vm.Persona?.DepartamentoID, vm.Persona?.MunicipioID);
+                    return View(nameof(Edit), vm);
+                }
+
+                await tx.RollbackAsync();
+                return IsAjax
+                    ? StatusCode(500, new { ok = false, message = "Error al actualizar: " + dbex.Message })
+                    : Problem("Error al actualizar: " + dbex.Message);
+            }
             catch (Exception ex)
             {
                 await tx.RollbackAsync();
@@ -475,109 +577,6 @@ namespace PIOGHOASIS.Controllers
                     : Problem("Error al actualizar: " + ex.Message);
             }
         }
-
-
-        //[HttpPost, ValidateAntiForgeryToken]
-        //public async Task<IActionResult> Edit(string id, ClienteFormVm vm, IFormFile? Foto, bool QuitarFoto = false)
-        //{
-        //    if (id != vm?.Cliente?.ClienteID)
-        //        return BadRequest(new { ok = false, message = "El id de la ruta no coincide con el del formulario." });
-
-        //    // Navegaciones que no vienen en el post
-        //    ModelState.Remove("Cliente.Persona");
-        //    ModelState.Remove("Persona.Empleado");
-        //    ModelState.Remove("Cliente.PersonaID");
-
-        //    // ⚠️ Igual que en Create: estos dos los tratamos como opcionales SIEMPRE
-        //    ModelState.Remove("Persona.DepartamentoID");
-        //    ModelState.Remove("Persona.MunicipioID");
-
-        //    // ⚠️ Suele causar 400 si queda vacío o no viaja
-        //    ModelState.Remove("Persona.FechaRegistro");
-        //    // Si en tu modelo es [Required] y no viaja, conserva el valor actual
-        //    // (lo hacemos abajo al mapear con la entidad de BD)
-
-        //    // Foto (valida tamaño/extension)
-        //    if (Foto is { Length: > 0 }) ValidarFotoCliente(Foto);
-
-        //    if (!ModelState.IsValid)
-        //    {
-        //        // 👇 Devuelve 400 con el diccionario de errores (tu JS ya lo muestra por campo)
-        //        return BadRequest(new { ok = false, errors = ModelStateErrors() });
-        //    }
-
-        //    var db = await _db.clientes
-        //        .Include(c => c.Persona)
-        //        .FirstOrDefaultAsync(c => c.ClienteID == vm.Cliente.ClienteID);
-
-        //    if (db == null) return NotFound();
-
-        //    using var tx = await _db.Database.BeginTransactionAsync();
-        //    try
-        //    {
-        //        // Persona
-        //        var p = db.Persona;
-        //        p.PrimerNombre = vm.Persona.PrimerNombre;
-        //        p.SegundoNombre = vm.Persona.SegundoNombre;
-        //        p.PrimerApellido = vm.Persona.PrimerApellido;
-        //        p.SegundoApellido = vm.Persona.SegundoApellido;
-        //        p.Email = vm.Persona.Email;
-        //        p.Telefono1 = vm.Persona.Telefono1;
-        //        p.Telefono2 = vm.Persona.Telefono2;
-        //        p.Direccion = vm.Persona.Direccion;
-        //        p.TipoDocumentoID = vm.Persona.TipoDocumentoID;
-        //        p.NumeroDocumento = vm.Persona.NumeroDocumento;
-        //        p.Nit = vm.Persona.Nit;
-        //        p.FechaNacimiento = vm.Persona.FechaNacimiento;
-        //        p.PaisID = vm.Persona.PaisID;
-        //        p.DepartamentoID = vm.Persona.DepartamentoID;   // pueden venir null
-        //        p.MunicipioID = vm.Persona.MunicipioID;
-
-        //        // Si por validación cliente no viajó FechaRegistro, conserva la que está en BD
-        //        if (vm.Persona.FechaRegistro == null)
-        //            vm.Persona.FechaRegistro = p.FechaRegistro;
-
-        //        // Foto
-        //        if (QuitarFoto && !string.IsNullOrWhiteSpace(p.FotoPath))
-        //        {
-        //            BorrarFotoFisicaCliente(p.FotoPath);
-        //            p.FotoPath = null;
-        //        }
-        //        else if (Foto is { Length: > 0 })
-        //        {
-        //            var nueva = await SaveClienteFotoAsync(db.ClienteID, Foto);
-        //            if (!string.IsNullOrWhiteSpace(p.FotoPath))
-        //                BorrarFotoFisicaCliente(p.FotoPath);
-        //            p.FotoPath = nueva;
-        //        }
-        //        else
-        //        {
-        //            // Conservar la que venía en el hidden (si la agregas en la vista)
-        //            p.FotoPath = vm.Persona.FotoPath;
-        //        }
-
-        //        // Cliente
-        //        db.Estado = vm.Cliente.Estado;
-
-        //        await _db.SaveChangesAsync();
-        //        await tx.CommitAsync();
-
-        //        return IsAjax
-        //            ? Ok(new { ok = true, message = "Cliente actualizado correctamente.", redirectUrl = Url.Action(nameof(Index)) })
-        //            : RedirectToAction(nameof(Index));
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        await tx.RollbackAsync();
-        //        return IsAjax
-        //            ? StatusCode(500, new { ok = false, message = "Error al actualizar: " + ex.Message })
-        //            : Problem("Error al actualizar: " + ex.Message);
-        //    }
-        //}
-
-
-
-
 
         // === Validación de foto ===
         private static readonly string[] _extPermitidasCli = new[] { ".jpg", ".jpeg", ".png", ".webp" };
@@ -660,5 +659,130 @@ namespace PIOGHOASIS.Controllers
 
             return pdf;
         }
+
+        [AcceptVerbs("GET", "POST")]
+        public async Task<IActionResult> VerificarDpi(string NumeroDocumento, string? PersonaID)
+        {
+            var dpi = (NumeroDocumento ?? "").Trim();
+
+            bool existe = await _db.personas
+                .AsNoTracking()
+                .AnyAsync(p => p.NumeroDocumento == dpi && p.PersonaID != PersonaID);
+
+            return Json(existe ? "Este DPI ya está registrado." : true);
+        }
+
+
+        // ===== CREATE INLINE (GET) =====
+        [HttpGet]
+        public async Task<IActionResult> CreateInline()
+        {
+            await CargarCombosCreateAsync();
+
+            var vm = new ClienteFormVm
+            {
+                Cliente = new Cliente { ClienteID = await NextClienteIdAsync(), Estado = true },
+                Persona = new Persona { PersonaID = await NextPersonaIdAsync(), FechaRegistro = DateTime.Now }
+            };
+
+            // Renderiza el formulario en un partial para el modal
+            return PartialView("_CreateInline", vm);
+        }
+
+        // ===== CREATE INLINE (POST) =====
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateInline(ClienteFormVm vm, IFormFile? Foto)
+        {
+            // Limpieza de ModelState igual que Create normal
+            ModelState.Remove("Cliente.Persona");
+            ModelState.Remove("Persona.Empleado");
+            ModelState.Remove("Persona.PersonaID");
+            ModelState.Remove("Cliente.PersonaID");
+
+            if (vm.Persona.FechaRegistro == null)
+                vm.Persona.FechaRegistro = DateTime.Now;
+            ModelState.Remove("Persona.FechaRegistro");
+
+            // Departamento / Municipio SIEMPRE opcionales
+            ModelState.Remove("Persona.DepartamentoID");
+            ModelState.Remove("Persona.MunicipioID");
+
+            // Normalizaciones
+            vm.Persona.TipoDocumentoID = vm.Persona.TipoDocumentoID?.Trim();
+            vm.Persona.NumeroDocumento = vm.Persona.NumeroDocumento?.Trim();
+
+            if (string.IsNullOrEmpty(vm.Persona.TipoDocumentoID))
+                ModelState.AddModelError("Persona.TipoDocumentoID", "El campo Tipo Documento es obligatorio.");
+
+            // ⛔ Validación DPI duplicado
+            if (!string.IsNullOrWhiteSpace(vm.Persona.NumeroDocumento))
+            {
+                var existeDpi = await _db.personas
+                    .AsNoTracking()
+                    .AnyAsync(p => p.NumeroDocumento == vm.Persona.NumeroDocumento);
+
+                if (existeDpi)
+                    ModelState.AddModelError("Persona.NumeroDocumento", "Este DPI ya está registrado.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                // Reenviar el mismo partial con errores para que se reemplace dentro del modal
+                await CargarCombosCreateAsync(vm.Persona?.TipoDocumentoID, vm.Persona?.PaisID, vm.Persona?.DepartamentoID, vm.Persona?.MunicipioID);
+                return PartialView("_CreateInline", vm);
+            }
+
+            // IDs definitivos
+            vm.Cliente.ClienteID = await NextClienteIdAsync();
+            if (string.IsNullOrWhiteSpace(vm.Persona.PersonaID))
+                vm.Persona.PersonaID = await NextPersonaIdAsync();
+
+            // Foto
+            var rel = await SaveClienteFotoAsync(vm.Cliente.ClienteID, Foto);
+            if (!string.IsNullOrWhiteSpace(rel)) vm.Persona.FotoPath = rel;
+
+            // Forzar estado ACTIVO al crear
+            ModelState.Remove("Cliente.Estado"); // opcional
+            vm.Cliente.Estado = true;
+
+            try
+            {
+                _db.personas.Add(vm.Persona);
+                vm.Cliente.PersonaID = vm.Persona.PersonaID;
+                _db.clientes.Add(vm.Cliente);
+                await _db.SaveChangesAsync();
+
+                // Devuelve JSON para que el JS cierre el modal y complete el buscador
+                return Json(new
+                {
+                    ok = true,
+                    id = vm.Cliente.ClienteID,
+                    nombre = (vm.Persona.PrimerNombre + " " + (vm.Persona.SegundoNombre ?? "") + " " + vm.Persona.PrimerApellido + " " + (vm.Persona.SegundoApellido ?? "")).Replace("  ", " ").Trim(),
+                    dpi = vm.Persona.NumeroDocumento,
+                    telefono = vm.Persona.Telefono1,
+                    correo = vm.Persona.Email
+                });
+            }
+            catch (DbUpdateException dbex)
+            {
+                // Choque con UNIQUE en NumeroDocumento
+                var baseMsg = dbex.InnerException?.Message ?? dbex.Message;
+                if (baseMsg.Contains("2601") || baseMsg.Contains("2627") || baseMsg.Contains("UQ_") || baseMsg.Contains("UX_"))
+                    ModelState.AddModelError("Persona.NumeroDocumento", "Este DPI ya está registrado.");
+                else
+                    ModelState.AddModelError(string.Empty, "Error al guardar: " + dbex.Message);
+
+                await CargarCombosCreateAsync(vm.Persona?.TipoDocumentoID, vm.Persona?.PaisID, vm.Persona?.DepartamentoID, vm.Persona?.MunicipioID);
+                return PartialView("_CreateInline", vm);
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(string.Empty, "Error al guardar: " + ex.Message);
+                await CargarCombosCreateAsync(vm.Persona?.TipoDocumentoID, vm.Persona?.PaisID, vm.Persona?.DepartamentoID, vm.Persona?.MunicipioID);
+                return PartialView("_CreateInline", vm);
+            }
+        }
+
     }
+
 }

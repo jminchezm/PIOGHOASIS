@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using PIOGHOASIS.Infraestructure.Data;
 using PIOGHOASIS.Models;
+using System.Security.Claims;
 
 namespace PIOGHOASIS.Controllers
 {
@@ -140,6 +141,31 @@ namespace PIOGHOASIS.Controllers
             _db.pagosReserva.Add(pago);
             await _db.SaveChangesAsync();
 
+            //=================== Vincular a caja abierta
+            //await new CajaController(_db).AttachPago(pago.PagoReservaID);
+            // o directamente:
+            var cajaAbierta = await _db.cajas
+            .Where(c => c.EstadoCajaID == 1 && c.UsuarioAperturaID == GetUserId()) // <-- del mismo usuario
+            .Select(c => c.CajaID)
+            .FirstOrDefaultAsync();
+
+            if (cajaAbierta == 0)
+            {
+                // Opcional: decide si debes fallar o solo continuar sin vincular
+                // ModelState.AddModelError("", "No tienes una caja abierta.");
+                // return ...;
+            }
+            else
+            {
+                _db.cajaPagos.Add(new CajaPago
+                {
+                    CajaID = cajaAbierta,
+                    PagoReservaID = pago.PagoReservaID,
+                    FechaRegistro = DateTime.Now
+                });
+                await _db.SaveChangesAsync();
+            }
+
             // --- Recalcular estado ---
             await RecalcularEstadoReservaAsync(m.ReservaID);
 
@@ -149,6 +175,16 @@ namespace PIOGHOASIS.Controllers
             TempData["FlashModal"] = "Pago registrado correctamente.";
             TempData["FlashType"] = "success"; // opcional: success | warning | info | danger
             return RedirectToAction("DetalleReserva", "Pagos", new { reservaId = m.ReservaID });
+        }
+
+        private string GetUserId()
+        {
+            // Busca el claim estándar de ID; si no existe, intenta con "sub" o "userid"
+            return User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? User.FindFirstValue("userid")
+                ?? User.Identity?.Name
+                ?? "usuario";
         }
 
         [HttpGet("DescargarComprobante/{pagoId:int}")]
@@ -186,9 +222,10 @@ namespace PIOGHOASIS.Controllers
                     .Select(e => e.EstadoReservaID)
                     .FirstAsync();
 
-                var toUpdate = new Reserva { ReservaID = reservaId, EstadoReservaID = idConfirmada };
+                var toUpdate = new Reserva { ReservaID = reservaId, EstadoReservaID = idConfirmada, UsuarioFinaliza = GetUserId() };
                 _db.Attach(toUpdate);
                 _db.Entry(toUpdate).Property(x => x.EstadoReservaID).IsModified = true;
+                _db.Entry(toUpdate).Property(x => x.UsuarioFinaliza).IsModified = true;
                 await _db.SaveChangesAsync();
             }
             else

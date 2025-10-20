@@ -1,0 +1,244 @@
+﻿@model IEnumerable<PIOGHOASIS.Models.Caja>
+@{
+    Layout = null;
+
+    // Texto de estado a partir del ViewBag
+    string EstadoTxt = (ViewBag.EstadoCajaID as short?) switch
+    {
+        1 => "Abierta",
+        2 => "Cerrada",
+        _ => "Todos"
+    };
+
+    // URL absoluta del logo para wkhtmltopdf
+    var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var logoUrl = baseUrl + Url.Content("~/img/login/logo-oasis.png");
+
+    // Filtros
+    string FCodigo = ViewBag.Codigo ?? "—";
+    string FUsuario = ViewBag.Usuario ?? "—";
+    string FDesde = ViewBag.FechaDesde is DateTime d1 ? d1.ToString("dd/MM/yyyy") : "—";
+    string FHasta = ViewBag.FechaHasta is DateTime d2 ? d2.ToString("dd/MM/yyyy") : "—";
+
+    // Totales rápidos
+    int total = Model?.Count() ?? 0;
+    int abiertas = Model?.Count(c => c.EstadoCajaID == 1) ?? 0;
+    int cerradas = Model?.Count(c => c.EstadoCajaID == 2) ?? 0;
+    decimal sumaApertura = Model?.Sum(c => c.MontoApertura) ?? 0m;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Reporte de Cajas</title>
+    <style>
+        html, body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12.5px;
+            color: #1f2a37;
+        }
+
+        .container {
+            padding: 14mm 12mm;
+        }
+
+        .brand {
+            display: table;
+            width: 100%;
+            border-bottom: 3px solid #d7a536;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+            .brand .left {
+                display: table-cell;
+                vertical-align: middle;
+                width: 1%;
+            }
+
+            .brand .right {
+                display: table-cell;
+                vertical-align: middle;
+                padding-left: 10px;
+            }
+
+        .logo {
+            width: 150px;
+            height: auto;
+        }
+
+        .title {
+            margin: 0;
+            font-size: 24px;
+            line-height: 1.2;
+            font-weight: 800;
+            color: #1f2a37;
+        }
+
+        .meta {
+            margin-top: 2px;
+            color: #6b7280;
+            font-size: 12px;
+        }
+
+        .filters {
+            margin-top: 8px;
+            margin-bottom: 10px;
+            background: #fff8e6;
+            border: 1px solid #f3c259;
+            border-left: 5px solid #F0A100;
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+
+            .filters b {
+                color: #1f2a37;
+            }
+
+            .filters .chip {
+                margin-right: 14px;
+                white-space: nowrap;
+            }
+
+        .stats {
+            margin: 10px 0 12px;
+            display: table;
+            width: 100%;
+        }
+
+            .stats .box {
+                display: inline-block;
+                margin-right: 14px;
+                padding: 6px 10px;
+                border: 1px solid #eee;
+                border-radius: 6px;
+                background: #fafafa;
+            }
+
+                .stats .box b {
+                    margin-right: 6px;
+                }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead th {
+            background: #f3c259;
+            color: #222;
+            border: 1px solid #d7a536;
+            padding: 7px 8px;
+            text-align: left;
+            font-weight: 800;
+        }
+
+        tbody td {
+            border: 1px solid #e8e5e5;
+            padding: 7px 8px;
+            vertical-align: top;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fffaf0;
+        }
+
+        tbody tr:hover {
+            background: #fff4d6;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .pill {
+            font-weight: 700;
+        }
+
+        .pill-ok {
+            color: #16803d;
+        }
+
+        .pill-off {
+            color: #b42318;
+        }
+
+        .empty {
+            padding: 14mm 0;
+            text-align: center;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Header -->
+        <div class="brand">
+            <div class="left">
+                <img class="logo" src="@logoUrl" alt="Hotel Oasis" />
+            </div>
+            <div class="right">
+                <h1 class="title">Reporte de Cajas</h1>
+                <div class="meta">Generado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filters">
+            <span class="chip"><b>Código:</b> @FCodigo</span>
+            <span class="chip"><b>Usuario:</b> @FUsuario</span>
+            <span class="chip"><b>Estado:</b> @EstadoTxt</span>
+            <span class="chip"><b>Desde:</b> @FDesde</span>
+            <span class="chip"><b>Hasta:</b> @FHasta</span>
+        </div>
+
+        <!-- Estadísticas rápidas -->
+        <div class="stats">
+            <span class="box"><b>Total:</b> @total</span>
+            <span class="box"><b>Abiertas:</b> @abiertas</span>
+            <span class="box"><b>Cerradas:</b> @cerradas</span>
+            <span class="box"><b>Suma Monto Apertura:</b> Q. @sumaApertura.ToString("N2")</span>
+        </div>
+
+        <!-- Tabla -->
+        @if (!(Model?.Any() ?? false))
+        {
+            <div class="empty">No se encontró ningún registro con los filtros seleccionados.</div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:120px;">Código</th>
+                        <th>Usuario apertura</th>
+                        <th style="width:150px;">F. Apertura</th>
+                        <th style="width:130px;" class="right">Monto apertura</th>
+                        <th style="width:150px;">F. Cierre</th>
+                        <th style="width:100px;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                <tr>
+                    <td>@c.Codigo</td>
+                    <td>@c.UsuarioAperturaID</td>
+                    <td>@c.FechaApertura.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td class="right">Q. @c.MontoApertura.ToString("N2")</td>
+                    <td>@(c.FechaCierre.HasValue? c.FechaCierre.Value.ToString("dd/MM/yyyy HH:mm") : "—")</td>
+                    <td>
+                        @Html.Raw(c.EstadoCajaID == 1
+                                                ? "<span class='pill pill-ok'>Abierta</span>"
+                                                : "<span class='pill pill-off'>Cerrada</span>")
+                    </td>
+                </tr>
+                                }
+                </tbody>
+            </table>
+        }
+    </div>
+</body>
+</html>

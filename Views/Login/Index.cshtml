@@ -1,5 +1,5 @@
 ﻿@{
-    Layout = null;                       /* Déjalo así si NO quieres usar _Layout en esta vista */
+    Layout = null;
     ViewData["Title"] = "Login";
 }
 <!DOCTYPE html>
@@ -48,7 +48,6 @@
                                 }
 
                                 <form method="post" action="/Login/Index" autocomplete="off">
-                                    @* @Html.AntiForgeryToken()  // quita el comentario si usas validación antifalsificación *@
                                     @Html.AntiForgeryToken()
 
                                     <div class="mb-3">
@@ -63,7 +62,8 @@
                                                class="form-control oasis-input" placeholder="••••••••" required />
                                     </div>
 
-                                    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center gap-3 mt-4 area_btn_ingresar justify-content-center">
+                                    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center 
+                                    gap-3 mt-4 area_btn_ingresar justify-content-center">
                                         <button type="submit" class="btn btn-oasis">
                                             Ingresar
                                         </button>
@@ -74,27 +74,6 @@
                                         </a>
                                     </div>
                                 </form>
-
-                                <!-- Validación MVC (opcional con Tag Helpers)
-                                @* @model TuProyecto.ViewModels.LoginViewModel
-                                <form asp-controller="Login" asp-action="Index" method="post">
-                                    @Html.AntiForgeryToken()
-                                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                                    <div class="mb-3">
-                                        <label asp-for="Usuario" class="form-label"></label>
-                                        <input asp-for="Usuario" class="form-control oasis-input" />
-                                        <span asp-validation-for="Usuario" class="text-danger"></span>
-                                    </div>
-                                    <div class="mb-2">
-                                        <label asp-for="Contrasena" class="form-label"></label>
-                                        <input asp-for="Contrasena" type="password" class="form-control oasis-input" />
-                                        <span asp-validation-for="Contrasena" class="text-danger"></span>
-                                    </div>
-                                    <div class="d-flex gap-3 mt-4">
-                                        <button type="submit" class="btn btn-oasis">Ingresar</button>
-                                        <a class="help-link" asp-controller="Login" asp-action="OlvidoContrasena">¿Olvidaste tu contraseña?</a>
-                                    </div>
-                                </form> *@ -->
                             </div>
                         </div>
                     </div>

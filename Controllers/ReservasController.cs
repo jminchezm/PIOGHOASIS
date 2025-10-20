@@ -1,5 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewEngines;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
+using PIOGHOASIS.Filters;
 using PIOGHOASIS.Infraestructure.Data;
 using PIOGHOASIS.Models;
 using PIOGHOASIS.Models.ViewModels;
@@ -7,9 +11,11 @@ using PIOGHOASIS.Services;
 using Rotativa.AspNetCore;
 using Rotativa.AspNetCore.Options;
 using System;
+using System.Security.Claims;
 
 namespace PIOGHOASIS.Controllers
 {
+    [RequireCajaAbierta]
     [Route("Reservas")]
     public class ReservasController : Controller
     {
@@ -128,36 +134,46 @@ namespace PIOGHOASIS.Controllers
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<IActionResult> Buscar(DateTime? checkIn, DateTime? checkOut, int personas = 1)
         {
+            // === Caso sin fechas o fechas inválidas: devuelve parcial vacío (muestra la alerta)
             if (checkIn == null || checkOut == null || checkOut <= checkIn)
-                return PartialView("_ResultadosHabitaciones", new List<HabitacionDisponibleVM>());
+            {
+                var vacio = new List<HabitacionDisponibleVM>();
+
+                if (IsAjax) // <-- usa tu helper ya existente en el controlador
+                    return PartialView("_ResultadosHabitaciones", vacio);
+
+                // Navegación full: reconstruye la vista host y embebe el parcial dentro del panel blanco
+                ViewData["Resultados"] = await this.RenderViewAsync("_ResultadosHabitaciones", vacio, partial: true);
+                return View("ElegirHabitacion", new BusquedaHabitacionVM());
+            }
 
             var ci = checkIn.Value.Date;
             var co = checkOut.Value.Date;
 
-            // 1) Estados que BLOQUEAN inventario (ajusta los códigos a los tuyos)
-            var codigosBloqueo = new[] { "ESTHAB0001", "ESTHAB0002"}; // Reservada, Confirmada, Check-in (ejemplo)
+            // 1) Estados que BLOQUEAN inventario
+            var codigosBloqueo = new[] { "ESTHAB0001", "ESTHAB0002" }; // Reservada, Confirmada (ajusta a tus códigos)
             var idsBloqueo = await _db.estadosReserva
                 .Where(e => codigosBloqueo.Contains(e.Codigo))
                 .Select(e => e.EstadoReservaID)
                 .ToListAsync();
 
-            // 2) Si no usas códigos, puedes resolver por nombre (fallback):
+            // 2) Fallback por nombre si no hay coincidencias por código
             if (!idsBloqueo.Any())
             {
-                var nombres = new[] { "RESERVADA", "CONFIRMADA"}; // usa begins-with "CHECK" por si es "Check-in"
+                var nombres = new[] { "RESERVADA", "CONFIRMADA" };
                 idsBloqueo = await _db.estadosReserva
                     .Where(e => nombres.Any(n => e.Nombre.ToUpper().Contains(n)))
                     .Select(e => e.EstadoReservaID)
                     .ToListAsync();
             }
 
-            // 3) Buscar habitaciones DISPONIBLES: no tengan solape con reservas en estados bloqueantes
+            // 3) Habitaciones disponibles (sin solape con reservas en estados bloqueantes)
             var habsDisponibles = await _db.habitaciones
                 .Where(h => h.Estado)
                 .Include(h => h.TipoHabitacion)
                 .Where(h => !_db.detalleReservas.Any(d =>
                     d.HabitacionID == h.HabitacionID &&
-                    idsBloqueo.Contains(d.Reserva.EstadoReservaID) &&      // ← ya no hardcodeado
+                    idsBloqueo.Contains(d.Reserva.EstadoReservaID) &&
                     !(d.Reserva.FechaCheckOut <= ci || d.Reserva.FechaCheckIn >= co)))
                 .AsNoTracking()
                 .ToListAsync();
@@ -181,25 +197,23 @@ namespace PIOGHOASIS.Controllers
                     PersonasSeleccionadas = defaultPersonas
                 };
 
-                // Catálogo de tarifas
+                // Tarifas por # de personas
                 for (int p = 1; p <= cap; p++)
                 {
-                    var tarifasDb = await _db.tarifasHabitacion
-                        .AsNoTracking()
+                    var tarifasDb = await _db.tarifasHabitacion.AsNoTracking()
                         .Where(t => t.HabitacionID == h.HabitacionID
-                                 && t.NumeroPersonas == p
-                                 && t.FechaInicio <= ci
-                                 && t.FechaFin >= co.AddDays(-1))
+                                    && t.NumeroPersonas == p
+                                    && t.FechaInicio <= ci
+                                    && t.FechaFin >= co.AddDays(-1))
                         .OrderBy(t => t.PrecioNoche)
                         .ToListAsync();
 
                     if (tarifasDb.Count == 0)
                     {
-                        tarifasDb = await _db.tarifasHabitacion
-                            .AsNoTracking()
+                        tarifasDb = await _db.tarifasHabitacion.AsNoTracking()
                             .Where(t => t.HabitacionID == h.HabitacionID
-                                     && t.NumeroPersonas == p
-                                     && !(t.FechaFin < ci || t.FechaInicio > co.AddDays(-1)))
+                                        && t.NumeroPersonas == p
+                                        && !(t.FechaFin < ci || t.FechaInicio > co.AddDays(-1)))
                             .OrderBy(t => t.PrecioNoche)
                             .ToListAsync();
                     }
@@ -215,7 +229,9 @@ namespace PIOGHOASIS.Controllers
                                 TarifaID = t.TarifaID,
                                 PrecioNoche = t.PrecioNoche,
                                 TotalConImpuestos = tot,
-                                Etiqueta = string.IsNullOrWhiteSpace(t.EtiquetaTemporada) ? $"Tarifa {p} persona(s)" : t.EtiquetaTemporada
+                                Etiqueta = string.IsNullOrWhiteSpace(t.EtiquetaTemporada)
+                                           ? $"Tarifa {p} persona(s)"
+                                           : t.EtiquetaTemporada
                             });
                         }
                     }
@@ -237,7 +253,9 @@ namespace PIOGHOASIS.Controllers
                     }
                 }
 
-                var active = item.Tarifas.FirstOrDefault(t => t.Personas == defaultPersonas) ?? item.Tarifas.FirstOrDefault();
+                var active = item.Tarifas.FirstOrDefault(t => t.Personas == defaultPersonas)
+                          ?? item.Tarifas.FirstOrDefault();
+
                 if (active != null)
                 {
                     item.TarifaSeleccionadaID = active.TarifaID;
@@ -248,8 +266,146 @@ namespace PIOGHOASIS.Controllers
                 res.Add(item);
             }
 
-            return PartialView("_ResultadosHabitaciones", res);
+            // === Respuesta según contexto (AJAX vs navegación completa)
+            if (IsAjax)
+                return PartialView("_ResultadosHabitaciones", res);
+
+            ViewData["Resultados"] = await this.RenderViewAsync("_ResultadosHabitaciones", res, partial: true);
+            return View("ElegirHabitacion", new BusquedaHabitacionVM
+            {
+                CheckIn = checkIn,
+                CheckOut = checkOut,
+                Personas = personas
+            });
         }
+
+
+        //[HttpGet("Buscar")]
+        //[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        //public async Task<IActionResult> Buscar(DateTime? checkIn, DateTime? checkOut, int personas = 1)
+        //{
+        //    if (checkIn == null || checkOut == null || checkOut <= checkIn)
+        //        return PartialView("_ResultadosHabitaciones", new List<HabitacionDisponibleVM>());
+
+        //    var ci = checkIn.Value.Date;
+        //    var co = checkOut.Value.Date;
+
+        //    // 1) Estados que BLOQUEAN inventario (ajusta los códigos a los tuyos)
+        //    var codigosBloqueo = new[] { "ESTHAB0001", "ESTHAB0002"}; // Reservada, Confirmada, Check-in (ejemplo)
+        //    var idsBloqueo = await _db.estadosReserva
+        //        .Where(e => codigosBloqueo.Contains(e.Codigo))
+        //        .Select(e => e.EstadoReservaID)
+        //        .ToListAsync();
+
+        //    // 2) Si no usas códigos, puedes resolver por nombre (fallback):
+        //    if (!idsBloqueo.Any())
+        //    {
+        //        var nombres = new[] { "RESERVADA", "CONFIRMADA"}; // usa begins-with "CHECK" por si es "Check-in"
+        //        idsBloqueo = await _db.estadosReserva
+        //            .Where(e => nombres.Any(n => e.Nombre.ToUpper().Contains(n)))
+        //            .Select(e => e.EstadoReservaID)
+        //            .ToListAsync();
+        //    }
+
+        //    // 3) Buscar habitaciones DISPONIBLES: no tengan solape con reservas en estados bloqueantes
+        //    var habsDisponibles = await _db.habitaciones
+        //        .Where(h => h.Estado)
+        //        .Include(h => h.TipoHabitacion)
+        //        .Where(h => !_db.detalleReservas.Any(d =>
+        //            d.HabitacionID == h.HabitacionID &&
+        //            idsBloqueo.Contains(d.Reserva.EstadoReservaID) &&      // ← ya no hardcodeado
+        //            !(d.Reserva.FechaCheckOut <= ci || d.Reserva.FechaCheckIn >= co)))
+        //        .AsNoTracking()
+        //        .ToListAsync();
+
+        //    var res = new List<HabitacionDisponibleVM>();
+
+        //    foreach (var h in habsDisponibles)
+        //    {
+        //        var cap = Math.Max(1, (int)(h.CapacidadPersonas ?? 1));
+        //        var defaultPersonas = Math.Clamp(personas, 1, cap);
+
+        //        var item = new HabitacionDisponibleVM
+        //        {
+        //            HabitacionID = h.HabitacionID,
+        //            Codigo = h.Codigo,
+        //            Imagen = string.IsNullOrWhiteSpace(h.Imagen) ? "/img/DefaultHabitacion.png" : h.Imagen,
+        //            Titulo = $"{h.TipoHabitacion?.Nombre} #{h.NumeroHabitacion}",
+        //            TipoNombre = h.TipoHabitacion?.Nombre ?? "",
+        //            NumeroHabitacion = h.NumeroHabitacion,
+        //            Capacidad = cap,
+        //            PersonasSeleccionadas = defaultPersonas
+        //        };
+
+        //        // Catálogo de tarifas
+        //        for (int p = 1; p <= cap; p++)
+        //        {
+        //            var tarifasDb = await _db.tarifasHabitacion
+        //                .AsNoTracking()
+        //                .Where(t => t.HabitacionID == h.HabitacionID
+        //                         && t.NumeroPersonas == p
+        //                         && t.FechaInicio <= ci
+        //                         && t.FechaFin >= co.AddDays(-1))
+        //                .OrderBy(t => t.PrecioNoche)
+        //                .ToListAsync();
+
+        //            if (tarifasDb.Count == 0)
+        //            {
+        //                tarifasDb = await _db.tarifasHabitacion
+        //                    .AsNoTracking()
+        //                    .Where(t => t.HabitacionID == h.HabitacionID
+        //                             && t.NumeroPersonas == p
+        //                             && !(t.FechaFin < ci || t.FechaInicio > co.AddDays(-1)))
+        //                    .OrderBy(t => t.PrecioNoche)
+        //                    .ToListAsync();
+        //            }
+
+        //            if (tarifasDb.Count > 0)
+        //            {
+        //                foreach (var t in tarifasDb)
+        //                {
+        //                    var (_, _, tot) = ReservaPricingService.Totales(t.PrecioNoche, 1);
+        //                    item.Tarifas.Add(new TarifaOpcionVM
+        //                    {
+        //                        Personas = p,
+        //                        TarifaID = t.TarifaID,
+        //                        PrecioNoche = t.PrecioNoche,
+        //                        TotalConImpuestos = tot,
+        //                        Etiqueta = string.IsNullOrWhiteSpace(t.EtiquetaTemporada) ? $"Tarifa {p} persona(s)" : t.EtiquetaTemporada
+        //                    });
+        //                }
+        //            }
+        //            else
+        //            {
+        //                var (precio, tarifaId) = await _pricing.PrecioPorNoche(h.HabitacionID, p, ci, co);
+        //                if (precio > 0)
+        //                {
+        //                    var (_, _, tot) = ReservaPricingService.Totales(precio, 1);
+        //                    item.Tarifas.Add(new TarifaOpcionVM
+        //                    {
+        //                        Personas = p,
+        //                        TarifaID = tarifaId,
+        //                        PrecioNoche = precio,
+        //                        TotalConImpuestos = tot,
+        //                        Etiqueta = "Tarifa estándar"
+        //                    });
+        //                }
+        //            }
+        //        }
+
+        //        var active = item.Tarifas.FirstOrDefault(t => t.Personas == defaultPersonas) ?? item.Tarifas.FirstOrDefault();
+        //        if (active != null)
+        //        {
+        //            item.TarifaSeleccionadaID = active.TarifaID;
+        //            item.PrecioNoche = active.PrecioNoche;
+        //            item.TotalConImpuestos = active.TotalConImpuestos;
+        //        }
+
+        //        res.Add(item);
+        //    }
+
+        //    return PartialView("_ResultadosHabitaciones", res);
+        //}
 
 
         //[HttpGet("Buscar")]
@@ -532,15 +688,25 @@ namespace PIOGHOASIS.Controllers
         }
 
         [HttpPost("Confirmar")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ConfirmarPost()
         {
             var r = GetResumen();
-            if (r == null || r.ClienteID == null) return RedirectToAction(nameof(ElegirHabitacion));
+            if (r == null || r.ClienteID == null)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { ok = false, msg = "Sesión de reserva perdida.", redirectUrl = Url.Action(nameof(ElegirHabitacion)) });
+                return RedirectToAction(nameof(ElegirHabitacion));
+            }
 
-            // Verifica disponibilidad última vez
+            // Verificación final de disponibilidad
             if (!await _pricing.HabitacionDisponible(r.HabitacionID, r.CheckIn, r.CheckOut))
             {
-                TempData["msg"] = "La habitación ya no está disponible.";
+                var msg = "La habitación ya no está disponible.";
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { ok = false, msg, redirectUrl = Url.Action(nameof(ElegirHabitacion)) });
+
+                TempData["msg"] = msg;
                 return RedirectToAction(nameof(ElegirHabitacion));
             }
 
@@ -550,7 +716,9 @@ namespace PIOGHOASIS.Controllers
                 var reserva = new Reserva
                 {
                     ClienteID = r.ClienteID!,
-                    EstadoReservaID = await EstadoId("ESTHAB0001"),
+                    UsuarioID = GetUserId(),
+                    UsuarioFinaliza = null,
+                    EstadoReservaID = await EstadoId("ESTHAB0001"), // "Reservada" (ajusta si corresponde)
                     FechaCheckIn = r.CheckIn,
                     FechaCheckOut = r.CheckOut,
                     Subtotal = r.Subtotal,
@@ -578,14 +746,87 @@ namespace PIOGHOASIS.Controllers
                 await tx.CommitAsync();
                 HttpContext.Session.Remove(KEY);
 
+                var url = Url.Action(nameof(Detalles), new { id = reserva.ReservaID });
+
+                // 🔁 Si viene por AJAX devolvemos JSON (lo usa el script para modal + redirección)
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { ok = true, redirectUrl = url });
+
+                // Navegación tradicional
                 return RedirectToAction(nameof(Detalles), new { id = reserva.ReservaID });
             }
-            catch
+            catch (Exception ex)
             {
                 await tx.RollbackAsync();
+
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return StatusCode(500, new { ok = false, msg = "Error al confirmar.", detail = ex.Message });
+
                 throw;
             }
         }
+
+
+        //[HttpPost("Confirmar")]
+        //public async Task<IActionResult> ConfirmarPost()
+        //{
+        //    var r = GetResumen();
+        //    if (r == null || r.ClienteID == null) return RedirectToAction(nameof(ElegirHabitacion));
+
+        //    // Verifica disponibilidad última vez
+        //    if (!await _pricing.HabitacionDisponible(r.HabitacionID, r.CheckIn, r.CheckOut))
+        //    {
+        //        TempData["msg"] = "La habitación ya no está disponible.";
+        //        return RedirectToAction(nameof(ElegirHabitacion));
+        //    }
+
+        //    using var tx = await _db.Database.BeginTransactionAsync();
+        //    try
+        //    {
+        //        var reserva = new Reserva
+        //        {
+        //            ClienteID = r.ClienteID!,
+        //            UsuarioID = GetUserId(),
+        //            //usuarioIDNombre = ClaimTypes.NameIdentifier,
+        //            UsuarioFinaliza = null,
+        //            //usuarioFinalizaNombre = null,
+        //            //usuarioFinalizaNombre = reserva.USUARIO
+        //            EstadoReservaID = await EstadoId("ESTHAB0001"),
+        //            FechaCheckIn = r.CheckIn,
+        //            FechaCheckOut = r.CheckOut,
+        //            Subtotal = r.Subtotal,
+        //            Impuestos = r.Impuestos,
+        //            Total = r.Total,
+        //            Codigo = await NextCodigoAsync()
+        //        };
+
+        //        _db.reservas.Add(reserva);
+        //        await _db.SaveChangesAsync();
+
+        //        var det = new DetalleReserva
+        //        {
+        //            ReservaID = reserva.ReservaID,
+        //            HabitacionID = r.HabitacionID,
+        //            Personas = r.Personas,
+        //            Noches = r.Noches,
+        //            PrecioPorNoche = r.PrecioNoche,
+        //            TotalLinea = r.PrecioNoche * r.Noches,
+        //            TarifaID = r.TarifaID
+        //        };
+        //        _db.detalleReservas.Add(det);
+        //        await _db.SaveChangesAsync();
+
+        //        await tx.CommitAsync();
+        //        HttpContext.Session.Remove(KEY);
+
+        //        return RedirectToAction(nameof(Detalles), new { id = reserva.ReservaID });
+        //    }
+        //    catch
+        //    {
+        //        await tx.RollbackAsync();
+        //        throw;
+        //    }
+        //}
 
         [HttpGet("Detalles/{id:int}")]
         public async Task<IActionResult> Detalles(int id)
@@ -839,6 +1080,16 @@ namespace PIOGHOASIS.Controllers
             }
 
             return 0;
+        }
+
+        private string GetUserId()
+        {
+            // Busca el claim estándar de ID; si no existe, intenta con "sub" o "userid"
+            return User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? User.FindFirstValue("userid")
+                ?? User.Identity?.Name
+                ?? "usuario";
         }
 
 

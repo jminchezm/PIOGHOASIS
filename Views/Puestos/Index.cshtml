@@ -417,4 +417,19 @@
 
     })();
 
+    // Botón "Limpiar filtros" (delegado en un contenedor estable)
+    document.querySelector('.puestos-ui')?.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('.js-clear-filters');
+        if (!btn) return;
+        // limpia los campos escribibles
+        fCodigo.value = '';
+        fNombre.value = '';
+        // si quieres que Estado vuelva a "Todos":
+        fEstado.value = '';
+        // dispara eventos para que se ejecute tu debounce + recarga
+        fCodigo.dispatchEvent(new Event('input', { bubbles: true }));
+        fNombre.dispatchEvent(new Event('input', { bubbles: true }));
+        fEstado.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
 </script>

@@ -1,0 +1,43 @@
+﻿@model PIOGHOASIS.Models.ViewModels.NuevaCajaVM
+
+<div class="modal fade" id="modalNueva" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="m-0">Nueva Caja</h5>
+                <button class="btn btn-link" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <form id="frmNueva" class="mt-2">
+                @Html.AntiForgeryToken()
+
+                <!-- HIDDEN: UsuarioId -->
+                <input type="hidden" name="UsuarioId" value="@Model.UsuarioId" />
+
+                <div class="mb-2">
+                    <label class="form-label">Código de Caja</label>
+                    <input class="form-control" name="Codigo" value="@Model.Codigo" readonly />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Fecha</label>
+                    @* <input type="datetime-local" modalNueva="form-control" name="Fecha" value="@Model.Fecha.ToString("yyyy-MM-ddTHH:mm")" /> *@
+                    <input type="datetime-local" class="form-control" name="Fecha" value="@Model.Fecha.ToString("yyyy-MM-ddTHH:mm")" readonly/>
+
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Usuario</label>
+                    <input class="form-control" name="Usuario" value="@Model.Usuario" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Monto de apertura</label>
+                    <input type="number" step="0.01" class="form-control" name="MontoApertura" value="@Model.MontoApertura" min="0"/>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Abrir Caja</button>
+            </form>
+        </div>
+    </div>
+</div>

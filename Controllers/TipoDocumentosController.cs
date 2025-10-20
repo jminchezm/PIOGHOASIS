@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PIOGHOASIS.Infraestructure.Data;
 using PIOGHOASIS.Models;
@@ -67,23 +68,46 @@ namespace PIOGHOASIS.Controllers
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(TipoDocumento model)
         {
-            if (!ModelState.IsValid)
-                return IsAjax ? PartialView(nameof(Create), model) : View(nameof(Create), model);
-
-            // Si el usuario borró el código, volver a generarlo
+            // Regenera código si vino vacío
             if (string.IsNullOrWhiteSpace(model.TipoDocumentoID))
                 model.TipoDocumentoID = await GenerateNextCode();
 
-            // PK duplicada
-            var exists = await _context.tipoDocumentos.AnyAsync(t => t.TipoDocumentoID == model.TipoDocumentoID);
-            if (exists)
+            // Normaliza antes de validar
+            model.Nombre = N(model.Nombre);
+            model.Estado = true;
+            // model.Descripcion = N(model.Descripcion); // si lo usas
+
+            if (!ModelState.IsValid)
+                return IsAjax ? PartialView(nameof(Create), model) : View(nameof(Create), model);
+
+            // Validación app: Nombre único
+            bool nombreTomado = await _context.tipoDocumentos
+                .AnyAsync(t => t.Nombre == model.Nombre);
+            if (nombreTomado)
+            {
+                ModelState.AddModelError(nameof(model.Nombre), "Ya existe un tipo de documento con ese nombre.");
+                return IsAjax ? PartialView(nameof(Create), model) : View(nameof(Create), model);
+            }
+
+            // PK duplicada (muy raro)
+            if (await _context.tipoDocumentos.AnyAsync(t => t.TipoDocumentoID == model.TipoDocumentoID))
             {
                 ModelState.AddModelError(nameof(model.TipoDocumentoID), "El código ya existe.");
                 return IsAjax ? PartialView(nameof(Create), model) : View(nameof(Create), model);
             }
 
             _context.Add(model);
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex) when (IsUniqueViolation(ex))
+            {
+                // Respaldo por índice único en BD (Nombre o PK)
+                ModelState.AddModelError(nameof(model.Nombre), "Ya existe un tipo de documento con ese nombre.");
+                return IsAjax ? PartialView(nameof(Create), model) : View(nameof(Create), model);
+            }
 
             return Json(new
             {
@@ -108,23 +132,45 @@ namespace PIOGHOASIS.Controllers
             if (!ModelState.IsValid)
                 return IsAjax ? PartialView(nameof(Edit), model) : View(nameof(Edit), model);
 
-            var db = await _context.tipoDocumentos.FirstOrDefaultAsync(t => t.TipoDocumentoID == model.TipoDocumentoID);
+            var db = await _context.tipoDocumentos
+                .FirstOrDefaultAsync(t => t.TipoDocumentoID == model.TipoDocumentoID);
             if (db == null) return NotFound();
 
-            var hadChanges = db.Nombre != model.Nombre ||
-                             //db.Descripcion != model.Descripcion ||
-                             db.Estado != model.Estado;
+            // Normaliza valores nuevos
+            var nuevoNombre = N(model.Nombre);
+            // var nuevaDesc   = N(model.Descripcion);
 
-            db.Nombre = model.Nombre;
-            //db.Descripcion = model.Descripcion;
-            db.Estado = model.Estado;
-
-            if (!hadChanges)
+            // Nombre único (excluyendo el propio registro)
+            bool nombreTomado = await _context.tipoDocumentos
+                .AnyAsync(t => t.TipoDocumentoID != model.TipoDocumentoID && t.Nombre == nuevoNombre);
+            if (nombreTomado)
             {
-                return Json(new { ok = false, reason = "nochanges", message = "Realiza un cambio antes de guardar." });
+                ModelState.AddModelError(nameof(model.Nombre), "Ya existe un tipo de documento con ese nombre.");
+                return IsAjax ? PartialView(nameof(Edit), model) : View(nameof(Edit), model);
             }
 
-            await _context.SaveChangesAsync();
+            // Detecta cambios reales
+            bool hadChanges =
+                !string.Equals(N(db.Nombre), nuevoNombre, StringComparison.Ordinal) ||
+                db.Estado != model.Estado; // || !string.Equals(N(db.Descripcion), nuevaDesc, StringComparison.Ordinal);
+
+            if (!hadChanges)
+                return Json(new { ok = false, reason = "nochanges", message = "Realiza un cambio antes de guardar." });
+
+            // Aplica cambios
+            db.Nombre = nuevoNombre;
+            db.Estado = model.Estado;
+            // db.Descripcion = nuevaDesc;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex) when (IsUniqueViolation(ex))
+            {
+                ModelState.AddModelError(nameof(model.Nombre), "Ya existe un tipo de documento con ese nombre.");
+                return IsAjax ? PartialView(nameof(Edit), model) : View(nameof(Edit), model);
+            }
 
             return Json(new
             {
@@ -195,5 +241,15 @@ namespace PIOGHOASIS.Controllers
                 CustomSwitches = "--footer-center \"Página [page] de [toPage]\" --footer-font-size 8 --footer-spacing 5"
             };
         }
+
+        // Normaliza texto (trim; si quieres forzar CI en app, usa .ToUpperInvariant())
+        private static string N(string? s) => (s ?? "").Trim();
+
+        // ¿La excepción es por UNIQUE/PK (SQL Server)?
+        private static bool IsUniqueViolation(Exception ex) =>
+            ex is DbUpdateException dbu &&
+            dbu.InnerException is SqlException sql &&
+            (sql.Number == 2627 || sql.Number == 2601);
+
     }
 }

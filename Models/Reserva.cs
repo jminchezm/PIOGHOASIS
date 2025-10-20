@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using PIOGHOASIS.Models.Entities;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PIOGHOASIS.Models
 {
@@ -9,6 +10,15 @@ namespace PIOGHOASIS.Models
 
         public int ReservaID { get; set; }
         public string ClienteID { get; set; } = null!;
+
+        //[Required, StringLength(10)]
+        [Column("UsuarioCrea")]
+        public string UsuarioID { get; set; } = null!;   // <-- NUEVO: FK a USUARIO
+        //public string usuarioIDNombre {  get; set; } = null!;
+
+        //[Column("UsuarioFinaliza")]
+        public string? UsuarioFinaliza { get; set; }
+        //public string? usuarioFinalizaNombre { get; set; } = null!;
 
         [Column("EstadoReservaID")]
         public int EstadoReservaID { get; set; }    // cat. EstadoReserva
@@ -23,6 +33,7 @@ namespace PIOGHOASIS.Models
 
         public Cliente Cliente { get; set; } = null!;
         public EstadoReserva Estado { get; set; } = null!;
+        public Usuario Usuario { get; set; } = null!;    // <-- NUEVO: navegación al usuario
         public ICollection<DetalleReserva> Detalles { get; set; } = new List<DetalleReserva>();
         public ICollection<PagoReserva> Pagos { get; set; } = new List<PagoReserva>();
 

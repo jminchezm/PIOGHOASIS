@@ -3,6 +3,15 @@
 namespace PIOGHOASIS.Models
 {
 
+    public enum MedioPago
+    {
+        Efectivo = 1,
+        Transferencia = 2,
+        Deposito = 3,
+        CompraClick = 4,
+        PlataformaReservas = 5
+    }
+
     // Models/PagoReserva.cs
     public class PagoReserva
     {
@@ -38,25 +47,4 @@ namespace PIOGHOASIS.Models
 
         //public DateTime CreadoEl { get; set; } = DateTime.UtcNow;
     }
-
-    //public class PagoReserva
-    //{
-
-    //    public int PagoReservaID { get; set; }
-    //    public int ReservaID { get; set; }
-    //    public int FormaPagoID { get; set; }
-    //    public int? TipoPagoID { get; set; }
-    //    public int? PlataformaID { get; set; }
-
-    //    public DateTime FechaPago { get; set; }
-    //    public string? NumeroReferencia { get; set; }
-    //    public decimal MontoPagado { get; set; }
-    //    public string? Observaciones { get; set; }
-
-    //    public Reserva Reserva { get; set; } = null!;
-    //    public FormaPago FormaPago { get; set; } = null!;
-    //    public TipoPago? TipoPago { get; set; }
-    //    public PlataformaReserva? Plataforma { get; set; }
-
-    //}
 }

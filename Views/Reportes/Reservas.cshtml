@@ -1,0 +1,226 @@
+﻿@model PIOGHOASIS.Models.ViewModels.ReporteReservasVM
+@{
+    Layout = null;
+    ViewData["Title"] = "Reportes de Reservas";
+}
+
+<style>
+    /* Reutilizamos exactamente el estilo de Caja/Index */
+    .caja-ui {
+        position: relative;
+        margin-top: 0;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        background: linear-gradient(rgba(255,255,255,.30), rgba(255,255,255,.30)), url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+        padding: 30px;
+    }
+
+        .caja-ui .card-filtros {
+            background: rgba(255,255,255,.85);
+            box-shadow: 0 6px 22px rgba(0,0,0,.08);
+            border: 1px solid rgba(0,0,0,.06);
+            border-radius: .75rem;
+        }
+
+        .caja-ui .tt {
+            font-size: clamp(1.25rem,1.8vw,1.75rem);
+            font-weight: 800;
+            color: #1f2a37;
+        }
+
+        .caja-ui table {
+            background: #fff
+        }
+
+        .caja-ui thead th {
+            background: #f3c259;
+            color: #222;
+            border-bottom: 2px solid #d7a536;
+            vertical-align: middle;
+        }
+
+        .caja-ui tbody td {
+            vertical-align: middle;
+        }
+
+    .kpi-card .small {
+        color: #6b7280
+    }
+</style>
+
+<div class="caja-ui">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="tt mb-0">Reportes de Reservas</h2>
+    </div>
+
+    <!-- Filtros (mismo bloque visual que Caja/Index) -->
+    <div class="card-filtros p-3 mb-3">
+        <form method="get" class="row g-3 align-items-end" action="@Url.Action("Reservas","Reportes")" id="frmReportes">
+            @* <div class="col-auto align-self-end">
+                <button class="btn btn-primary mt-2">
+                    <i class="bi bi-search me-1"></i> Buscar
+                </button>
+                <button type="button" id="btnPrintRep" class="btn btn-outline-secondary ms-2" title="Imprimir">
+                    <i class="bi bi-printer"></i>
+                </button>
+            </div> *@
+            <div class="col-6 col-md-3">
+                <label class="form-label fw-semibold">Desde</label>
+                <input type="date" name="desde" class="form-control" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label fw-semibold">Hasta</label>
+                <input type="date" name="hasta" class="form-control" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+            </div>
+
+            <div class="col-12 col-md-3">
+                <div class="form-check mt-4 pt-1">
+                    @* <input class="form-check-input" type="checkbox" name="modoPorPagos" value="true" @(Model.ModoPorPagos ? "checked" : "") id="chkPagos" /> *@
+                   @*  <label class="form-check-label fw-semibold" for="chkPagos">Filtrar por pagos</label> *@
+                </div>
+            </div>
+
+            <div class="col-12 col-md-3 d-flex justify-content-end">
+                <button class="btn btn-primary mt-2">
+                    <i class="bi bi-search me-1"></i> Buscar
+                </button>
+                <button type="button" id="btnPrintRep" class="btn btn-outline-secondary ms-2" title="Imprimir">
+                    <i class="bi bi-printer"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- KPIs con la misma estética de tarjetas -->
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card kpi-card">
+                <div class="card-body">
+                    <div class="small">Ocupación</div>
+                    <div class="h4 mb-0">@((Model.Ocupacion * 100m).ToString("0.0")) %</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card kpi-card">
+                <div class="card-body">
+                    <div class="small">ADR</div>
+                    <div class="h4 mb-0">@Model.ADR.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card kpi-card">
+                <div class="card-body">
+                    <div class="small">RevPAR</div>
+                    <div class="h4 mb-0">@Model.RevPAR.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card kpi-card">
+                <div class="card-body">
+                    <div class="small">Cobrado</div>
+                    <div class="h4 mb-0">@Model.TotalCobrado.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla: Reservas -->
+    <div id="printArea" class="card p-0 mb-3">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:140px">Código</th>
+                        <th>Estado</th>
+                        <th style="width:170px">Check-In</th>
+                        <th style="width:170px">Check-Out</th>
+                        <th>Cliente</th>
+                        <th>Habitación</th>
+                        <th class="text-end" style="width:140px">Total</th>
+                        <th class="text-end" style="width:140px">Pagado</th>
+                        <th class="text-end" style="width:140px">Pendiente</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Reservas)
+                    {
+                        <tr>
+                            <td>@r.Codigo</td>
+                            <td>@r.Estado</td>
+                            <td>@r.In.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@r.Out.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@r.Cliente</td>
+                            <td>@r.Hab</td>
+                            <td class="text-end">@r.Total.ToString("N2")</td>
+                            <td class="text-end">@r.Pagado.ToString("N2")</td>
+                            <td class="text-end">@r.Pendiente.ToString("N2")</td>
+                        </tr>
+                    }
+                    @if (!Model.Reservas.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">No hay reservas en el rango seleccionado.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tabla: Pagos -->
+    <div class="card p-0">
+        <div class="card-header fw-bold">
+            Pagos (@Model.Desde?.ToString("dd/MM/yyyy") – @Model.Hasta?.ToString("dd/MM/yyyy"))
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:170px">Fecha</th>
+                        <th>Tipo</th>
+                        <th>Plataforma</th>
+                        <th style="width:140px">Reserva</th>
+                        <th class="text-end" style="width:140px">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Pagos)
+                    {
+                        <tr>
+                            <td>@p.FechaPago.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@p.Tipo</td>
+                            <td>@(p.Plataforma ?? "—")</td>
+                            <td>@p.CodigoReserva</td>
+                            <td class="text-end">@p.Monto.ToString("N2")</td>
+                        </tr>
+                    }
+                    @if (!Model.Pagos.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No hay pagos en el rango seleccionado.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('btnPrintRep')?.addEventListener('click', function () {
+      const f = document.getElementById('frmReportes');
+      if (!f) return;
+      const qs = new URLSearchParams(new FormData(f));
+
+      // Si el checkbox no está marcado, podrías eliminarlo o setear false.
+      if (!f.querySelector('input[name="modoPorPagos"]')?.checked) {
+        qs.delete('modoPorPagos'); // o: qs.set('modoPorPagos', 'false');
+      }
+
+      window.open('/Reportes/ReservasPdf?' + qs.toString(), '_blank');
+    });
+</script>

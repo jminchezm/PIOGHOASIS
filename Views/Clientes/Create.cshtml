@@ -7,6 +7,11 @@
 <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
 <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
+<script src="~/lib/jquery/jquery.min.js"></script>
+<script src="~/lib/jquery-validation/jquery.validate.min.js"></script>
+<script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
+
 <style>
     .cli-create {
         position: relative;
@@ -115,6 +120,11 @@
         height: 50px;
         object-fit: contain;
     }
+
+    #notaCaObligatorio {
+        width: 100%;
+        text-align: right;
+    }
 </style>
 
 <div class="cli-create">
@@ -138,6 +148,11 @@
                 @Html.AntiForgeryToken()
 
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div id="notaCaObligatorio">
+                    <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
+                </div>
+
                 <!-- ===== Datos de la Persona ===== -->
                 <h6 class="cc-subtitle">Datos del Cliente</h6>
                 
@@ -148,6 +163,7 @@
                         <div class="col-12 col-md-4">
                             <label asp-for="Cliente.ClienteID" class="form-label">Código*</label>
                             <input asp-for="Cliente.ClienteID" class="form-control" readonly />
+                            <span class="form-text text-muted">Se genera automáticamente.</span>
                             <span asp-validation-for="Cliente.ClienteID" class="text-danger"></span>
                         </div>
 
@@ -157,14 +173,13 @@
                             <span asp-validation-for="Persona.PersonaID" class="text-danger"></span>
                         </div> *@
 
-                        <div class="col-12 col-md-4">
+                        @* <div class="col-12 col-md-4">
                             <label class="form-label">Estado*</label>
                             <select asp-for="Cliente.Estado" class="form-select">
                                 <option value="true">Activo</option>
-                                @* <option value="false">Inactivo</option> *@
                             </select>
                             <span asp-validation-for="Cliente.Estado" class="text-danger"></span>
-                        </div>
+                        </div> *@
                     </div>
 
                     @* <hr class="my-4" /> *@
@@ -300,38 +315,8 @@
                         <input type="file" class="form-control" id="Foto" name="Foto" accept="image/png,image/jpeg,image/webp" />
                         <small class="form-text-muted d-block mt-1">Formatos: JPG/PNG/WebP. Máx. 3 MB.</small>
                         <span data-valmsg-for="Foto" class="text-danger"></span>
-                        @* <div class="mt-2">
-                            <img id="fotoPreview" src="~/img/user-placeholder.png" class="img-thumbnail" style="max-height:140px" alt="preview" />
-                        </div> *@
                     </div>
                 </div>
-
-                @* <hr class="my-4" /> *@
-
-                <!-- ===== Datos del Cliente ===== -->
-                @* <h6 class="cc-subtitle">Datos del Cliente</h6>
-                <div class="row g-3">
-                    <div class="col-12 col-md-4">
-                        <label asp-for="Cliente.ClienteID" class="form-label">Código*</label>
-                        <input asp-for="Cliente.ClienteID" class="form-control" readonly />
-                        <span asp-validation-for="Cliente.ClienteID" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-12 col-md-4">
-                        <label asp-for="Persona.PersonaID" class="form-label">PersonaID</label>
-                        <input asp-for="Persona.PersonaID" class="form-control" readonly />
-                        <span asp-validation-for="Persona.PersonaID" class="text-danger"></span>
-                    </div>
-
-                    <div class="col-12 col-md-4">
-                        <label class="form-label">Estado*</label>
-                        <select asp-for="Cliente.Estado" class="form-select">
-                            <option value="true">Activo</option>
-                            <option value="false">Inactivo</option>
-                        </select>
-                        <span asp-validation-for="Cliente.Estado" class="text-danger"></span>
-                    </div>
-                </div> *@
 
                 <div class="mt-4 d-flex justify-content-end">
                     <button type="submit" class="btn btn-primary cc-save">
@@ -356,23 +341,3 @@
         </div>
     </div>
 </div>
-
-@* <!-- Modal éxito -->
-<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white py-2">
-                <h6 class="modal-title mb-0"><i class="bi bi-check-circle me-1"></i> Registro creado</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body text-center">
-                <img src="~/img/exito.png" asp-append-version="true" class="img-fluid d-block mx-auto my-2" alt="ok" style="width:50px" />
-                <p id="tituloModal">Cliente Creado</p>
-                <p class="mb-0 js-msg">¡Guardado correctamente!</p>
-            </div>
-            <div class="modal-footer py-2">
-                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
-            </div>
-        </div>
-    </div>
-</div> *@

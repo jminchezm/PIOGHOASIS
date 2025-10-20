@@ -1,0 +1,532 @@
+﻿@model PIOGHOASIS.Models.ViewModels.ReporteIngresosVM
+@using System.Text.Json
+@using System.Linq
+@using System.Globalization
+@{
+    Layout = null;
+    // var logoData = ViewBag.LogoDataUri as string;     // data:image/png;base64,...
+    var chartInline = ViewBag.ChartInline as string;  // contenido de Chart.min.js (v2.9.4)
+    string J(object o) => JsonSerializer.Serialize(o);
+    var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var logoUrl = baseUrl + Url.Content("~/img/login/logo-oasis.png");
+
+@functions {
+    // Paleta fija
+    static readonly string[] PALETTE = new[]{
+        "#3B82F6","#EF4444","#22C55E","#EAB308","#8B5CF6",
+        "#06B6D4","#F97316","#10B981","#F43F5E","#6366F1"
+    };
+
+    // Escala segura (evita divisiones por 0)
+    static decimal SafeMax(IEnumerable<decimal> xs) => xs.DefaultIfEmpty(0m).Max();
+
+    // Mapea un valor (v) a un rango [0..max] → [0..W]
+    static double Scale(decimal v, decimal max, double W) =>
+        (double)((max <= 0 ? 0 : v / max) * (decimal)W);
+}
+
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Reporte de Ingresos</title>
+    <style>
+        html, body {
+            font-family: Arial,Helvetica,sans-serif;
+            font-size: 12px;
+            color: #1f2a37;
+        }
+
+        .container {
+            padding: 10mm
+        }
+
+        .brand {
+            display: table;
+            width: 100%;
+            border-bottom: 3px solid #d7a536;
+            padding-bottom: 8px;
+            margin-bottom: 10px
+        }
+
+            .brand .left {
+                display: table-cell;
+                vertical-align: middle;
+                width: 1%
+            }
+
+            .brand .right {
+                display: table-cell;
+                vertical-align: middle;
+                padding-left: 10px
+            }
+
+        .logo {
+            width: 150px;
+            height: auto
+        }
+
+        .title {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 800
+        }
+
+        .meta {
+            margin-top: 2px;
+            color: #6b7280
+        }
+
+        .grid3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin: 10px 0 14px
+        }
+
+        .kpi {
+            border: 1px solid #ddd;
+            padding: 6px;
+            border-radius: 6px
+        }
+
+            .kpi .lbl {
+                color: #6b7280;
+                font-size: 12px
+            }
+
+            .kpi .val {
+                font-size: 16px;
+                font-weight: 700
+            }
+
+        .cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 6px
+        }
+
+            .card .head {
+                font-weight: 700;
+                border-bottom: 1px solid #ddd;
+                padding: 6px
+            }
+
+            .card .body {
+                padding: 6px
+            }
+
+        .chart-box {
+            width: 100%;
+            height: 260px
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px
+        }
+
+        th {
+            background: #f7e1a5;
+            text-align: left
+        }
+
+        .right {
+            text-align: right
+        }
+
+        tbody tr:nth-child(even) {
+            background: #fffaf0
+        }
+
+        /* --- Barras horizontales --- */
+        .bar-rows {
+            display: grid;
+            gap: 8px;
+        }
+
+        .bar-row {
+            display: grid;
+            grid-template-columns: 140px 1fr 110px;
+            align-items: center;
+        }
+
+        .bar {
+            height: 12px;
+            background: #F3F4F6;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+            .bar > span {
+                display: block;
+                height: 100%;
+            }
+
+        /* --- Dona --- */
+        .donut-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .donut-legend {
+            margin-left: 12px;
+            display: grid;
+            gap: 4px;
+        }
+
+        .badge {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 2px;
+            margin-right: 6px;
+        }
+
+        /* --- Sparkline --- */
+        .spark-wrap {
+            padding: 8px 0;
+        }
+
+        .axis-x {
+            font-size: 10px;
+            color: #6b7280;
+            display: flex;
+            justify-content: space-between;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div class="brand">
+            <div class="left">
+                @* @if (!string.IsNullOrEmpty(logoData))
+                { *@
+                <img class="logo" src="@logoUrl" alt="Hotel Oasis" />
+                @* }
+                else
+                {
+
+                    <div style="font-weight:bold">Hotel Oasis</div>
+                } *@
+            </div>
+            <div class="right">
+                <h1 class="title">Reporte de Ingresos</h1>
+                <div class="meta">
+                    Periodo: @(Model.Desde?.ToString("dd/MM/yyyy")) – @(Model.Hasta?.ToString("dd/MM/yyyy"))
+                    | Generado: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+                </div>
+            </div>
+        </div>
+
+        <div class="grid3">
+            <div class="kpi"><div class="lbl">Total cobrado</div><div class="val">Q. @Model.TotalCobrado.ToString("N2")</div></div>
+            <div class="kpi"><div class="lbl"># Pagos</div><div class="val">@Model.CantPagos</div></div>
+            <div class="kpi"><div class="lbl">Ticket promedio</div><div class="val">Q. @Model.TicketPromedio.ToString("N2")</div></div>
+        </div>
+
+        <div class="card">
+            <div class="head">Por tipo de pago</div>
+            <div class="body">
+                @{
+                    var maxTipo = SafeMax(Model.PorTipoPago.Select(x => x.Monto));
+                    var idx = 0;
+                }
+                <div class="bar-rows">
+                    @foreach (var it in Model.PorTipoPago)
+                    {
+                        var pct = Scale(it.Monto, maxTipo, 100); // 0..100%
+                        var color = PALETTE[idx++ % PALETTE.Length];
+                        <div class="bar-row">
+                            <div>@it.Clave</div>
+                            <div class="bar">
+                                <span style="width:@pct%;background:@color"></span>
+                            </div>
+                            <div class="right">Q. @it.Monto.ToString("N2")</div>
+                        </div>
+                    }
+                    @if (!Model.PorTipoPago.Any())
+                    {
+                        <div>No hay datos en el rango.</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+  <div class="head">Por plataforma</div>
+          <div class="body donut-wrap">
+            @{
+            var plat = Model.PorPlataforma
+                        .Where(x => x.Monto > 0m)
+                        .OrderByDescending(x => x.Monto)
+                        .ToList();
+
+            var totalPlat = plat.Sum(x => x.Monto);
+            var r = 60;
+            var c = Math.PI * 2 * r;
+            double offset = 0;
+            var i = 0;
+            var inv   = CultureInfo.InvariantCulture;
+        }
+        @if (totalPlat <= 0m || !plat.Any())
+        {
+            <div>No hay datos en el rango.</div>
+        }
+        else
+        {
+            <svg width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Dona por plataforma">
+                <circle cx="80" cy="80" r="@r" fill="none" stroke="#F3F4F6" stroke-width="22"></circle>
+                @* @{
+                    var inv = CultureInfo.InvariantCulture;
+                    double offset = 0;
+                    var i = 0;
+                } *@
+                @foreach (var s in plat)
+                {
+                    var frac  = (double)(s.Monto / totalPlat);                // 0..1
+                    var dash  = Math.Min(c - 0.001, c * frac);                // longitud visible
+                    var color = PALETTE[i++ % PALETTE.Length];
+                    var o     = (offset % c);                                 // ¡clave!
+
+                    <circle cx="80" cy="80" r="@r" fill="none"
+                            stroke="@color" stroke-width="22" stroke-linecap="butt"
+                            stroke-dasharray="@dash.ToString(inv) @c.ToString(inv)"
+                            stroke-dashoffset="-@o.ToString(inv)"
+                            transform="rotate(-90 80 80)" />
+
+                    offset += dash;                                           // avanza solo lo pintado
+                }
+            </svg>
+
+            <div class="donut-legend">
+                @{ i = 0; }
+                @foreach (var s in plat)
+                {
+                    var color = PALETTE[i++ % PALETTE.Length];
+                    <div><span class="badge" style="background:@color"></span>@s.Clave — Q. @s.Monto.ToString("N2")</div>
+                }
+            </div>
+        }
+
+          </div>
+     </div>
+
+        <div class="card">
+          <div class="head">Ingresos por día</div>
+          <div class="body">
+            @{
+                var dias = Model.PorDia.OrderBy(x => x.Dia).ToList();
+
+                if (!dias.Any())
+                {
+                    <div>No hay datos en el rango.</div>;
+                }
+                else
+                {
+                    // ===== Layout del gráfico =====
+                    var W = 560;                  // ancho total
+                    var H = 200;                  // alto total
+                    var ml = 44; var mr = 10;     // márgenes
+                    var mt = 14; var mb = 44;
+                    var CW = W - ml - mr;         // ancho área de trazado
+                    var CH = H - mt - mb;         // alto área de trazado
+
+                    var maxV = dias.Max(d => d.Monto);
+                    decimal pad = 0.15m * (maxV == 0 ? 1 : maxV); // 15% de colchón
+                    var hi = maxV + pad;
+                    if (hi <= 0) hi = 1;
+
+                    Func<decimal,double> SY = v => mt + (double)(CH - (v/hi)*CH); // valor→Y
+
+                    int n = dias.Count;
+                    double step = CW / (double)n;
+                    double barW = Math.Max(10, step * 0.6);
+
+                    // Ticks del eje Y (5 niveles)
+                    var ticks = Enumerable.Range(0, 6).Select(i => hi * i / 5m).ToList();
+
+                    // Rótulos de X
+                    Func<int,string> lab = k => dias[k].Dia.ToString("dd/MM");
+                    int showEvery = n <= 10 ? 1 : (int)Math.Ceiling(n / 10.0);
+
+                    // ===== SVG =====
+                    @:<svg width="@W" height="@H" viewBox="0 0 @W @H" role="img" aria-label="Ingresos por día (barras)">
+                    @:<rect x="0" y="0" width="@W" height="@H" fill="white"></rect>
+
+                    // Grid horizontal + etiquetas Y
+                    for (int t = 0; t < 6; t++)
+                    {
+                        var val = ticks[t];
+                        var y   = SY(val);
+                        @:<line x1="@ml" y1="@y" x2="@(W-mr)" y2="@y" stroke="#E5E7EB" stroke-width="1"></line>
+                        @:<text x="@(ml-6)" y="@(y+3)" font-size="10" text-anchor="end" fill="#6b7280">Q. @val.ToString("N0")</text>
+                    }
+
+                    // Barras + cifra arriba
+                    for (int k = 0; k < n; k++)
+                    {
+                        var cx = ml + step*k + step/2;
+                        var v  = dias[k].Monto;
+                        var y  = SY(v);
+                        var h  = (SY(0) - y);
+                        if (h < 0) { y = SY(0); h = 0; }
+
+                        @:<rect x="@(cx - barW/2)" y="@y" width="@barW" height="@h" fill="#3B82F6" rx="2" ry="2"></rect>
+                        @:<text x="@cx" y="@(y - 4)" font-size="10" text-anchor="middle" fill="#374151">Q. @($"{v:N0}")</text>
+                    }
+
+                    // Eje X (fechas)
+                    @:<line x1="@ml" y1="@(H-mb)" x2="@(W-mr)" y2="@(H-mb)" stroke="#d1d5db" stroke-width="1"></line>
+                    for (int k = 0; k < n; k++)
+                    {
+                        var cx = ml + step*k + step/2;
+                        if (k % showEvery == 0 || k == 0 || k == n-1)
+                        {
+                            @:<text x="@cx" y="@(H-mb+28)" font-size="10" text-anchor="middle" fill="#6b7280">@lab(k)</text>
+                            @:<line x1="@cx" y1="@(H-mb)" x2="@cx" y2="@(H-mb+4)" stroke="#9ca3af" stroke-width="1"></line>
+                        }
+                    }
+                    @:</svg>
+                }
+            }
+          </div>
+        </div>
+
+        <h3>Detalle de Pagos</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:140px">Fecha</th>
+                    <th>Tipo</th>
+                    <th>Forma</th>
+                    <th>Plataforma</th>
+                    <th>Reserva</th>
+                    <th>Cliente</th>
+                    <th class="right" style="width:110px">Monto</th>
+                    <th>Referencia</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Pagos.Any())
+                {
+                    <tr><td colspan="8">Sin pagos.</td></tr>
+                }
+                else
+                {
+                    foreach (var p in Model.Pagos)
+                    {
+                        <tr>
+                            <td>@p.FechaPago.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@p.TipoPago</td>
+                            <td>@p.FormaPago</td>
+                            <td>@(p.Plataforma ?? "—")</td>
+                            <td>@p.ReservaCodigo</td>
+                            <td>@p.Cliente</td>
+                            <td class="right">Q. @p.Monto.ToString("N2")</td>
+                            <td>@(string.IsNullOrWhiteSpace(p.NumeroReferencia) ? "—" : p.NumeroReferencia)</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+    </div>
+
+    @* 1) Chart.js incrustado en línea; 2) Fallback CDN si faltara *@
+    @if (!string.IsNullOrEmpty(chartInline))
+    {
+        <script>
+            @Html.Raw(chartInline)
+        </script>
+    }
+    <script>
+        (function () {
+          var porTipo = @Html.Raw(J(Model.PorTipoPago));
+          var porPlat = @Html.Raw(J(Model.PorPlataforma));
+          var porDia  = @Html.Raw(J(Model.PorDia.Select(x => new { d = x.Dia.ToString("yyyy-MM-dd"), m = x.Monto })));
+
+          // Si Chart no existe, salimos silenciosamente.
+          if (typeof Chart === 'undefined') return;
+
+          // Helpers súper compatibles (ES5)
+          function map(a,p){for(var i=0,r=[];i<a.length;i++)r.push(a[i][p]);return r;}
+          var COLORS=['#3B82F6','#EF4444','#22C55E','#EAB308','#8B5CF6','#06B6D4','#F97316','#10B981','#F43F5E','#6366F1'];
+          function rgba(hex,a){var n=parseInt(hex.slice(1),16),r=(n>>16)&255,g=(n>>8)&255,b=n&255;return 'rgba('+r+','+g+','+b+','+a+')'}
+          function colorArr(n,a){for(var i=0,o=[];i<n;i++)o.push(a?rgba(COLORS[i%COLORS.length],a):COLORS[i%COLORS.length]);return o;}
+
+          if (Chart.defaults && Chart.defaults.global) {
+            Chart.defaults.global.animation=false;
+            Chart.defaults.global.responsive=false;
+            Chart.defaults.global.defaultFontFamily='Arial';
+            Chart.defaults.global.defaultFontColor='#111827';
+            Chart.defaults.global.devicePixelRatio=2;
+          }
+
+          // 1) Barras
+          new Chart(document.getElementById('chTipo'),{
+            type:'bar',
+            data:{labels:map(porTipo,'Clave'),
+              datasets:[{label:'Q',data:map(porTipo,'Monto'),
+                backgroundColor:colorArr(porTipo.length,0.25),
+                borderColor:colorArr(porTipo.length,1),borderWidth:1}]},
+            options:{legend:{display:false},scales:{
+              yAxes:[{gridLines:{color:'#E5E7EB'},ticks:{beginAtZero:true}}],
+              xAxes:[{gridLines:{display:false}}]}}
+          });
+
+          // 2) Dona
+          new Chart(document.getElementById('chPlat'),{
+            type:'doughnut',
+            data:{labels:map(porPlat,'Clave'),
+              datasets:[{data:map(porPlat,'Monto'),
+                backgroundColor:colorArr(porPlat.length,0.85),
+                borderColor:'#ffffff',borderWidth:2}]},
+            options:{cutoutPercentage:55,legend:{position:'top'}}
+          });
+
+          // 3) Línea
+          new Chart(document.getElementById('chDia'),{
+            type:'line',
+            data:{labels:map(porDia,'d'),
+              datasets:[{label:'Q por día',data:map(porDia,'m'),
+                borderColor:COLORS[0],backgroundColor:rgba(COLORS[0],0.25),
+                lineTension:0.25,pointRadius:3,pointBackgroundColor:COLORS[0],
+                pointBorderColor:'#ffffff',fill:true}]},
+            options:{legend:{display:false},
+              scales:{yAxes:[{gridLines:{color:'#E5E7EB'}}],
+                      xAxes:[{gridLines:{color:'#F3F4F6'}}]}}
+          });
+
+          // (Opcional) si quieres máxima fidelidad, convierte canvas a IMG:
+          setTimeout(function(){
+            var list=[].slice.call(document.getElementsByTagName('canvas'));
+            list.forEach(function(cv){
+              try{
+                var img=document.createElement('img');
+                img.src=cv.toDataURL('image/png'); img.width=cv.width||900; img.height=cv.height||260;
+                cv.parentNode.replaceChild(img,cv);
+              }catch(e){}
+            });
+          }, 600);
+        })();
+
+    </script>
+
+</body>
+</html>

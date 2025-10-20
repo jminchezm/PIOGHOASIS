@@ -125,6 +125,16 @@
         gap: 10px;
         justify-content: flex-end
     }
+
+    .is-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.15rem rgba(220,53,69,.25);
+    }
+
+    .invalid-feedback {
+        font-size: 0.875rem;
+        color: #dc3545;
+    }
 </style>
 
 <div class="pay-create">
@@ -321,47 +331,109 @@
       }
     });
     })();
-</script>
 
+            (function () {
+      const form = document.getElementById("frmPago");
+      if (!form) return;
 
-@* <script>
-    (function () {
-      // Reglas dinámicas según tipo de pago
-      const tipoSel = document.getElementById('TipoPagoID');
-      const refInp  = document.getElementById('NumeroReferencia');
-      const compInp = document.getElementById('Comprobante');
-      const platSel = document.getElementById('PlataformaID');
+      const pendiente = parseFloat("@pendiente".replace(",", "."));
+      const monto = form.querySelector('[name="MontoPagado"]');
+      const tipoPago = form.querySelector('#TipoPagoID');
+      const formaPago = form.querySelector('#FormaPagoID');
+      const numRef = form.querySelector('#NumeroReferencia');
+      const fileInput = form.querySelector('#Comprobante');
+      const btn = form.querySelector('button[type="submit"]');
 
-      function recomputeReq(){
-        const txt = (tipoSel.options[tipoSel.selectedIndex]?.text || '').toLowerCase();
-        const isEfectivo      = txt.includes('efectivo');
-        const requiereArchivo = txt.includes('transfer') || txt.includes('dep') || txt.includes('plataforma');
-
-        refInp.required  = !isEfectivo;
-        compInp.required = requiereArchivo;
-        platSel.required = txt.includes('plataforma');
+      // ======== Helpers visuales ========
+      function showMsg(input, msg) {
+        removeMsg(input);
+        if (!msg) return;
+        input.classList.add('is-invalid');
+        const div = document.createElement('div');
+        div.className = 'invalid-feedback d-block';
+        div.textContent = msg;
+        input.insertAdjacentElement('afterend', div);
       }
-      tipoSel?.addEventListener('change', recomputeReq);
-      recomputeReq();
 
-      // Modal Cancelación
-      const mask  = document.getElementById('cancelMask');
-      const open  = document.getElementById('btnOpenCancel');
-      const close = document.getElementById('btnCancelClose');
-      const doIt  = document.getElementById('btnDoCancel');
-      const frm   = document.getElementById('frmCancel');
+      function removeMsg(input) {
+        input.classList.remove('is-invalid');
+        const next = input.nextElementSibling;
+        if (next && next.classList.contains('invalid-feedback')) next.remove();
+      }
 
-      const show = ()=>{ mask.style.display='flex'; mask.setAttribute('aria-hidden','false'); }
-      const hide = ()=>{ mask.style.display='none';  mask.setAttribute('aria-hidden','true'); }
+      // ======== Validación general ========
+      function validarCampos() {
+        let ok = true;
+        [monto, tipoPago, numRef, fileInput].forEach(removeMsg);
 
-      open?.addEventListener('click', show);
-      close?.addEventListener('click', hide);
-      mask?.addEventListener('click', e => { if (e.target === mask) hide(); });
+        const valMonto = parseFloat(monto.value || "0");
+        const tipo = parseInt(tipoPago.value);
+        const esEfectivo = tipo === 1; // Ajustar si el id de "Efectivo" es otro
 
-      doIt?.addEventListener('click', ()=>{
-        // if(confirm('¿Seguro que quieres cancelar esta reserva? Esta acción no se puede deshacer.')){
-          frm.submit();
-        // }
+        // --- Validar Monto ---
+        if (isNaN(valMonto) || valMonto <= 0) {
+          showMsg(monto, "Debe ingresar un monto válido.");
+          ok = false;
+        } else if (valMonto > pendiente) {
+          showMsg(monto, `El monto no puede superar el pendiente (Q ${pendiente.toFixed(2)}).`);
+          ok = false;
+        }
+
+        // --- Ajustar Forma de pago automáticamente ---
+        if (formaPago) {
+          if (valMonto < pendiente) {
+            // buscar opción "Anticipo"
+            const anticipo = Array.from(formaPago.options)
+              .find(opt => opt.text.toLowerCase().includes("anticipo"));
+            if (anticipo) formaPago.value = anticipo.value;
+          } else {
+            // buscar opción "Completo"
+            const completo = Array.from(formaPago.options)
+              .find(opt => opt.text.toLowerCase().includes("completo"));
+            if (completo) formaPago.value = completo.value;
+          }
+        }
+
+        // --- Validar tipo de pago ---
+        if (!tipoPago.value) {
+          showMsg(tipoPago, "Debe seleccionar un tipo de pago.");
+          ok = false;
+        }
+
+        // --- Validar referencia y comprobante si no es efectivo ---
+        if (!esEfectivo) {
+          if (!numRef.value.trim()) {
+            showMsg(numRef, "Debe ingresar el número de referencia.");
+            ok = false;
+          }
+          if (!fileInput.files.length) {
+            showMsg(fileInput, "Debe adjuntar un comprobante (PDF o imagen).");
+            ok = false;
+          }
+        }
+
+        return ok;
+      }
+
+      // ======== Validación en tiempo real ========
+      [monto, tipoPago, numRef, fileInput].forEach(el => {
+        el?.addEventListener('input', () => {
+          validarCampos();
+          removeMsg(el);
+        });
+        el?.addEventListener('change', () => {
+          validarCampos();
+          removeMsg(el);
+        });
+      });
+
+      // ======== Al enviar ========
+      form.addEventListener("submit", function (e) {
+        if (!validarCampos()) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.scrollTo({ top: form.offsetTop - 80, behavior: "smooth" });
+        }
       });
     })();
-</script> *@
+</script>

@@ -1,4 +1,8 @@
 ﻿@model IEnumerable<PIOGHOASIS.Models.ViewModels.HabitacionDisponibleVM>
+@{
+    Layout = null;
+}
+
 
 @if (!Model.Any())
 {
@@ -9,14 +13,14 @@ else
     <div class="vstack gap-4">
         @foreach (var h in Model)
         {
-            @* @{ *@
-                // variables por tarjeta
-                var jsonTarifas = System.Text.Json.JsonSerializer.Serialize(h.Tarifas);
-                var tarifasIniciales = h.Tarifas.Where(t => t.Personas == h.PersonasSeleccionadas).ToList();
+
+            // variables por tarjeta
+            var jsonTarifas = System.Text.Json.JsonSerializer.Serialize(h.Tarifas);
+            var tarifasIniciales = h.Tarifas.Where(t => t.Personas == h.PersonasSeleccionadas).ToList();
 
                 var precioIni = (tarifasIniciales.FirstOrDefault()?.PrecioNoche ?? h.PrecioNoche);
                 var totalIni  = (tarifasIniciales.FirstOrDefault()?.TotalConImpuestos ?? h.TotalConImpuestos);
-            @* } *@
+
 
             <div class="rs-room"
                  data-tarifas='@Html.Raw(jsonTarifas)'

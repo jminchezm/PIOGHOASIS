@@ -42,6 +42,10 @@ namespace PIOGHOASIS.Infraestructure.Data
 
         public DbSet<RolModuloPermiso> rolModuloPermisos { get; set; } = default!;
 
+        public DbSet<Caja> cajas { get; set; } = default!;
+        public DbSet<CajaPago> cajaPagos { get; set; } = default!;
+        public DbSet<EstadoCaja> estadosCaja { get; set; } = default!;
+        public DbSet<CajaAjuste> cajaAjustes { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -239,21 +243,27 @@ namespace PIOGHOASIS.Infraestructure.Data
                 e.Property(x => x.PersonaID).HasMaxLength(10).IsRequired();
                 e.Property(x => x.PrimerNombre).HasMaxLength(60).IsRequired();
                 e.Property(x => x.PrimerApellido).HasMaxLength(60).IsRequired();
+                e.HasIndex(x => x.NumeroDocumento)
+                 .IsUnique()
+                 .HasDatabaseName("UX_PERSONA_NumeroDocumento");
                 // ... lo demás que tengas en el modelo
             });
 
-            //modelBuilder.Entity<Cliente>(e =>
-            //{
-            //    e.ToTable("CLIENTE");
-            //    e.HasKey(x => x.ClienteID);
-            //    e.Property(x => x.ClienteID).HasMaxLength(10).IsRequired();     // string(10)
-            //    e.Property(x => x.PersonaID).HasMaxLength(10).IsRequired();
+            modelBuilder.Entity<Cliente>(e =>
+            {
+                e.ToTable("CLIENTE");
+                e.HasKey(x => x.ClienteID);
+                e.Property(x => x.ClienteID).HasMaxLength(10).IsRequired();
+                e.Property(x => x.PersonaID).HasMaxLength(10).IsRequired();
 
-            //    e.HasOne(x => x.Persona)
-            //     .WithOne(p => p.Cliente)       // si no tienes navegación inversa, usa .WithMany()
-            //     .HasForeignKey<Cliente>(x => x.PersonaID)
-            //     .HasPrincipalKey<Persona>(p => p.PersonaID);
-            //});
+                // 🔹 Relación formal 1–1: cada cliente tiene una persona única
+                e.HasOne(x => x.Persona)
+                 .WithOne(p => p.Cliente)
+                 .HasForeignKey<Cliente>(x => x.PersonaID)
+                 .HasPrincipalKey<Persona>(p => p.PersonaID)
+                 .OnDelete(DeleteBehavior.Restrict);
+            });
+
 
             modelBuilder.Entity<Usuario>(e =>
             {

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -52,10 +53,19 @@ namespace PIOGHOASIS.Models
         [Required(ErrorMessage = "El campo Tipo Documento es obligatorio.")]
         public string? TipoDocumentoID { get; set; }
 
+        //[Column("NumeroDocumento")]
+        //[RegularExpression(@"^\d{13}$", ErrorMessage = "El No. Documento debe tener 13 dígitos.")]
+        //[StringLength(13, ErrorMessage = "El No. Documento debe tener máximo 13 dígitos.")]
+        //[Required(ErrorMessage = "El campo Número Documento es obligatorio.")]
+        //public string? NumeroDocumento { get; set; }
+
         [Column("NumeroDocumento")]
         [RegularExpression(@"^\d{13}$", ErrorMessage = "El No. Documento debe tener 13 dígitos.")]
         [StringLength(13, ErrorMessage = "El No. Documento debe tener máximo 13 dígitos.")]
         [Required(ErrorMessage = "El campo Número Documento es obligatorio.")]
+        [Remote(action: "VerificarDpi", controller: "Clientes",
+        AdditionalFields = nameof(Persona.PersonaID),
+        ErrorMessage = "Este DPI ya está registrado.")]
         public string? NumeroDocumento { get; set; }
 
         [Column("Nit"), StringLength(15)]
@@ -86,5 +96,6 @@ namespace PIOGHOASIS.Models
 
         // Navegación 1-1 con Empleado
         public Empleado? Empleado { get; set; }
+        public Cliente? Cliente { get; set; }
     }
 }

@@ -37,11 +37,6 @@ namespace PIOGHOASIS.Controllers
                 return View(vm);
             }
 
-            //// busca usuario activo por nombre
-            //var user = await _db.usuarios
-            //    .AsNoTracking()
-            //    .FirstOrDefaultAsync(u => u.UsuarioNombre == vm.Usuario && u.Estado == true);
-
             // busca usuario activo por nombre e incluye empleado+persona
             var user = await _db.usuarios
                 .AsNoTracking()
@@ -99,17 +94,6 @@ namespace PIOGHOASIS.Controllers
 
             // Agrega un claim por cada código de módulo permitido
             claims.AddRange(modCodes.Select(c => new Claim(ModuleClaimType, c)));
-
-            //// claims (agrega lo que necesites)
-            //var claims = new List<Claim>
-            //{
-            //    new Claim(ClaimTypes.NameIdentifier, user.UsuarioID),
-            //    new Claim(ClaimTypes.Name, displayName),
-            //    new Claim(ClaimTypes.Role, roleName),       // ← guardamos NOMBRE del rol
-            //    new Claim("role_id", roleId),               // ← opcional: ID del rol
-            //    new Claim("avatar", avatarUrl)
-            //};
-
 
 
             var ci = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

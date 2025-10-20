@@ -163,6 +163,8 @@
                             <th style="width:180px">Cliente</th>
                             <th style="width:140px">Check-in</th>
                             <th style="width:140px">Check-out</th>
+                            <th style="width:140px">User Crea</th>
+                            <th style="width:140px">User Finaliza</th>
                             <th style="width:120px">Total</th>
                             <th style="width:140px">Estado</th>
                             <th style="width:220px" class="text-center">Acciones</th>
@@ -190,6 +192,8 @@
                                 <td>@cliente</td>
                                 <td>@r.FechaCheckIn.ToString("yyyy-MM-dd")</td>
                                 <td>@r.FechaCheckOut.ToString("yyyy-MM-dd")</td>
+                                <td>@r.UsuarioID</td>
+                                <td>@r.UsuarioFinaliza</td>
                                 <td>Q @r.Total.ToString("N2")</td>
                                 <td><span class="pill @pill">@estado</span></td>
                                 <td class="text-center">

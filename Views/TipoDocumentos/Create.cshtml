@@ -90,6 +90,29 @@
         object-fit: contain;
     }
 
+    #notaCaObligatorio {
+        width: 100%;
+        text-align: right;
+    }
+
+    /* Muestra el estilo de error de Bootstrap (borde rojo + ícono) aun si
+       jQuery Unobtrusive solo aplicó 'input-validation-error' */
+    .input-validation-error.form-control,
+    .input-validation-error.form-select {
+        border-color: var(--bs-form-invalid-border-color) !important;
+        padding-right: calc(1.5em + .75rem) !important;
+        background-image: var(--bs-form-invalid-bg-image);
+        background-repeat: no-repeat;
+        background-position: right calc(.375em + .1875rem) center;
+        background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+    }
+
+    /* Asegura visibilidad de mensajes como en las otras pantallas */
+    span.field-validation-error {
+        display: block;
+        color: #dc3545;
+    }
+
 </style>
 
 <div class="puestos-create">
@@ -112,11 +135,16 @@
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
 
+        <div id="notaCaObligatorio">
+            <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
+        </div>
+
         <div class="row g-3">
           <!-- Código -->
           <div class="col-12 col-md-4">
             <label asp-for="TipoDocumentoID" class="form-label">Código*</label>
             <input asp-for="TipoDocumentoID" class="form-control" readonly />
+            <span class="form-text text-muted">Se genera automáticamente.</span>
             <span asp-validation-for="TipoDocumentoID" class="text-danger"></span>
           </div>
 
@@ -136,15 +164,13 @@
           </div> *@
 
           <!-- Estado (igual a Puestos: default Activo) -->
-          <div class="col-12 col-md-4">
+          @* <div class="col-12 col-md-4">
             <label class="form-label">Estado*</label>
             <select asp-for="Estado" class="form-select">
               <option value="true">Activo</option>
-              @* Si alguna vez quieres permitir crear inactivo desde aquí, agrega:
-                 <option value="false">Inactivo</option> *@
             </select>
             <span asp-validation-for="Estado" class="text-danger"></span>
-          </div>
+          </div> *@
         </div>
 
         <div class="mt-4 d-flex justify-content-end">

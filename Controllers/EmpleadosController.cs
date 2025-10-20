@@ -294,6 +294,21 @@ namespace PIOGHOASIS.Controllers
                 vm.Persona.MunicipioID = null;
             }
 
+            // Normaliza campos clave
+            vm.Persona.TipoDocumentoID = vm.Persona.TipoDocumentoID?.Trim();
+            vm.Persona.NumeroDocumento = vm.Persona.NumeroDocumento?.Trim();
+
+            // ⛔ Validación de DPI duplicado (server-side)
+            if (!string.IsNullOrWhiteSpace(vm.Persona.NumeroDocumento))
+            {
+                var existeDpi = await _context.personas
+                    .AsNoTracking()
+                    .AnyAsync(p => p.NumeroDocumento == vm.Persona.NumeroDocumento);
+
+                if (existeDpi)
+                    ModelState.AddModelError("Persona.NumeroDocumento", "Este DPI ya está registrado.");
+            }
+
             // Validar foto (si viene)
             if (Foto != null && Foto.Length > 0)
                 ValidarFoto(Foto);
@@ -307,12 +322,10 @@ namespace PIOGHOASIS.Controllers
                     vm.Persona?.DepartamentoID,
                     vm.Persona?.MunicipioID
                 );
-
-                if (IsAjax) return PartialView(nameof(Create), vm);
-                return View(nameof(Create), vm);
+                return IsAjax ? PartialView(nameof(Create), vm) : View(nameof(Create), vm);
             }
 
-            // Guardado
+            // ===== Guardado =====
             var nuevoEmpleadoId = await NextEmpleadoIdAsync();
             var nuevoPersonaId = await NextPersonaIdAsync();
 
@@ -333,39 +346,151 @@ namespace PIOGHOASIS.Controllers
                 empleado.EmpleadoID = nuevoEmpleadoId;
                 empleado.PersonalID = vm.Persona.PersonaID;
                 empleado.FechaContratacion = empleado.FechaContratacion ?? DateTime.Today;
+                empleado.Estado = true; // ← aseguras que se cree ACTIVO
 
                 _context.empleados.Add(empleado);
                 await _context.SaveChangesAsync();
 
                 await tx.CommitAsync();
 
-                if (IsAjax)
-                    return Ok(new
+                return IsAjax
+                    ? Ok(new
                     {
                         ok = true,
                         message = "Persona y Empleado creados correctamente.",
                         redirectUrl = Url.Action(nameof(Index), "Empleados")
-                    });
+                    })
+                    : RedirectToAction(nameof(Index));
+            }
+            catch (DbUpdateException dbex)
+            {
+                // Manejo de UNIQUE en NumeroDocumento
+                var msg = dbex.InnerException?.Message ?? dbex.Message;
+                if (msg.Contains("2601") || msg.Contains("2627") || msg.Contains("UQ_") || msg.Contains("UX_"))
+                {
+                    ModelState.AddModelError("Persona.NumeroDocumento", "Este DPI ya está registrado.");
+                    await tx.RollbackAsync();
 
-                return RedirectToAction(nameof(Index));
+                    await CargarCombosCreateAsync(
+                        vm.Empleado?.PuestoID,
+                        vm.Persona?.TipoDocumentoID,
+                        vm.Persona?.PaisID,
+                        vm.Persona?.DepartamentoID,
+                        vm.Persona?.MunicipioID
+                    );
+                    return IsAjax ? PartialView(nameof(Create), vm) : View(nameof(Create), vm);
+                }
+
+                await tx.RollbackAsync();
+                return IsAjax
+                    ? StatusCode(500, new { ok = false, message = "Error al guardar: " + dbex.Message })
+                    : Problem("Error al guardar: " + dbex.Message);
             }
             catch (Exception ex)
             {
                 await tx.RollbackAsync();
-                if (IsAjax)
-                    return StatusCode(500, new { ok = false, message = "Error al guardar: " + ex.Message });
-
-                ModelState.AddModelError(string.Empty, "Error al guardar: " + ex.Message);
-                await CargarCombosCreateAsync(
-                    vm.Empleado?.PuestoID,
-                    vm.Persona?.TipoDocumentoID,
-                    vm.Persona?.PaisID,
-                    vm.Persona?.DepartamentoID,
-                    vm.Persona?.MunicipioID
-                );
-                return View(nameof(Create), vm);
+                return IsAjax
+                    ? StatusCode(500, new { ok = false, message = "Error al guardar: " + ex.Message })
+                    : Problem("Error al guardar: " + ex.Message);
             }
         }
+
+
+        // ====== CREATE (POST) ======
+        //[HttpPost, ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Create(EmpleadoCreateVM vm, IFormFile? Foto)
+        //{
+        //    // Reglas previas
+        //    ModelState.Remove("Empleado.PersonalID");
+        //    ModelState.Remove("Persona.PersonaID");
+        //    ModelState.Remove("Empleado.Puesto");
+        //    ModelState.Remove("Empleado.Persona");
+
+        //    if (vm.Persona.FechaRegistro == null) vm.Persona.FechaRegistro = DateTime.Now;
+        //    ModelState.Remove("Persona.FechaRegistro");
+
+        //    var esGtm = string.Equals(vm.Persona.PaisID, "GTM", StringComparison.OrdinalIgnoreCase);
+        //    if (!esGtm)
+        //    {
+        //        ModelState.Remove("Persona.DepartamentoID");
+        //        ModelState.Remove("Persona.MunicipioID");
+        //        vm.Persona.DepartamentoID = null;
+        //        vm.Persona.MunicipioID = null;
+        //    }
+
+        //    // Validar foto (si viene)
+        //    if (Foto != null && Foto.Length > 0)
+        //        ValidarFoto(Foto);
+
+        //    if (!ModelState.IsValid)
+        //    {
+        //        await CargarCombosCreateAsync(
+        //            vm.Empleado?.PuestoID,
+        //            vm.Persona?.TipoDocumentoID,
+        //            vm.Persona?.PaisID,
+        //            vm.Persona?.DepartamentoID,
+        //            vm.Persona?.MunicipioID
+        //        );
+
+        //        if (IsAjax) return PartialView(nameof(Create), vm);
+        //        return View(nameof(Create), vm);
+        //    }
+
+        //    // Guardado
+        //    var nuevoEmpleadoId = await NextEmpleadoIdAsync();
+        //    var nuevoPersonaId = await NextPersonaIdAsync();
+
+        //    using var tx = await _context.Database.BeginTransactionAsync();
+        //    try
+        //    {
+        //        // Persona
+        //        vm.Persona.PersonaID = nuevoPersonaId;
+
+        //        if (Foto != null && Foto.Length > 0)
+        //            vm.Persona.FotoPath = await GuardarFotoAsync(nuevoPersonaId, Foto);
+
+        //        _context.personas.Add(vm.Persona);
+        //        await _context.SaveChangesAsync();
+
+        //        // Empleado
+        //        var empleado = vm.Empleado;
+        //        empleado.EmpleadoID = nuevoEmpleadoId;
+        //        empleado.PersonalID = vm.Persona.PersonaID;
+        //        empleado.FechaContratacion = empleado.FechaContratacion ?? DateTime.Today;
+        //        empleado.Estado = true;
+
+        //        _context.empleados.Add(empleado);
+        //        await _context.SaveChangesAsync();
+
+        //        await tx.CommitAsync();
+
+        //        if (IsAjax)
+        //            return Ok(new
+        //            {
+        //                ok = true,
+        //                message = "Persona y Empleado creados correctamente.",
+        //                redirectUrl = Url.Action(nameof(Index), "Empleados")
+        //            });
+
+        //        return RedirectToAction(nameof(Index));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await tx.RollbackAsync();
+        //        if (IsAjax)
+        //            return StatusCode(500, new { ok = false, message = "Error al guardar: " + ex.Message });
+
+        //        ModelState.AddModelError(string.Empty, "Error al guardar: " + ex.Message);
+        //        await CargarCombosCreateAsync(
+        //            vm.Empleado?.PuestoID,
+        //            vm.Persona?.TipoDocumentoID,
+        //            vm.Persona?.PaisID,
+        //            vm.Persona?.DepartamentoID,
+        //            vm.Persona?.MunicipioID
+        //        );
+        //        return View(nameof(Create), vm);
+        //    }
+        //}
 
         // ====== EDIT (GET) ======
         [HttpGet]
@@ -412,6 +537,23 @@ namespace PIOGHOASIS.Controllers
                 vm.Persona.MunicipioID = null;
             }
 
+            // Normaliza ANTES de validar
+            vm.Persona.TipoDocumentoID = vm.Persona.TipoDocumentoID?.Trim();
+            vm.Persona.NumeroDocumento = vm.Persona.NumeroDocumento?.Trim();
+
+            // ⛔ Validación de DPI duplicado (excluyendo la misma Persona)
+            if (!string.IsNullOrWhiteSpace(vm.Persona.NumeroDocumento))
+            {
+                var dupDpi = await _context.personas
+                    .AsNoTracking()
+                    .AnyAsync(p => p.NumeroDocumento == vm.Persona.NumeroDocumento
+                                && p.PersonaID != vm.Persona.PersonaID);
+
+                if (dupDpi)
+                    ModelState.AddModelError("Persona.NumeroDocumento", "Este DPI ya está registrado.");
+            }
+
+            // Validar foto (si viene)
             if (Foto != null && Foto.Length > 0)
                 ValidarFoto(Foto);
 
@@ -424,8 +566,7 @@ namespace PIOGHOASIS.Controllers
                     vm.Persona?.DepartamentoID,
                     vm.Persona?.MunicipioID
                 );
-                if (IsAjax) return PartialView(nameof(Edit), vm);
-                return View(nameof(Edit), vm);
+                return IsAjax ? PartialView(nameof(Edit), vm) : View(nameof(Edit), vm);
             }
 
             var db = await _context.empleados
@@ -433,6 +574,7 @@ namespace PIOGHOASIS.Controllers
                 .FirstOrDefaultAsync(e => e.EmpleadoID == vm.Empleado.EmpleadoID);
             if (db == null) return NotFound();
 
+            // ===== Detección de cambios =====
             bool hadChanges =
                 !string.Equals(db.PuestoID, vm.Empleado.PuestoID, StringComparison.Ordinal) ||
                 db.FechaContratacion != vm.Empleado.FechaContratacion ||
@@ -518,34 +660,178 @@ namespace PIOGHOASIS.Controllers
                     ? Ok(new { ok = true, message = "Empleado actualizado correctamente.", redirectUrl = Url.Action(nameof(Index), "Empleados") })
                     : RedirectToAction(nameof(Index));
             }
+            catch (DbUpdateException dbex)
+            {
+                // Choque con UNIQUE en NumeroDocumento
+                var msg = dbex.InnerException?.Message ?? dbex.Message;
+                if (msg.Contains("2601") || msg.Contains("2627") || msg.Contains("UQ_") || msg.Contains("UX_"))
+                {
+                    ModelState.AddModelError("Persona.NumeroDocumento", "Este DPI ya está registrado.");
+                    await tx.RollbackAsync();
+
+                    await CargarCombosCreateAsync(
+                        vm.Empleado?.PuestoID,
+                        vm.Persona?.TipoDocumentoID,
+                        vm.Persona?.PaisID,
+                        vm.Persona?.DepartamentoID,
+                        vm.Persona?.MunicipioID
+                    );
+                    return IsAjax ? PartialView(nameof(Edit), vm) : View(nameof(Edit), vm);
+                }
+
+                await tx.RollbackAsync();
+                return IsAjax
+                    ? StatusCode(500, new { ok = false, message = "Error al actualizar: " + dbex.Message })
+                    : Problem("Error al actualizar: " + dbex.Message);
+            }
             catch (Exception ex)
             {
                 await tx.RollbackAsync();
-
-                if (IsAjax) return StatusCode(500, new { ok = false, message = "Error al actualizar: " + ex.Message });
-
-                ModelState.AddModelError(string.Empty, "Error al actualizar: " + ex.Message);
-                await CargarCombosCreateAsync(
-                    vm.Empleado?.PuestoID,
-                    vm.Persona?.TipoDocumentoID,
-                    vm.Persona?.PaisID,
-                    vm.Persona?.DepartamentoID,
-                    vm.Persona?.MunicipioID
-                );
-                return View(nameof(Edit), vm);
+                return IsAjax
+                    ? StatusCode(500, new { ok = false, message = "Error al actualizar: " + ex.Message })
+                    : Problem("Error al actualizar: " + ex.Message);
             }
         }
 
-        // ====== DETAILS ======
-        //public async Task<IActionResult> Details(string id)
+
+
+        //[HttpPost, ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Edit(EmpleadoCreateVM vm, IFormFile? Foto, bool QuitarFoto = false)
         //{
-        //    var model = await _context.empleados
-        //        .AsNoTracking()
+        //    ModelState.Remove("Empleado.Puesto");
+        //    ModelState.Remove("Empleado.Persona");
+
+        //    var esGtm = string.Equals(vm.Persona.PaisID, "GTM", StringComparison.OrdinalIgnoreCase);
+        //    if (!esGtm)
+        //    {
+        //        ModelState.Remove("Persona.DepartamentoID");
+        //        ModelState.Remove("Persona.MunicipioID");
+        //        vm.Persona.DepartamentoID = null;
+        //        vm.Persona.MunicipioID = null;
+        //    }
+
+        //    if (Foto != null && Foto.Length > 0)
+        //        ValidarFoto(Foto);
+
+        //    if (!ModelState.IsValid)
+        //    {
+        //        await CargarCombosCreateAsync(
+        //            vm.Empleado?.PuestoID,
+        //            vm.Persona?.TipoDocumentoID,
+        //            vm.Persona?.PaisID,
+        //            vm.Persona?.DepartamentoID,
+        //            vm.Persona?.MunicipioID
+        //        );
+        //        if (IsAjax) return PartialView(nameof(Edit), vm);
+        //        return View(nameof(Edit), vm);
+        //    }
+
+        //    var db = await _context.empleados
         //        .Include(e => e.Persona)
-        //        .Include(e => e.Puesto)
-        //        .FirstOrDefaultAsync(e => e.EmpleadoID == id);
-        //    if (model == null) return NotFound();
-        //    return IsAjax ? PartialView(model) : View(model);
+        //        .FirstOrDefaultAsync(e => e.EmpleadoID == vm.Empleado.EmpleadoID);
+        //    if (db == null) return NotFound();
+
+        //    bool hadChanges =
+        //        !string.Equals(db.PuestoID, vm.Empleado.PuestoID, StringComparison.Ordinal) ||
+        //        db.FechaContratacion != vm.Empleado.FechaContratacion ||
+        //        db.Estado != vm.Empleado.Estado ||
+        //        !string.Equals(db.Persona.PrimerNombre, vm.Persona.PrimerNombre, StringComparison.Ordinal) ||
+        //        !string.Equals(db.Persona.SegundoNombre, vm.Persona.SegundoNombre, StringComparison.Ordinal) ||
+        //        !string.Equals(db.Persona.PrimerApellido, vm.Persona.PrimerApellido, StringComparison.Ordinal) ||
+        //        !string.Equals(db.Persona.SegundoApellido, vm.Persona.SegundoApellido, StringComparison.Ordinal) ||
+        //        !string.Equals(db.Persona.ApellidoCasada, vm.Persona.ApellidoCasada, StringComparison.Ordinal) ||
+        //        !string.Equals(db.Persona.Email, vm.Persona.Email, StringComparison.OrdinalIgnoreCase) ||
+        //        !string.Equals(db.Persona.Telefono1, vm.Persona.Telefono1, StringComparison.Ordinal) ||
+        //        !string.Equals(db.Persona.Telefono2, vm.Persona.Telefono2, StringComparison.Ordinal) ||
+        //        !string.Equals(db.Persona.Direccion, vm.Persona.Direccion, StringComparison.Ordinal) ||
+        //        !string.Equals(db.Persona.TipoDocumentoID, vm.Persona.TipoDocumentoID, StringComparison.Ordinal) ||
+        //        !string.Equals(db.Persona.NumeroDocumento, vm.Persona.NumeroDocumento, StringComparison.Ordinal) ||
+        //        !string.Equals(db.Persona.Nit, vm.Persona.Nit, StringComparison.Ordinal) ||
+        //        db.Persona.FechaNacimiento != vm.Persona.FechaNacimiento ||
+        //        !string.Equals(db.Persona.PaisID, vm.Persona.PaisID, StringComparison.OrdinalIgnoreCase) ||
+        //        db.Persona.DepartamentoID != vm.Persona.DepartamentoID ||
+        //        db.Persona.MunicipioID != vm.Persona.MunicipioID
+        //        || (Foto != null && Foto.Length > 0)
+        //        || (QuitarFoto && !string.IsNullOrWhiteSpace(db.Persona.FotoPath));
+
+        //    if (!hadChanges)
+        //    {
+        //        if (IsAjax) return Ok(new { ok = false, reason = "nochanges", message = "Realiza un cambio antes de guardar." });
+
+        //        TempData["NoChanges"] = true;
+        //        await CargarCombosCreateAsync(db.PuestoID, db.Persona.TipoDocumentoID, db.Persona.PaisID, db.Persona.DepartamentoID, db.Persona.MunicipioID);
+        //        var vmBack = new EmpleadoCreateVM { Empleado = db, Persona = db.Persona };
+        //        return View(nameof(Edit), vmBack);
+        //    }
+
+        //    using var tx = await _context.Database.BeginTransactionAsync();
+        //    try
+        //    {
+        //        // Persona
+        //        var p = db.Persona;
+        //        p.PrimerNombre = vm.Persona.PrimerNombre;
+        //        p.SegundoNombre = vm.Persona.SegundoNombre;
+        //        p.PrimerApellido = vm.Persona.PrimerApellido;
+        //        p.SegundoApellido = vm.Persona.SegundoApellido;
+        //        p.ApellidoCasada = vm.Persona.ApellidoCasada;
+        //        p.Email = vm.Persona.Email;
+        //        p.Telefono1 = vm.Persona.Telefono1;
+        //        p.Telefono2 = vm.Persona.Telefono2;
+        //        p.Direccion = vm.Persona.Direccion;
+        //        p.TipoDocumentoID = vm.Persona.TipoDocumentoID;
+        //        p.NumeroDocumento = vm.Persona.NumeroDocumento;
+        //        p.Nit = vm.Persona.Nit;
+        //        p.FechaNacimiento = vm.Persona.FechaNacimiento;
+        //        p.PaisID = vm.Persona.PaisID;
+        //        p.DepartamentoID = vm.Persona.DepartamentoID;
+        //        p.MunicipioID = vm.Persona.MunicipioID;
+
+        //        // Foto
+        //        if (QuitarFoto && !string.IsNullOrWhiteSpace(p.FotoPath))
+        //        {
+        //            BorrarFotoFisica(p.FotoPath);
+        //            p.FotoPath = null;
+        //        }
+        //        else if (Foto != null && Foto.Length > 0)
+        //        {
+        //            var nueva = await GuardarFotoAsync(p.PersonaID, Foto);
+        //            if (!string.IsNullOrWhiteSpace(p.FotoPath))
+        //                BorrarFotoFisica(p.FotoPath);
+        //            p.FotoPath = nueva;
+        //        }
+        //        else
+        //        {
+        //            p.FotoPath = vm.Persona.FotoPath;
+        //        }
+
+        //        // Empleado
+        //        db.PuestoID = vm.Empleado.PuestoID;
+        //        db.FechaContratacion = vm.Empleado.FechaContratacion;
+        //        db.Estado = vm.Empleado.Estado;
+
+        //        await _context.SaveChangesAsync();
+        //        await tx.CommitAsync();
+
+        //        return IsAjax
+        //            ? Ok(new { ok = true, message = "Empleado actualizado correctamente.", redirectUrl = Url.Action(nameof(Index), "Empleados") })
+        //            : RedirectToAction(nameof(Index));
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await tx.RollbackAsync();
+
+        //        if (IsAjax) return StatusCode(500, new { ok = false, message = "Error al actualizar: " + ex.Message });
+
+        //        ModelState.AddModelError(string.Empty, "Error al actualizar: " + ex.Message);
+        //        await CargarCombosCreateAsync(
+        //            vm.Empleado?.PuestoID,
+        //            vm.Persona?.TipoDocumentoID,
+        //            vm.Persona?.PaisID,
+        //            vm.Persona?.DepartamentoID,
+        //            vm.Persona?.MunicipioID
+        //        );
+        //        return View(nameof(Edit), vm);
+        //    }
         //}
 
         [HttpGet]
@@ -577,18 +863,6 @@ namespace PIOGHOASIS.Controllers
             ViewBag.IsPartial = IsAjax; // igual que en Clientes
             return IsAjax ? PartialView(model) : View(model);
         }
-
-
-        //public async Task<IActionResult> Delete(string id)
-        //{
-        //    var model = await _context.empleados
-        //        .AsNoTracking()
-        //        .Include(e => e.Persona)
-        //        .Include(e => e.Puesto)
-        //        .FirstOrDefaultAsync(e => e.EmpleadoID == id);
-        //    if (model == null) return NotFound();
-        //    return IsAjax ? PartialView(model) : View(model);
-        //}
 
         // ====== ToggleEstado ======
         [HttpPost, ValidateAntiForgeryToken]

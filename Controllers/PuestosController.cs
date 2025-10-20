@@ -1,11 +1,12 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using PIOGHOASIS.Infraestructure.Data;
 using PIOGHOASIS.Models;
-using Rotativa.AspNetCore.Options;
 using Rotativa.AspNetCore;
+using Rotativa.AspNetCore.Options;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace PIOGHOASIS.Controllers
 {
@@ -101,21 +102,43 @@ namespace PIOGHOASIS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("PuestoID,Nombre,Descripcion,Estado")] Puesto puesto)
+        public async Task<IActionResult> Create([Bind("PuestoID,Nombre,Descripcion,Estado")] Puesto model)
         {
+            if (string.IsNullOrWhiteSpace(model.PuestoID) || !model.PuestoID.StartsWith("PUESTO"))
+                model.PuestoID = await NextPuestoIdAsync();
+
+            // normaliza antes de validar/guardar
+            model.Nombre = N(model.Nombre);
+            model.Descripcion = N(model.Descripcion);
+            model.Estado = true;
+
             if (!ModelState.IsValid)
-                return IsAjax ? PartialView(puesto) : View(puesto);
+                return IsAjax ? PartialView(nameof(Create), model) : View(nameof(Create), model);
 
-            // Si no viene (o viene mal), genera uno
-            if (string.IsNullOrWhiteSpace(puesto.PuestoID) || !puesto.PuestoID.StartsWith("PUESTO"))
-                puesto.PuestoID = await NextPuestoIdAsync();
+            // Validación app: nombre único (si tu collation es CI, el == ya es insensible a may/min)
+            bool nombreTomado = await _context.puestos.AnyAsync(p => p.Nombre == model.Nombre);
+            if (nombreTomado)
+            {
+                ModelState.AddModelError(nameof(model.Nombre), "Ya existe un puesto con ese nombre.");
+                return IsAjax ? PartialView(nameof(Create), model) : View(nameof(Create), model);
+            }
 
-            // En caso raro de choque por concurrencia, vuelve a generar
-            if (await _context.puestos.AnyAsync(x => x.PuestoID == puesto.PuestoID))
-                puesto.PuestoID = await NextPuestoIdAsync();
+            // (opcional) por si choca el ID generado
+            if (await _context.puestos.AnyAsync(p => p.PuestoID == model.PuestoID))
+                model.PuestoID = await NextPuestoIdAsync();
 
-            _context.Add(puesto);
-            await _context.SaveChangesAsync();
+            _context.Add(model);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex) when (IsUniqueViolation(ex))
+            {
+                // respaldo por si el índice único (DB) también lo detecta
+                ModelState.AddModelError(nameof(model.Nombre), "Ya existe un puesto con ese nombre.");
+                return IsAjax ? PartialView(nameof(Create), model) : View(nameof(Create), model);
+            }
 
             if (IsAjax)
                 return Json(new
@@ -127,6 +150,36 @@ namespace PIOGHOASIS.Controllers
 
             return RedirectToAction(nameof(Index));
         }
+
+
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Create([Bind("PuestoID,Nombre,Descripcion,Estado")] Puesto puesto)
+        //{
+        //    if (!ModelState.IsValid)
+        //        return IsAjax ? PartialView(puesto) : View(puesto);
+
+        //    // Si no viene (o viene mal), genera uno
+        //    if (string.IsNullOrWhiteSpace(puesto.PuestoID) || !puesto.PuestoID.StartsWith("PUESTO"))
+        //        puesto.PuestoID = await NextPuestoIdAsync();
+
+        //    // En caso raro de choque por concurrencia, vuelve a generar
+        //    if (await _context.puestos.AnyAsync(x => x.PuestoID == puesto.PuestoID))
+        //        puesto.PuestoID = await NextPuestoIdAsync();
+
+        //    _context.Add(puesto);
+        //    await _context.SaveChangesAsync();
+
+        //    if (IsAjax)
+        //        return Json(new
+        //        {
+        //            ok = true,
+        //            message = "¡Guardado exitosamente!",
+        //            redirectUrl = Url.Action("Index", "Puestos")
+        //        });
+
+        //    return RedirectToAction(nameof(Index));
+        //}
 
 
         // ====== EDIT ======
@@ -143,66 +196,133 @@ namespace PIOGHOASIS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, [Bind("PuestoID,Nombre,Descripcion,Estado")] Puesto puesto)
+        public async Task<IActionResult> Edit(string id, [Bind("PuestoID,Nombre,Descripcion,Estado")] Puesto model)
         {
-            if (id != puesto.PuestoID) return NotFound();
+            if (id != model.PuestoID) return NotFound();
+
+            // normaliza para comparar/guardar
+            var nuevoNombre = N(model.Nombre);
+            var nuevaDesc = N(model.Descripcion);
 
             if (!ModelState.IsValid)
-                return IsAjax ? PartialView(puesto) : View(puesto);
+                return IsAjax ? PartialView(nameof(Edit), model) : View(nameof(Edit), model);
 
-            // Cargar el registro actual (sin tracking para comparar)
-            var actual = await _context.puestos
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.PuestoID == id);
+            var db = await _context.puestos.FirstOrDefaultAsync(p => p.PuestoID == id);
+            if (db == null) return NotFound();
 
-            if (actual == null) return NotFound();
+            // Validación app: nombre único EXCLUYENDO este registro
+            bool nombreTomado = await _context.puestos
+                .AnyAsync(p => p.PuestoID != model.PuestoID && p.Nombre == nuevoNombre);
+            if (nombreTomado)
+            {
+                ModelState.AddModelError(nameof(model.Nombre), "Ya existe un puesto con ese nombre.");
+                return IsAjax ? PartialView(nameof(Edit), model) : View(nameof(Edit), model);
+            }
 
-            // Normaliza espacios para evitar falsas diferencias
-            string norm(string s) => (s ?? "").Trim();
-
+            // detectar cambios reales
             bool hayCambios =
-                !string.Equals(norm(actual.Nombre), norm(puesto.Nombre), StringComparison.Ordinal) ||
-                !string.Equals(norm(actual.Descripcion), norm(puesto.Descripcion), StringComparison.Ordinal) ||
-                actual.Estado != puesto.Estado;
+                !string.Equals(N(db.Nombre), nuevoNombre, StringComparison.Ordinal) ||
+                !string.Equals(N(db.Descripcion), nuevaDesc, StringComparison.Ordinal) ||
+                db.Estado != model.Estado;
 
             if (!hayCambios)
             {
                 if (IsAjax)
-                    return Json(new
-                    {
-                        ok = false,
-                        reason = "nochanges",
-                        message = "Realiza un cambio antes de guardar."
-                    });
+                    return Json(new { ok = false, reason = "nochanges", message = "Realiza un cambio antes de guardar." });
 
                 ModelState.AddModelError(string.Empty, "Realiza un cambio antes de guardar.");
-                return View(puesto);
+                return View(model);
             }
 
-            // Sí hay cambios: actualizar
+            // aplicar cambios
+            db.Nombre = nuevoNombre;
+            db.Descripcion = nuevaDesc;
+            db.Estado = model.Estado;
+
             try
             {
-                _context.Update(puesto);
                 await _context.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex) when (IsUniqueViolation(ex))
             {
-                if (!_context.puestos.Any(e => e.PuestoID == puesto.PuestoID)) return NotFound();
-                throw;
+                ModelState.AddModelError(nameof(model.Nombre), "Ya existe un puesto con ese nombre.");
+                return IsAjax ? PartialView(nameof(Edit), model) : View(nameof(Edit), model);
             }
 
-            // AJAX: éxito => mostrará modal y (si quieres) redirige luego
             if (IsAjax)
                 return Json(new
                 {
                     ok = true,
                     message = "¡Puesto actualizado exitosamente!",
-                    redirectUrl = Url.Action("Index", "Puestos") // si luego quieres ir a Index
+                    redirectUrl = Url.Action("Index", "Puestos")
                 });
 
-            // No AJAX: vuelve al mismo Edit
-            return RedirectToAction(nameof(Edit), new { id = puesto.PuestoID });
+            return RedirectToAction(nameof(Edit), new { id = model.PuestoID });
         }
+
+
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Edit(string id, [Bind("PuestoID,Nombre,Descripcion,Estado")] Puesto puesto)
+        //{
+        //    if (id != puesto.PuestoID) return NotFound();
+
+        //    if (!ModelState.IsValid)
+        //        return IsAjax ? PartialView(puesto) : View(puesto);
+
+        //    // Cargar el registro actual (sin tracking para comparar)
+        //    var actual = await _context.puestos
+        //        .AsNoTracking()
+        //        .FirstOrDefaultAsync(x => x.PuestoID == id);
+
+        //    if (actual == null) return NotFound();
+
+        //    // Normaliza espacios para evitar falsas diferencias
+        //    string norm(string s) => (s ?? "").Trim();
+
+        //    bool hayCambios =
+        //        !string.Equals(norm(actual.Nombre), norm(puesto.Nombre), StringComparison.Ordinal) ||
+        //        !string.Equals(norm(actual.Descripcion), norm(puesto.Descripcion), StringComparison.Ordinal) ||
+        //        actual.Estado != puesto.Estado;
+
+        //    if (!hayCambios)
+        //    {
+        //        if (IsAjax)
+        //            return Json(new
+        //            {
+        //                ok = false,
+        //                reason = "nochanges",
+        //                message = "Realiza un cambio antes de guardar."
+        //            });
+
+        //        ModelState.AddModelError(string.Empty, "Realiza un cambio antes de guardar.");
+        //        return View(puesto);
+        //    }
+
+        //    // Sí hay cambios: actualizar
+        //    try
+        //    {
+        //        _context.Update(puesto);
+        //        await _context.SaveChangesAsync();
+        //    }
+        //    catch (DbUpdateConcurrencyException)
+        //    {
+        //        if (!_context.puestos.Any(e => e.PuestoID == puesto.PuestoID)) return NotFound();
+        //        throw;
+        //    }
+
+        //    // AJAX: éxito => mostrará modal y (si quieres) redirige luego
+        //    if (IsAjax)
+        //        return Json(new
+        //        {
+        //            ok = true,
+        //            message = "¡Puesto actualizado exitosamente!",
+        //            redirectUrl = Url.Action("Index", "Puestos") // si luego quieres ir a Index
+        //        });
+
+        //    // No AJAX: vuelve al mismo Edit
+        //    return RedirectToAction(nameof(Edit), new { id = puesto.PuestoID });
+        //}
 
         // ====== DELETE ======
         // GET (confirmación)
@@ -334,5 +454,16 @@ namespace PIOGHOASIS.Controllers
 
             return pdf; // si es Inline, el navegador lo previsualiza en una pestaña
         }
+
+        // Devuelve true si la excepción proviene de UNIQUE/PK en SQL Server
+        private static bool IsUniqueViolation(Exception ex)
+        {
+            return ex is DbUpdateException dbu &&
+                   dbu.InnerException is SqlException sql &&
+                   (sql.Number == 2627 || sql.Number == 2601);
+        }
+
+        // Normaliza texto para comparar (trim y opcional: ToUpper si quieres forzar CI)
+        private static string N(string? s) => (s ?? "").Trim();
     }
 }

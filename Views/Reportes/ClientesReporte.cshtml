@@ -1,0 +1,296 @@
+﻿@model PIOGHOASIS.Models.ViewModels.ReporteClientesVM
+@using System.Text.Json
+@{
+    Layout = null;
+    ViewData["Title"] = "Reporte de Clientes";
+    string J(object o) => JsonSerializer.Serialize(o);
+}
+
+<style>
+    .caja-ui {
+        position: relative;
+        margin-top: 0;
+        width: 100%;
+        min-height: calc(100vh - var(--header-h));
+        background: linear-gradient(rgba(255,255,255,.30),rgba(255,255,255,.30)), url('/img/dashboard/FondoDashboard.jpg') center/cover no-repeat #000;
+        overflow: hidden;
+        padding: 30px;
+    }
+
+        .caja-ui .tt {
+            font-size: clamp(1.25rem,1.8vw,1.75rem);
+            font-weight: 800;
+            color: #1f2a37
+        }
+
+    .card-filtros {
+        background: rgba(255,255,255,.85);
+        box-shadow: 0 6px 22px rgba(0,0,0,.08);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: .75rem
+    }
+
+    .kpi-card .small {
+        color: #6b7280
+    }
+
+    .caja-ui table {
+        background: #fff
+    }
+
+    .caja-ui thead th {
+        background: #f3c259;
+        color: #222;
+        border-bottom: 2px solid #d7a536;
+        vertical-align: middle
+    }
+
+    .caja-ui tbody td {
+        vertical-align: middle
+    }
+</style>
+
+<!-- Chart.js (interactivo solo en esta vista HTML) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<div class="caja-ui">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="tt mb-0">Reporte de Clientes</h2>
+        <div class="d-flex gap-2">
+            <button id="btnBuscar" form="frmClientes" type="submit"  class="btn btn-primary">
+                <i class="bi bi-search me-1"></i> Buscar
+            </button>
+            <button id="btnPrintCli" type="button" class="btn btn-outline-secondary" title="Imprimir">
+                <i class="bi bi-printer"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== Filtros ===== -->
+    <div class="card-filtros p-3 mb-3">
+        <form id="frmClientes" method="get" class="row g-3 align-items-end" action="@Url.Action("ClientesReporte","Reportes")">
+            <div class="col-6 col-md-3">
+                <label class="form-label fw-semibold">Desde</label>
+                <input type="date" name="desde" class="form-control" value="@Model.Desde?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-6 col-md-3">
+                <label class="form-label fw-semibold">Hasta</label>
+                <input type="date" name="hasta" class="form-control" value="@Model.Hasta?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-12 col-md-3">
+                <label class="form-label fw-semibold d-block">Sólo activos</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="chkActivos"
+                           name="soloActivos" value="true" @(Model.SoloActivos ? "checked" : "")>
+                    <label class="form-check-label" for="chkActivos">Filtrar clientes activos</label>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ===== KPIs ===== -->
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-lg-2">
+            <div class="card kpi-card">
+                <div class="card-body">
+                    <div class="small">Total clientes</div>
+                    <div class="h4 mb-0">@Model.TotalClientes</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <div class="card kpi-card">
+                <div class="card-body">
+                    <div class="small">Nuevos</div>
+                    <div class="h4 mb-0">@Model.NuevosEnRango</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <div class="card kpi-card">
+                <div class="card-body">
+                    <div class="small">Con reserva</div>
+                    <div class="h4 mb-0">@Model.ClientesConReserva</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <div class="card kpi-card">
+                <div class="card-body">
+                    <div class="small">Repetidores (2+)</div>
+                    <div class="h4 mb-0">@Model.Repetidores</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <div class="card kpi-card">
+                <div class="card-body">
+                    <div class="small">Ticket prom.</div>
+                    <div class="h4 mb-0">Q. @Model.TicketPromedioCliente.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+            <div class="card kpi-card">
+                <div class="card-body">
+                    <div class="small">Países</div>
+                    <div class="h4 mb-0">@Model.PaisTopCount</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Dashboards ===== -->
+    <div class="row g-3 mb-3">
+        <div class="col-lg-4">
+            <div class="card p-0">
+                <div class="card-header fw-bold">Clientes por país</div>
+                <div class="card-body"><canvas id="chPais" height="220"></canvas></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card p-0">
+                <div class="card-header fw-bold">Clientes por departamento (GTM)</div>
+                <div class="card-body"><canvas id="chDepto" height="220"></canvas></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card p-0">
+                <div class="card-header fw-bold">Nuevos por mes</div>
+                <div class="card-body"><canvas id="chAltas" height="220"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-12">
+            <div class="card p-0">
+                <div class="card-header fw-bold">Top 10 clientes por gasto (@Model.Desde - @Model.Hasta)</div>
+                <div class="card-body"><canvas id="chTop" height="320"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Detalle ===== -->
+    <div class="card p-0">
+        <div class="card-header fw-bold">Detalle de clientes</div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:100px">Código</th>
+                        <th>Nombre</th>
+                        <th>DPI</th>
+                        <th style="width:80px">País</th>
+                        <th style="width:120px">Registro</th>
+                        <th style="width:90px">Reservas</th>
+                        <th class="text-end" style="width:120px">Pagado</th>
+                        <th style="width:120px">Últ. visita</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Detalle.Any())
+                    {
+                        <tr><td colspan="8" class="text-center text-muted py-4">Sin datos.</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var r in Model.Detalle)
+                        {
+                            <tr>
+                                <td>@r.ClienteID</td>
+                                <td>@r.Nombre</td>
+                                <td>@(string.IsNullOrWhiteSpace(r.DPI) ? "—" : r.DPI)</td>
+                                <td>@(string.IsNullOrWhiteSpace(r.PaisID) ? "—" : r.PaisID)</td>
+                                <td>@(r.FechaRegistro?.ToString("dd/MM/yyyy") ?? "—")</td>
+                                <td>@r.Reservas</td>
+                                <td class="text-end">Q. @r.TotalPagado.ToString("N2")</td>
+                                <td>@(r.UltimaVisita?.ToString("dd/MM/yyyy") ?? "—")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    (() => {
+      // ===== Datos serializados =====
+      const porPais     = @Html.Raw(J(Model.PorPais));
+      const porDepto    = @Html.Raw(J(Model.PorDepartamento));
+      const altasMes    = @Html.Raw(J(Model.NuevosPorMes.Select(x => new { f = x.Fecha.ToString("yyyy-MM-01"), c = x.Conteo })));
+      const topClientes = @Html.Raw(J(Model.TopClientes.Select(x => new { n = x.Nombre, q = x.TotalPagado })));
+
+      const COLORS = ['#3B82F6','#EF4444','#22C55E','#EAB308','#8B5CF6','#06B6D4','#F97316','#10B981','#F43F5E','#6366F1'];
+
+      // ===== helper para evitar que Chart.js reutilice el canvas con opciones anteriores
+      function safeChart(canvasId, config){
+        const el = document.getElementById(canvasId);
+        if(!el) return null;
+        const prev = Chart.getChart(el);
+        if(prev) prev.destroy();
+        return new Chart(el, config);
+      }
+
+      // País (dona)
+      safeChart('chPais', {
+        type: 'doughnut',
+        data: {
+          labels: porPais.map(x => x.clave || x.Clave),
+          datasets: [{ data: porPais.map(x => x.conteo ?? x.Conteo), backgroundColor: COLORS }]
+        },
+        options: { responsive:true, plugins:{ legend:{ position:'bottom' } } }
+      });
+
+      // Depto (barras, ya vienen los NOMBRES del controlador)
+      safeChart('chDepto', {
+        type: 'bar',
+        data: {
+          labels: porDepto.map(x => x.clave || x.Clave),
+          datasets: [{
+            label: 'Clientes',
+            data: porDepto.map(x => x.conteo ?? x.Conteo),
+            backgroundColor: porDepto.map((_,i)=>COLORS[i%COLORS.length])
+          }]
+        },
+        options: { responsive:true, plugins:{ legend:{ display:false } } }
+      });
+
+      // Altas por mes (barras)
+      safeChart('chAltas', {
+        type: 'bar',
+        data: {
+          labels: altasMes.map(x => x.f),
+          datasets: [{ label: 'Altas', data: altasMes.map(x => x.c), backgroundColor: COLORS[0] }]
+        },
+        options: { responsive:true, plugins:{ legend:{ display:false } } }
+      });
+
+      // Top clientes (BARRAS VERTICALES)
+      const labelsTop = topClientes.map(x => x.n);
+      const dataTop   = topClientes.map(x => x.q);
+      safeChart('chTop', {
+        type: 'bar',
+        data: {
+          labels: labelsTop,
+          datasets: [{ label: 'Q', data: dataTop, backgroundColor: labelsTop.map((_,i)=>COLORS[i%COLORS.length]) }]
+        },
+        options: {
+          responsive:true,
+          plugins:{ legend:{ display:false } },
+          scales:{ y:{ ticks:{ callback:v=>'Q '+Number(v).toLocaleString() } } }
+        }
+      });
+
+      // Imprimir (abre el PDF con los filtros actuales)
+      function openPrint(){
+        const f = document.getElementById('frmClientes');
+        const qs = new URLSearchParams(new FormData(f));
+        if(!qs.has('soloActivos')) qs.append('soloActivos','false'); // checkbox no marcado no viaja
+        window.open('/Reportes/ClientesReportePdf?' + qs.toString(), '_blank');
+      }
+      document.getElementById('btnPrintCli')?.addEventListener('click', openPrint);
+    })();
+</script>

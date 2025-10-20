@@ -1,0 +1,13 @@
+{
+  "version": "3.0",
+  "defaultProvider": "unpkg",
+  "libraries": [
+    {
+      "library": "Chart.js@2.9.4",
+      "destination": "wwwroot/lib/chartjs-2",
+      "files": [
+        "dist/Chart.min.js"
+      ]
+    }
+  ]
+}

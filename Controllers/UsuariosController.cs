@@ -231,6 +231,7 @@ namespace PIOGHOASIS.Controllers
                 model.UsuarioNombre = nombreTrim;
                 model.Contrasena = Pbkdf2.HashPassword(model.NuevaContrasena!); // <- byte[]
                 model.FechaRegistro = DateTime.Now;
+                model.Estado = true;
 
                 _db.usuarios.Add(model);
                 await _db.SaveChangesAsync();

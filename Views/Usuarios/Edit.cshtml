@@ -62,6 +62,30 @@
         height: 50px;
         object-fit: contain
     }
+
+    #notaCaObligatorio {
+        width: 100%;
+        text-align: right;
+    }
+
+    /* Muestra el estilo de error de Bootstrap (borde rojo + ícono) aun si
+       jQuery Unobtrusive solo aplicó 'input-validation-error' */
+    .input-validation-error.form-control,
+    .input-validation-error.form-select {
+        border-color: var(--bs-form-invalid-border-color) !important;
+        padding-right: calc(1.5em + .75rem) !important;
+        background-image: var(--bs-form-invalid-bg-image);
+        background-repeat: no-repeat;
+        background-position: right calc(.375em + .1875rem) center;
+        background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+    }
+
+    /* Asegura visibilidad de mensajes como en las otras pantallas */
+    span.field-validation-error {
+        display: block;
+        color: #dc3545;
+    }
+
 </style>
 
 <div class="usr-form">
@@ -78,6 +102,10 @@
             <form id="frmEditUsuario" asp-action="Edit" asp-controller="Usuarios" method="post" data-ajax="true" novalidate>
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="UsuarioID" />
+
+                <div id="notaCaObligatorio">
+                    <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
+                </div>
 
                 <div class="row g-3">
                     <div class="col-12 col-md-4">
@@ -124,12 +152,12 @@
                         <span asp-validation-for="NuevaContrasena" class="text-danger"></span>
 
                         <div class="note mt-2">
-                            <div class="fw-semibold">Requisitos:</div>
-                            <ul class="mb-0 pw-req d-none" id="pwChecklist">
-                                <li data-req="lower"><i class="bi"></i> Al menos una letra minúscula.</li>
-                                <li data-req="upper"><i class="bi"></i> Al menos una letra mayúscula.</li>
-                                <li data-req="digit"><i class="bi"></i> Al menos un número.</li>
-                                <li data-req="len"><i class="bi"></i> Entre 8 y 15 caracteres.</li>
+                            <div class="fw-semibold">Nota: La contraseña debe de tener los siguientes requisitos.</div>
+                            <ul class="mb-0 pw-req" id="pwChecklist">
+                                <li data-req="lower"><i class="bi"></i> Tener al menos una letra minúscula.</li>
+                                <li data-req="upper"><i class="bi"></i> Tener al menos una letra mayúscula.</li>
+                                <li data-req="digit"><i class="bi"></i> Tener al menos un número.</li>
+                                <li data-req="len"><i class="bi"></i> Tener una longitud entre 8 y 15 caracteres.</li>
                             </ul>
                         </div>
                     </div>

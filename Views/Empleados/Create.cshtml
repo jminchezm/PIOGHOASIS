@@ -60,6 +60,22 @@
         display: block;
         color: #dc3545;
     }
+
+    #notaCaObligatorio {
+        width: 100%;
+        text-align: right;
+    }
+
+    /*Pinta campos obligatorios*/
+    span.field-validation-error {
+        display: block;
+        color: #dc3545;
+    }
+
+    .input-validation-error {
+        border-color: #dc3545 !important;
+    }
+
 </style>
 
 @* <script src="~/lib/jquery/jquery.min.js"></script>
@@ -88,10 +104,14 @@
               asp-action="Create"
               method="post"
               data-ajax="true"
-              nctype="multipart/form-data"
+              enctype="multipart/form-data"
               novalidate>
         @Html.AntiForgeryToken()
         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div id="notaCaObligatorio">
+            <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
+        </div>
 
         <!-- ===== Datos de la Persona ===== -->
         <h6 class="pc-subtitle">Datos del Empleado</h6>
@@ -101,6 +121,7 @@
                 <div class="col-12 col-md-4">
                     <label asp-for="Empleado.EmpleadoID" class="form-label">Código*</label>
                     <input asp-for="Empleado.EmpleadoID" class="form-control" readonly />
+                    <span class="form-text text-muted">Se genera automáticamente.</span>
                     <span asp-validation-for="Empleado.EmpleadoID" class="text-danger"></span>
                 </div>
 
@@ -122,14 +143,20 @@
                     <span asp-validation-for="Empleado.FechaContratacion" class="text-danger"></span>
                 </div>
 
-                <div class="col-12 col-md-4">
+                @* <div class="col-12 col-md-4">
                     <label class="form-label">Estado*</label>
                     <select asp-for="Empleado.Estado" class="form-select">
                         <option value="true">Activo</option>
-                        @* <option value="false">Inactivo</option> *@
                     </select>
                     <span asp-validation-for="Empleado.Estado" class="text-danger"></span>
+                </div> *@
+
+                <div class="col-12 col-md-4">
+                    <label asp-for="Persona.PrimerNombre" class="form-label">Primer nombre*</label>
+                    <input asp-for="Persona.PrimerNombre" placeholder="Ingresa el primer nombre" class="form-control" />
+                    <span asp-validation-for="Persona.PrimerNombre" class="text-danger"></span>
                 </div>
+
             </div>
                     @* Si deseas mostrar el código, descomenta:
           <div class="col-12 col-md-4">
@@ -138,12 +165,6 @@
             <span asp-validation-for="Persona.PersonaID" class="text-danger"></span>
           </div>
           *@
-
-          <div class="col-12 col-md-4">
-            <label asp-for="Persona.PrimerNombre" class="form-label">Primer nombre*</label>
-            <input asp-for="Persona.PrimerNombre" placeholder="Ingresa el primer nombre" class="form-control" />
-            <span asp-validation-for="Persona.PrimerNombre" class="text-danger"></span>
-          </div>
 
           <div class="col-12 col-md-4">
             <label asp-for="Persona.SegundoNombre" class="form-label">Segundo nombre</label>
@@ -410,6 +431,8 @@
     </div>
   </div>
 </div> *@
+
+<script src="~/lib/jquery-ajax-unobtrusive/jquery.unobtrusive-ajax.min.js"></script>
 
 <script>
     // Dispara 'change' si País ya es GTM al cargar

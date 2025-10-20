@@ -270,5 +270,29 @@
     fPuesto.dispatchEvent(new Event('input')); fEstado.dispatchEvent(new Event('change'));
     fIni.dispatchEvent(new Event('change'));   fFin.dispatchEvent(new Event('change'));
   });
+
+      // Botón "Limpiar filtros" (Empleados)
+    document.querySelector('.puestos-ui')?.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('.js-clear-filters');
+      if (!btn) return;
+
+      // limpia campos
+      fCodigo.value  = '';
+      fPersona.value = '';
+      fPuesto.value  = '';
+      fEstado.value  = '';   // "" = Todos
+      fIni.value     = '';
+      fFin.value     = '';
+
+      // dispara eventos para que se ejecute el debounce + recarga
+      fCodigo.dispatchEvent(new Event('input',  { bubbles: true }));
+      fPersona.dispatchEvent(new Event('input', { bubbles: true }));
+      fPuesto.dispatchEvent(new Event('input',  { bubbles: true }));
+      fEstado.dispatchEvent(new Event('change', { bubbles: true }));
+      fIni.dispatchEvent(new Event('change',    { bubbles: true }));
+      fFin.dispatchEvent(new Event('change',    { bubbles: true }));
+    });
+
+
 })();
 </script>

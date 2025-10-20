@@ -44,11 +44,13 @@ namespace PIOGHOASIS.Controllers
         private async Task<PermisosRolVM> BuildVmAsync(string? rolId = null)
         {
             var roles = await _ctx.roles
+                .Where(r => r.Estado == true)
                 .OrderBy(r => r.Nombre)
                 .Select(r => new SelectListItem { Value = r.RolID, Text = r.Nombre })
                 .ToListAsync();
 
             var mods = await _ctx.modulos
+                .Where( m => m.Estado == true)
                 .OrderBy(m => m.Nombre)
                 .Select(m => new { m.ModuloID, m.Codigo, m.Nombre })
                 .ToListAsync();

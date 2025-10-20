@@ -90,6 +90,30 @@
         height: 50px;
         object-fit: contain;
     }
+
+    #notaCaObligatorio {
+        width: 100%;
+        text-align: right;
+    }
+
+    /* Muestra el estilo de error de Bootstrap (borde rojo + ícono) aun si
+       jQuery Unobtrusive solo aplicó 'input-validation-error' */
+    .input-validation-error.form-control,
+    .input-validation-error.form-select {
+        border-color: var(--bs-form-invalid-border-color) !important;
+        padding-right: calc(1.5em + .75rem) !important;
+        background-image: var(--bs-form-invalid-bg-image);
+        background-repeat: no-repeat;
+        background-position: right calc(.375em + .1875rem) center;
+        background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+    }
+
+    /* Asegura visibilidad de mensajes como en las otras pantallas */
+    span.field-validation-error {
+        display: block;
+        color: #dc3545;
+    }
+
 </style>
 
 <div class="puestos-create">
@@ -104,6 +128,10 @@
             <form asp-action="Create" method="post" data-ajax="true" novalidate>
                 @Html.AntiForgeryToken()
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                <div id="notaCaObligatorio">
+                    <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
+                </div>
 
                 <div class="row g-3">
                     <div class="col-12 col-md-4">
@@ -125,14 +153,14 @@
                         <span asp-validation-for="Descripcion" class="text-danger"></span>
                     </div>
 
-                    <div class="col-12 col-md-4">
+                    @* <div class="col-12 col-md-4">
                         <label class="form-label">Estado*</label>
                         <select asp-for="Estado" class="form-select">
                             <option value="true">Activo</option>
                             <option value="false">Inactivo</option>
                         </select>
                         <span asp-validation-for="Estado" class="text-danger"></span>
-                    </div>
+                    </div> *@
                 </div>
 
                 <div class="mt-4 d-flex justify-content-end">
@@ -156,4 +184,17 @@
         </div>
     </div>
 </div>
+
+
+@* <div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 p-4 text-center">
+            <div class="ok-circle mx-auto mb-3">
+                <img src="~/img/exito.png" alt="Éxito" class="ok-img">
+            </div>
+            <h4 class="fw-bold mb-1">NUEVA CAJA</h4>
+            <p class="text-muted mb-0">Ya existe una caja abierta, cierra la caja actual antes de abrir otra.</p>
+        </div>
+    </div>
+</div> *@
 
