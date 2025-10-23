@@ -122,9 +122,9 @@
 
         <div class="grid2" style="margin-bottom:10px;">
             <div class="kpi"><div class="lbl">Ocupación</div><div class="val">@((Model.Ocupacion * 100m).ToString("0.0")) %</div></div>
-            <div class="kpi"><div class="lbl">ADR</div><div class="val">@Model.ADR.ToString("N2")</div></div>
-            <div class="kpi"><div class="lbl">RevPAR</div><div class="val">@Model.RevPAR.ToString("N2")</div></div>
-            <div class="kpi"><div class="lbl">Cobrado</div><div class="val">@Model.TotalCobrado.ToString("N2")</div></div>
+            <div class="kpi"><div class="lbl">Precio prom./n vendida (Sin impuestos)</div><div class="val">@Model.ADR.ToString("N2")</div></div> @* ADR *@
+            <div class="kpi"><div class="lbl">Ingreso por habitación disponible</div><div class="val">@Model.RevPAR.ToString("N2")</div></div> @* RevPAR *@
+            <div class="kpi"><div class="lbl">Total Cobrado</div><div class="val">@Model.TotalCobrado.ToString("N2")</div></div>
         </div>
 
         <h3>Reservas</h3>

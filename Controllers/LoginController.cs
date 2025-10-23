@@ -37,12 +37,24 @@ namespace PIOGHOASIS.Controllers
                 return View(vm);
             }
 
+            var inputUser = (vm.Usuario ?? string.Empty).Trim();
+
+            // Fuerza collation case-sensitive SOLO en la comparación del usuario
+            const string CS = "Latin1_General_CS_AS"; // o la CS de tu servidor
+
             // busca usuario activo por nombre e incluye empleado+persona
             var user = await _db.usuarios
-                .AsNoTracking()
-                .Include(u => u.Rol)
-                .Include(u => u.Empleado).ThenInclude(e => e.Persona)
-                .FirstOrDefaultAsync(u => u.UsuarioNombre == vm.Usuario && u.Estado == true);
+            .AsNoTracking()
+            .Include(u => u.Rol)
+            .Include(u => u.Empleado).ThenInclude(e => e.Persona)
+            .FirstOrDefaultAsync(u =>
+                EF.Functions.Collate(u.UsuarioNombre, CS) == inputUser && u.Estado);
+
+            //var user = await _db.usuarios
+            //    .AsNoTracking()
+            //    .Include(u => u.Rol)
+            //    .Include(u => u.Empleado).ThenInclude(e => e.Persona)
+            //    .FirstOrDefaultAsync(u => u.UsuarioNombre == vm.Usuario && u.Estado == true);
 
             if (user is null)
             {

@@ -140,6 +140,11 @@
         height: 50px;
         object-fit: contain
     }
+
+    #notaCaObligatorio {
+        width: 100%;
+        text-align: right;
+    }
 </style>
 
 <div class="hab-create">
@@ -153,6 +158,11 @@
         <div class="hc-header">Editar Habitación</div>
         <div class="p-3 p-md-4">
             <h6 class="pc-subtitle">Datos de la Habitación</h6>
+
+            <div id="notaCaObligatorio">
+                <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
+            </div>
+
             <!-- Imagen actual centrada (con fallback a DefaultHabitacion.png) -->
             <div class="heroo">
                 <img id="imgPreview" src="@imgUrl" alt="Imagen de la habitación" />        
@@ -163,7 +173,7 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="Habitacion.HabitacionID" />
 
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                @* <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div> *@
                 <div id="imgQuitar" class="col-12 col-md-4 d-flex align-items-end">
                     <div class="form-check">
                         <!-- 1) PRIMERO el checkbox "true" -->
@@ -318,6 +328,7 @@
                     <div id="tarifaError" class="text-danger fw-bold mt-2" style="display:none;">
                         Debes agregar al menos una tarifa válida (personas, fechas y precio).
                     </div>
+                    <div asp-validation-summary="ModelOnly" class="text-danger fw-bold mb-2"></div>
 
                     <hr />
                     <h6 class="pc-subtitle">Servicios</h6>
@@ -555,328 +566,3 @@
       });
     })();
 </script>
-
-
-@* <!-- Modales -->
-<div class="modal fade" id="saveOkModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white py-2">
-                <h6 class="modal-title mb-0"><i class="bi bi-check-circle me-1"></i> Cambios guardados</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center"><p class="mb-0 js-msg">¡Actualizado exitosamente!</p></div>
-            <div class="modal-footer py-2"><button type="button" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button></div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="noChangesModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-dark py-2">
-                <h6 class="modal-title mb-0"><i class="bi bi-exclamation-triangle me-1"></i> Sin cambios</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center"><p class="mb-0">No has modificado ningún campo.</p></div>
-            <div class="modal-footer py-2"><button type="button" class="btn btn-warning" data-bs-dismiss="modal">Entendido</button></div>
-        </div>
-    </div>
-</div> *@
-
-@* <script>
-    (() => {
-      const form = document.getElementById('frmEdit');
-      const btn  = document.getElementById('btnSave');
-      const hero = window.parent?.document?.getElementById?.('hero') || document.getElementById('hero');
-      const host = window.parent?.document?.getElementById?.('contentHost') || document.getElementById('contentHost');
-
-      const imgPreview = document.getElementById('imgPreview');
-      const fileInput  = document.getElementById('fileImagen');
-      const chkRemove  = document.getElementById('chkRemove');
-      const originalUrl = '@imgUrl';
-      const defaultUrl  = '@defaultImg';
-
-      // ===== Preview / quitar imagen =====
-      fileInput?.addEventListener('change', (e) => {
-        const f = e.target.files?.[0];
-        if (f) {
-          const reader = new FileReader();
-          reader.onload = ev => imgPreview.src = ev.target.result;
-          reader.readAsDataURL(f);
-          if (chkRemove) chkRemove.checked = false;
-        } else {
-          imgPreview.src = originalUrl || defaultUrl;
-        }
-      });
-
-      chkRemove?.addEventListener('change', () => {
-        if (chkRemove.checked) {
-          if (fileInput) { fileInput.value = ''; fileInput.disabled = true; }
-          imgPreview.src = defaultUrl;
-        } else {
-          if (fileInput) fileInput.disabled = false;
-          imgPreview.src = originalUrl || defaultUrl;
-        }
-      });
-
-      // ===== utils =====
-      // -> IGNORA los hidden que son "fallback" de los checkboxes con el mismo name
-      function snapshot(f){
-        const data = {};
-        const checkboxNames = new Set(
-          Array.from(f.querySelectorAll('input[type="checkbox"]')).map(el => el.name).filter(Boolean)
-        );
-
-        Array.from(f.elements).forEach(el => {
-          if (!el.name || el.type === 'file') return;
-
-          // saltar el hidden que acompaña a un checkbox con el mismo name
-          if (el.type === 'hidden' && checkboxNames.has(el.name)) return;
-
-          if (el.type === 'checkbox') {
-            data[el.name] = el.checked ? 'true' : 'false';
-          } else if (el.type !== 'submit' && el.type !== 'button') {
-            data[el.name] = el.value ?? '';
-          }
-        });
-        return JSON.stringify(data);
-      }
-
-      function formatearPrecio(input) {
-        let valor = input.value.replace(/[^0-9.]/g, '');
-        let partes = valor.split('.');
-        if (partes.length > 2) valor = partes[0] + '.' + partes[1];
-        if (partes[1]) {
-          partes[1] = partes[1].substring(0, 2);
-          valor = partes[0] + '.' + partes[1];
-        }
-        if (valor) {
-          let num = parseFloat(valor);
-          if (!isNaN(num)) {
-            input.value = num.toLocaleString('en-US', {
-              minimumFractionDigits: partes[1] ? 2 : 0,
-              maximumFractionDigits: 2
-            });
-          } else input.value = "";
-        } else input.value = "";
-      }
-      window.formatearPrecio = formatearPrecio;
-
-      function addFila() {
-        const tbody = document.querySelector('#tblTarifas tbody');
-        const tpl = document.querySelector('#tplTarifaRow tr').cloneNode(true);
-        tbody.appendChild(tpl);
-        reindexTarifas();
-      }
-      window.addFila = addFila;
-
-      function remFila(btn) {
-        const tr = btn.closest('tr');
-        const tbody = document.querySelector('#tblTarifas tbody');
-        if (tbody.rows.length <= 1) {
-          tr.querySelectorAll('input').forEach(i => i.value = '');
-        } else {
-          tr.remove();
-        }
-        reindexTarifas();
-      }
-      window.remFila = remFila;
-
-      function reindexTarifas() {
-        const rows = document.querySelectorAll('#tblTarifas tbody tr');
-        rows.forEach((tr, i) => {
-          tr.querySelectorAll('input,select,textarea').forEach(inp => {
-            const baseName = inp.getAttribute('name') || inp.getAttribute('asp-for');
-            let name = baseName;
-            if (!name || name.indexOf('TarifaItems[') === -1) {
-              name = ("TarifaItems[" + i + "]." + (inp.name || "").split('.').pop());
-            } else {
-              name = name.replace(/TarifaItems\[\d+\]/, "TarifaItems[" + i + "]");
-            }
-            inp.setAttribute('name', name);
-            const id = name.replace(/\./g, "_").replace(/\[/g, "_").replace(/\]/g, "_");
-            inp.id = id;
-          });
-        });
-      }
-      reindexTarifas();
-
-      function parsePrecio(str){ if(!str) return NaN; return parseFloat((str+"").replace(/,/g,"").trim()); }
-      function filaTarifaEsVacia(tr){
-        const p  = tr.querySelector('input[name$=".NumeroPersonas"]')?.value?.trim();
-        const fi = tr.querySelector('input[name$=".FechaInicio"]')?.value?.trim();
-        const ff = tr.querySelector('input[name$=".FechaFin"]')?.value?.trim();
-        const pr = tr.querySelector('input[name$=".PrecioNocheStr"]')?.value?.trim();
-        return (!p && !fi && !ff && !pr);
-      }
-      function filaTarifaEsValida(tr){
-        const p  = parseInt(tr.querySelector('input[name$=".NumeroPersonas"]')?.value || "0", 10);
-        const fi = tr.querySelector('input[name$=".FechaInicio"]')?.value;
-        const ff = tr.querySelector('input[name$=".FechaFin"]')?.value;
-        const pr = parsePrecio(tr.querySelector('input[name$=".PrecioNocheStr"]')?.value);
-        if (!p || p < 1) return false;
-        if (!fi || !ff) return false;
-        const d1 = new Date(fi + "T00:00:00");
-        const d2 = new Date(ff + "T00:00:00");
-        if (isNaN(d1) || isNaN(d2)) return false;
-        if (d2 < d1) return false;
-        if (isNaN(pr) || pr <= 0) return false;
-        return true;
-      }
-      function hayAlMenosUnaTarifaValida(){
-        const rows = document.querySelectorAll('#tblTarifas tbody tr');
-        for (const tr of rows){
-          if (!filaTarifaEsVacia(tr) && filaTarifaEsValida(tr)) return true;
-        }
-        return false;
-      }
-
-      const tarifaError     = document.getElementById('tarifaError');
-      // const noChangesModal  = bootstrap.Modal.getOrCreateInstance('#noChangesModal');
-      // const okModal         = bootstrap.Modal.getOrCreateInstance('#saveOkModal');
-      // const okModalEl       = document.getElementById('saveOkModal');
-
-      // helpers para (des)activar unobtrusive ajax cuando necesitamos bloquear envío
-      // function disableAjaxForThisAttempt() { form.setAttribute('data-ajax', 'false'); }
-      // function enableAjax() { form.setAttribute('data-ajax', 'true'); }
-
-      // ajax-nav
-      document.querySelectorAll('.ajax-nav[data-url]').forEach(a=>{
-        a.addEventListener('click', async ev=>{
-          if (!host) return;
-          ev.preventDefault();
-          try{
-            const url = a.dataset.url || a.href;
-            const r = await fetch(url, { headers: {'X-Requested-With':'XMLHttpRequest'} });
-            const html = await r.text();
-            if (hero) hero.style.display = 'none';
-            host.innerHTML = html;
-            window.parent?.scrollTo?.(0,0);
-          }catch{ window.location.href = a.href; }
-        });
-      });
-
-      // ¡TOMA EL SNAPSHOT DESPUÉS DE REINDEX Y CON EL FORM LISTO!
-      // const initial = snapshot(form);
-
-    form?.addEventListener('submit', (ev) => {
-      // normaliza precios antes de validar
-      form.querySelectorAll('input[name$=".PrecioNocheStr"]').forEach(inp => {
-        inp.value = (inp.value || "").replace(/,/g, "");
-      });
-
-      if (!hayAlMenosUnaTarifaValida()){
-        ev.preventDefault();
-        tarifaError.style.display = 'block';
-        form.querySelector('#tblTarifas tbody tr input')?.focus();
-      } else {
-        tarifaError.style.display = 'none';
-        // no tocar data-ajax ni hacer fetch: el Dashboard se encarga
-      }
-    });
-
-      // Submit
-      // form?.addEventListener('submit', async (ev) => {
-      //   // 1) ¿Sin cambios? (ahora detecta cambios de checkboxes correctamente)
-      //   // const snapNow = snapshot(form);
-      //   // if (snapNow === initial) {
-      //   //   ev.preventDefault();
-      //   //   disableAjaxForThisAttempt();
-      //   //   if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
-      //   //   else ev.stopPropagation();
-      //   //   noChangesModal.show();
-      //   //   return false;
-      //   // }
-
-      //      // considerar cambios de imagen
-      //   const imageChanged =
-      //     (fileInput && fileInput.files && fileInput.files.length > 0) ||
-      //     (chkRemove && chkRemove.checked);
-
-      //   // 1) ¿Sin cambios? (pero deja pasar si cambió la imagen)
-      //   // const snapNow = snapshot(form);
-      //   // if (snapNow === initial && !imageChanged) {
-      //   //   ev.preventDefault();
-      //   //   disableAjaxForThisAttempt();
-      //   //   if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
-      //   //   else ev.stopPropagation();
-      //   //   noChangesModal.show();
-      //   //   return false;
-      //   // }
-
-      //     // 2) Validación de tarifas (ANTES de cualquier envío)
-      //   form.querySelectorAll('input[name$=".PrecioNocheStr"]').forEach(inp => {
-      //     inp.value = (inp.value || "").replace(/,/g, "");
-      //   });
-      //   if (!hayAlMenosUnaTarifaValida()){
-      //     ev.preventDefault();
-      //     disableAjaxForThisAttempt();
-      //     if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
-      //     else ev.stopPropagation();
-      //     tarifaError.style.display = 'block';
-      //     form.querySelector('#tblTarifas tbody tr input')?.focus();
-      //     return false;
-      //   } else {
-      //     tarifaError.style.display = 'none';
-      //     enableAjax();
-      //   }
-
-      //   // 3) Fuera del dashboard → envío normal
-      //   if (!host) return;
-
-      //   // 4) En dashboard → AJAX propio (sin unobtrusive)
-      //   ev.preventDefault();
-      //   disableAjaxForThisAttempt(); // nos encargamos nosotros del POST
-      //   btn.disabled = true;
-      //   try{
-      //     const fd = new FormData(form);
-      //     const resp = await fetch(form.action, {
-      //       method: 'POST',
-      //       body: fd,
-      //       headers: {'X-Requested-With':'XMLHttpRequest'}
-      //     });
-
-      //     const ctype = (resp.headers.get('content-type')||'').toLowerCase();
-      //     if (ctype.includes('application/json')) {
-      //       const json = await resp.json();
-      //       if (json?.ok) {
-      //         // Mostrar modal y redirigir al cerrar
-      //         okModal.show();
-      //         const goIndex = async () => {
-      //           if (host && json.redirectUrl) {
-      //             try {
-      //               const r = await fetch(json.redirectUrl, { headers: {'X-Requested-With':'XMLHttpRequest'} });
-      //               const html = await r.text();
-      //               if (hero) hero.style.display = 'none';
-      //               host.innerHTML = html;
-      //               window.parent?.scrollTo?.(0,0);
-      //             } catch {
-      //               window.location.href = json.redirectUrl;
-      //             }
-      //           } else if (json.redirectUrl) {
-      //             window.location.href = json.redirectUrl;
-      //           }
-      //         };
-      //         okModalEl.addEventListener('hidden.bs.modal', () => { goIndex(); }, { once:true });
-
-      //       } else if (json?.reason === 'nochanges') {
-      //         noChangesModal.show();
-      //       }
-      //     } else {
-      //       // HTML devuelto (validación server, etc.)
-      //       const html = await resp.text();
-      //       if (hero) hero.style.display = 'none';
-      //       host.innerHTML = html;
-      //       window.parent?.scrollTo?.(0,0);
-      //     }
-      //   } catch(e){
-      //     console.error(e);
-      //     alert('Error de red. Intenta nuevamente.');
-      //   } finally{
-      //     btn.disabled = false;
-      //     // reactivará al recargar
-      //   }
-      // });
-    })();
-</script> *@

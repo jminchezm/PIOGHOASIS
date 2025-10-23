@@ -110,6 +110,11 @@
         max-width: 160px;
         opacity: .85
     }
+
+    /*imagen limpiar campos*/
+    #empty-search{
+        width: 50px;
+    }
 </style>
 
 <div class="hab-ui">
@@ -162,9 +167,12 @@
         @if (!Model.Any())
         {
             <div class="empty-state p-5 text-center">
-                <img src="~/img/empty-search.svg" asp-append-version="true" class="mb-3 empty-illus" alt="Sin resultados" />
+                <img src="~/img/empty-search.png" asp-append-version="true" class="mb-3 empty-illus" alt="Sin resultados" id="empty-search" />
                 <h5 class="fw-bold mb-1">No se encontró ningún registro</h5>
                 <p class="text-muted mb-3">Ajusta los filtros o limpia la búsqueda.</p>
+                <button type="button" class="btn btn-outline-secondary js-clear-filters">
+                    <i class="bi bi-eraser me-1"></i> Limpiar filtros
+                </button>
             </div>
         }
         else
@@ -259,6 +267,26 @@
 
       window.addEventListener('DOMContentLoaded',()=>{ window.initPuestosPager(document.getElementById('printArea')); });
     })();
+
+        // Botón "Limpiar filtros" (Habitaciones)
+    document.querySelector('.hab-ui')?.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('.js-clear-filters');
+      if (!btn) return;
+
+      // limpia campos
+      if (fCodigo)    fCodigo.value = '';
+      if (fTipo)      fTipo.value = '';
+      if (fPersonas)  fPersonas.value = '';
+      if (fEstado)    fEstado.value = ''; // "" = Todos
+
+      // dispara eventos para que corra el debounce + recarga
+      fCodigo?.dispatchEvent(new Event('input',  { bubbles: true }));
+      fTipo?.dispatchEvent(new Event('change',   { bubbles: true }));
+      fPersonas?.dispatchEvent(new Event('input', { bubbles: true }));
+      fEstado?.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+
 </script>
 
 

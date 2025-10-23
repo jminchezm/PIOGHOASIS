@@ -107,6 +107,11 @@
         height: 50px;
         object-fit: contain;
     }
+
+    #notaCaObligatorio {
+        width: 100%;
+        text-align: right;
+    }
 </style>
 
 <div class="hab-create">
@@ -119,14 +124,20 @@
         <div class="p-3 p-md-4">
             <form id="frmCreate"  asp-action="Create" method="post" enctype="multipart/form-data" data-ajax="true" novalidate>
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                @* <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div> *@
 
                 <div class="row g-3">
                     <h6 class="pc-subtitle">Datos de la Habitación</h6>
+
+                    <div id="notaCaObligatorio">
+                        <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
+                    </div>
+
                     <div>
                         <div class="col-12 col-md-3">
                             <label class="form-label">Código*</label>
                             <input asp-for="Habitacion.Codigo" class="form-control" readonly />
+                            <span class="form-text text-muted">Se genera automáticamente.</span>
                         </div> 
                     </div>
                    
@@ -173,21 +184,11 @@
                         <div class="hint">Formatos: JPG/PNG/WebP. Máx. 3 MB.</div>
                     </div>
 
-                    <div class="col-12 col-md-3">
+                    @* <div class="col-12 col-md-3">
                         <label class="form-label">Estado*</label>
                         <select asp-for="Habitacion.Estado" class="form-select">
                             <option value="true">Activo</option>
-                            @* <option value="false">Inactivo</option> *@
                         </select>
-                    </div>
-                    @* <div class="col-12 col-md-3">
-                        <label class="form-label">Vista*</label>
-                        <input asp-for="Vista" class="form-control" placeholder="Ingresa la vista" />
-                    </div>
-
-                    <div class="col-12">
-                        <label class="form-label">Ubicación</label>
-                        <input asp-for="Ubicacion" class="form-control" placeholder="Ingresa la ubicación" />
                     </div> *@
 
                     <div class="col-12 col-md-12">
@@ -276,6 +277,7 @@
                     <div id="tarifaError" class="text-danger fw-bold mt-2" style="display:none;">
                         Debes agregar al menos una tarifa válida (personas, fechas y precio).
                     </div>
+                    <div asp-validation-summary="ModelOnly" class="text-danger fw-bold mb-2"></div>
 
                     <hr />
                     <h6 class="pc-subtitle">Servicios</h6>

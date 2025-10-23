@@ -34,6 +34,12 @@
     .empty-state{min-height:320px;display:flex;align-items:center;justify-content:center;flex-direction:column}
     .empty-illus{max-width:160px;opacity:.85}
     @@media print{body *{visibility:hidden} #printArea,#printArea *{visibility:visible} #printArea{position:fixed;inset:0}}
+
+    /*imagen limpiar campos*/
+    #empty-search {
+        width: 50px;
+    }
+
 </style>
 
 <div class="puestos-ui">
@@ -86,7 +92,7 @@
         @if (!Model.Any())
         {
             <div class="empty-state p-5 text-center">
-                <img src="~/img/empty-search.svg" asp-append-version="true" alt="Sin resultados" class="mb-3 empty-illus" onerror="this.style.display='none'" />
+                <img src="~/img/empty-search.png" asp-append-version="true" alt="Sin resultados" class="mb-3 empty-illus" onerror="this.style.display='none'" id="empty-search" />
                 <h5 class="fw-bold mb-1">No se encontró ningún registro</h5>
                 <p class="text-muted mb-3">Ajusta los filtros o limpia la búsqueda.</p>
                 <button type="button" class="btn btn-outline-secondary js-clear-filters">

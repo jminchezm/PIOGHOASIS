@@ -25,6 +25,7 @@
 
     <link rel="stylesheet" href="~/css/dashboard.css" />
     <style>
+
         .locked a[data-need-caja="1"] {
             /* pointer-events: none; */
             opacity: .5;
@@ -47,6 +48,63 @@
         .sidebar {
             overflow-y: auto;
             max-height: 100vh;
+        }
+
+        /* Asegura que el header siempre quede arriba de cualquier canvas/tarjeta */
+        .app-header {
+            position: fixed; /* ya lo tienes fijo, lo mantengo por claridad */
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030; /* mayor que cualquier z-index del contenido */
+        }
+
+        /* El área de contenido queda debajo del header y con z-index menor */
+        .app-content {
+            position: relative;
+            /* z-index: 1; */ /* explícitamente por debajo del header */
+            padding-top: var(--header-h); /* deja espacio para el header fijo */
+        }
+
+        /* (Opcional) Por si alguna tarjeta/canvas trae un z-index alto, bájalo */
+        .caja-ui .card,
+        .caja-ui canvas {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Overlay de carga global */
+        #globalLoader {
+            position: fixed;
+            inset: 0;
+            z-index: 1049; /* clave: menor que 1050/1055 */
+            background: rgba(0,0,0,.35);
+            backdrop-filter: blur(1px);
+            display: grid;
+            place-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s ease;
+        }
+
+            #globalLoader.show {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            #globalLoader .gl-card {
+                background: rgba(255,255,255,.95);
+                border-radius: .75rem;
+                padding: 18px 20px;
+                box-shadow: 0 10px 30px rgba(0,0,0,.2);
+                text-align: center;
+                min-width: 130px;
+            }
+
+        @@media (prefers-reduced-motion: reduce) {
+            #globalLoader {
+                transition: none;
+            }
         }
     </style>
 </head>
@@ -297,6 +355,14 @@
         </main>
     </div>
 
+    <!-- Loader global -->
+    <div id="globalLoader" aria-hidden="true">
+        <div class="gl-card">
+            <div class="spinner-border" role="status" aria-label="Cargando..."></div>
+            <div class="mt-2 small">Cargando…</div>
+        </div>
+    </div>
+
     <script src="~/lib/chartjs-2/Chart.min.js"></script>
     @* <script src="~/lib/chart.js/dist/chart.umd.min.js"></script> *@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -322,17 +388,6 @@
             // document.querySelectorAll('.modal').forEach(m => m.remove());
           } catch {}
         }
-    // function cleanupModals() {
-    //   try {
-    //     document.querySelectorAll('.modal.show').forEach(el => {
-    //       try { bootstrap.Modal.getInstance(el)?.hide(); } catch {}
-    //     });
-    //     document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-    //     document.body.classList.remove('modal-open');
-    //     document.body.style.removeProperty('padding-right');
-    //              document.querySelectorAll('.modal').forEach(m => m.remove());
-    //   } catch {}
-    // }
 
 
     /* ======= jQuery Validate: defaults globales ======= */
@@ -479,18 +534,6 @@
               return;
             }
 
-          // if (data.reason === 'nochanges') {
-          //   const warnEl = host.querySelector('#noChangesModal');
-          //   if (warnEl) {
-          //     const msg = warnEl.querySelector('.js-msg');
-          //     if (msg && data.message) msg.textContent = data.message;
-          //     showModalFromHost(warnEl);
-          //   } else {
-          //     showModalFromHost(warnEl, data.message || 'No has modificado ningún campo.');
-          //   }
-          //   return;
-          // }
-
           if (data.errors) {
             const anyForm = host.querySelector('form');
             if (anyForm) showFieldErrors(anyForm, data.errors);
@@ -543,36 +586,7 @@
               }
 
               loadToHost(url);
-            // });
-
-
-      // // Menú lateral: enlaces con data-url
-      // document.querySelectorAll('.menu a[data-url]').forEach(a => {
-      // a.addEventListener('click', (ev) => {
-      //   ev.preventDefault();
-      //   const url = a.dataset.url || a.href;
-
-      //   // --- Inicio: mostrar hero y limpiar el host ---
-      //   if (a.dataset.home === '1' || url.endsWith('/Home/Index')) {
-      //     const host = document.getElementById('contentHost');
-      //     const hero = document.getElementById('hero');
-      //     if (host) host.innerHTML = '';
-      //     if (hero) hero.style.display = '';  // vuelve a mostrar el hero
-      //     history.replaceState(null, '', url); // opcional: actualiza la URL
-      //     return; // importante: no llames a loadToHost
-      //   }
-
-      //   // Resto de opciones: carga parcial por AJAX
-      //   loadToHost(url);
-      // });
     });
-
-      // document.querySelectorAll('.menu a[data-url]').forEach(a => {
-      //   a.addEventListener('click', (ev) => {
-      //     ev.preventDefault();
-      //     loadToHost(a.dataset.url || a.href);
-      //   });
-      // });
 
       // Delegación de CLICS dentro del host
       host.addEventListener('click', (ev) => {
@@ -583,13 +597,7 @@
           if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
           return;
         }
-        // const confirmBtn = ev.target.closest('#btnConfirm');
-        // if (confirmBtn) {
-        //   ev.preventDefault();
-        //   const form = host.querySelector('#frmDelete');
-        //   if (form?.requestSubmit) form.requestSubmit(); else form?.submit();
-        //   return;
-        // }
+
         const confirmBtn = ev.target.closest('#btnConfirm');
         if (confirmBtn) {
           ev.preventDefault();
@@ -852,278 +860,7 @@
         } else {
           document.open(); document.write(raw); document.close();
         }
-
-
-          // if (host) {
-          //   cleanupModals();
-          //   host.innerHTML = raw;
-          //   host.querySelectorAll('script').forEach(old => {
-          //     const s = document.createElement('script');
-          //     if (old.src) { s.src = old.src; s.async = false; }
-          //     else { s.text = old.textContent; }
-          //     document.head.appendChild(s);
-          //     old.remove();
-          //   });
-          //   wireUpValidation(host);
-          //   initPageFeatures(host);
-          //   window.scrollTo(0, 0);
-          //   cleanupModals();
-          // } else {
-          //   document.open(); document.write(raw); document.close();
-          // }
         });
-
-      // host.addEventListener('submit', async (ev) => {
-      //   const form = ev.target.closest('form');
-      //   if (!form) return;
-
-      //            // ⬇️ Si el form es GET, convertir a querystring y navegar con AJAX
-      //         const method = (form.method || 'GET').toUpperCase();
-      //         if (method === 'GET') {
-      //           ev.preventDefault();
-      //           const qs = new URLSearchParams(new FormData(form));
-      //           // Si tienes checkbox como "modoPorPagos", al desmarcar no viaja; si quieres llevar false explícito:
-      //           // if (!form.querySelector('[name="modoPorPagos"]')?.checked) qs.set('modoPorPagos', 'false');
-
-      //           const url = form.action + (qs.toString() ? `?${qs.toString()}` : '');
-      //           await window.loadToHost(url);
-      //           return;
-      //         }
-
-      //            // ===== Handler específico para frmBuscar (GET a /Reservas/Buscar) =====
-      //         if (form.id === 'frmBuscar') {
-      //           ev.preventDefault();
-
-      //           const btn = form.querySelector('button[type="submit"], button:not([type])');
-      //           if (btn) { btn.disabled = true; btn.textContent = 'Buscando...'; }
-
-      //           try {
-      //             const qs = new URLSearchParams(new FormData(form));
-      //             qs.append('_', Date.now()); // rompe-caché
-      //             const r = await fetch(`${form.action}?${qs.toString()}`, {
-      //               method: 'GET',
-      //               cache: 'no-store',
-      //               headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      //               credentials: 'same-origin'
-      //             });
-      //             const html = await r.text();
-      //             const panel = document.getElementById('resultados');
-      //             if (panel) panel.innerHTML = html;
-      //           } catch (e) {
-      //             console.error(e);
-      //             const panel = document.getElementById('resultados');
-      //             if (panel) panel.innerHTML = `<div class="alert alert-danger">Ocurrió un error al buscar.</div>`;
-      //           } finally {
-      //             if (btn) { btn.disabled = false; btn.textContent = 'Buscar'; }
-      //           }
-      //           return; // IMPORTANTE: no seguir con el handler genérico
-      //         }
-
-      //   ev.preventDefault();
-
-      //   // Limpia errores previos
-      //   form.querySelectorAll('[data-valmsg-for]').forEach(sp => {
-      //     // sp.textContent = '';
-      //     sp.classList.remove('field-validation-error','text-danger','invalid-feedback','d-block');
-      //     sp.classList.add('field-validation-valid');
-      //   });
-      //   form.querySelectorAll('.is-invalid, .input-validation-error')
-      //       .forEach(el => el.classList.remove('is-invalid','input-validation-error'));
-
-      //   // Validación cliente opcional
-      //   try {
-      //     if (window.jQuery && $.validator) {
-      //       const $f = $(form);
-      //       if (!$f.data('validator')) {
-      //         $f.removeData('validator').removeData('unobtrusiveValidation');
-      //         $.validator.unobtrusive && $.validator.unobtrusive.parse($f);
-      //       }
-      //       if (!$f.valid()) return;
-      //     }
-      //   } catch {}
-
-      //   const fd = new FormData(form);
-      //   const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
-      //   const headers = { 'X-Requested-With': 'XMLHttpRequest' };
-      //   if (token) headers['RequestVerificationToken'] = token;
-
-      //   const resp = await fetch(form.action, {
-      //     method: form.method || 'POST',
-      //     body: fd,
-      //     headers,
-      //     credentials: 'same-origin',
-      //     redirect: 'follow'
-      //   });
-
-      //   // --- Manejo explícito de 400/500 antes de leer como éxito ---
-      //   if (!resp.ok) {
-      //     const ct = (resp.headers.get('content-type') || '').toLowerCase();
-      //     const rawErr = await resp.text();
-      //     if (ct.includes('application/json')) {
-      //       try {
-      //         const dataErr = JSON.parse(rawErr);
-      //         if (dataErr.errors) {
-      //           for (const key in dataErr.errors) {
-      //             const msgs = dataErr.errors[key];
-      //             const span = form.querySelector('[data-valmsg-for="' + key + '"]');
-      //             if (span) {
-      //               span.textContent = msgs.join(' ');
-      //               span.classList.remove('field-validation-valid');
-      //               span.classList.add('field-validation-error','text-danger','d-block');
-      //             }
-      //             const ctrl = form.querySelector('[name="' + key + '"]');
-      //             if (ctrl) ctrl.classList.add('is-invalid','input-validation-error');
-      //           }
-      //           return;
-      //         }
-      //         alert(dataErr.message || ('Error ' + resp.status));
-      //         return;
-      //       } catch {
-      //         console.error(rawErr);
-      //         alert('Error ' + resp.status);
-      //         return;
-      //       }
-      //     } else {
-      //       const host = document.getElementById('contentHost');
-      //       if (host) {
-      //         host.innerHTML = rawErr;
-      //         // re-ejecutar scripts embebidos
-      //         host.querySelectorAll('script').forEach(old => {
-      //           const s = document.createElement('script');
-      //           if (old.src) { s.src = old.src; s.async = false; }
-      //           else { s.text = old.textContent; }
-      //           document.head.appendChild(s);
-      //           old.remove();
-      //         });
-      //         wireUpValidation(host);
-      //         initPageFeatures(host);
-      //       } else {
-      //         document.open(); document.write(rawErr); document.close();
-      //       }
-      //       return;
-      //     }
-      //   }
-
-      //   // --- Éxito (200) → JSON o HTML
-      //   const raw = await resp.text();
-      //   let data = null;
-      //   try { data = JSON.parse(raw); } catch {}
-
-      //   if (data) {
-      //     if (data.ok) {
-      //           const doReload = async () => {
-      //               if (data.redirectUrl) {
-      //               cleanupModals();                 // por si quedó algún backdrop
-      //               await loadToHost(data.redirectUrl); // vuelve al Index por AJAX
-      //               }
-      //                window.refreshCajaLock && window.refreshCajaLock();
-      //           };
-
-      //           // Mostrar modal solo 1.5s y luego recargar
-      //           const okEl = document.getElementById('saveOkModal');
-      //           if (okEl && window.bootstrap) {
-      //               const inst = bootstrap.Modal.getOrCreateInstance(okEl);
-
-      //               // Cierra automáticamente a los 1500 ms cuando se muestre
-      //               okEl.addEventListener('shown.bs.modal', () => {
-      //               setTimeout(() => inst.hide(), 1500);
-      //               }, { once: true });
-
-      //               // Al cerrarse, recarga el Index
-      //               okEl.addEventListener('hidden.bs.modal', () => {
-      //               doReload();
-      //               }, { once: true });
-
-      //               inst.show();
-      //           } else {
-      //               await doReload(); // si no hay modal, ve directo al Index
-      //           }
-      //           return;
-      //       // // lo que debe ocurrir DESPUÉS del modal
-      //       // const doReload = async () => {
-      //       // if (data.redirectUrl) {
-      //       //     cleanupModals();              // por si quedó algún backdrop
-      //       //     await loadToHost(data.redirectUrl);  // recarga el parcial en #contentHost
-      //       // }
-      //       // };
-
-      //       // // si existe un modal de éxito, muéstralo y recarga al cerrarlo
-      //       // const okEl = document.getElementById('saveOkModal');
-      //       // if (okEl && window.bootstrap) {
-      //       // okEl.addEventListener('hidden.bs.modal', () => { doReload(); }, { once: true });
-      //       // bootstrap.Modal.getOrCreateInstance(okEl).show();
-      //       // } else {
-      //       // // si no hay modal de éxito, recarga directo
-      //       // await doReload();
-      //       // }
-      //       // return;
-      //     }
-
-      //       if (data.reason === 'nochanges') {
-      //         const warnEl = document.getElementById('noChangesModal');
-      //         if (warnEl && window.bootstrap) {
-      //           const msg = warnEl.querySelector('.js-msg');
-      //           if (msg && data.message) msg.textContent = data.message;
-      //           const inst = bootstrap.Modal.getOrCreateInstance(warnEl);
-      //           warnEl.addEventListener('shown.bs.modal', () => {
-      //             setTimeout(() => inst.hide(), 1500);
-      //           }, { once: true });
-      //           inst.show();
-      //         } else {
-      //           alert(data.message || 'No has modificado ningún campo.');
-      //         }
-      //         return;
-      //       }
-
-      //     // if (data.reason === 'nochanges') {
-      //     //   const warnEl = document.getElementById('noChangesModal');
-      //     //   if (warnEl && window.bootstrap) {
-      //     //     const msg = warnEl.querySelector('.js-msg');
-      //     //     if (msg && data.message) msg.textContent = data.message;
-      //     //     bootstrap.Modal.getOrCreateInstance(warnEl).show();
-      //     //   } else {
-      //     //     alert(data.message || 'No has modificado ningún campo.');
-      //     //   }
-      //     //   return;
-      //     // }
-      //     if (data.errors) {
-      //       for (const key in data.errors) {
-      //         const msgs = data.errors[key];
-      //         const span = form.querySelector('[data-valmsg-for="' + key + '"]');
-      //         if (span) {
-      //           span.textContent = msgs.join(' ');
-      //           span.classList.remove('field-validation-valid');
-      //           span.classList.add('field-validation-error','text-danger','d-block');
-      //         }
-      //         const ctrl = form.querySelector('[name="' + key + '"]');
-      //         if (ctrl) ctrl.classList.add('is-invalid','input-validation-error');
-      //       }
-      //       return;
-      //     }
-      //     if (data.message) { alert(data.message); return; }
-      //   }
-
-      //   // HTML (validaciones servidor, etc.)
-      //   if (host) {
-      //       cleanupModals();
-
-      //     host.innerHTML = raw;
-      //     host.querySelectorAll('script').forEach(old => {
-      //       const s = document.createElement('script');
-      //       if (old.src) { s.src = old.src; s.async = false; }
-      //       else { s.text = old.textContent; }
-      //       document.head.appendChild(s);
-      //       old.remove();
-      //     });
-      //     wireUpValidation(host);
-      //     initPageFeatures(host);
-      //     window.scrollTo(0, 0);
-      //     cleanupModals();
-
-      //   } else {
-      //     document.open(); document.write(raw); document.close();
-      //   }
-      // });
 
       // Exponer utilidad para reemplazar solo un fragmento
       window.swapInHost = async function swapInHost(url, selector) {
@@ -1388,34 +1125,6 @@
               } catch (e) {
                 console.warn('No se pudo verificar caja abierta:', e);
               }
-              // try {
-              //   const r = await fetch('/Caja/IsOpen', { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' });
-              //   const data = await r.json();
-              //   const group = document.querySelector('.has-children.need-caja');
-              //   const links = document.querySelectorAll('a[data-need-caja="1"]');
-
-              //   if (!data.abierta) {
-              //     // visualmente bloqueado
-              //     group?.classList.add('locked');
-
-              //     // intercepta clics para avisar y enviar al módulo Caja
-              //     links.forEach(a => {
-              //       a.addEventListener('click', (ev) => {
-              //         ev.preventDefault();
-              //         // usa tu modal de aviso si quieres:
-              //         // showInfoModal('Caja requerida', 'Debes abrir una caja para usar Reservaciones.');
-              //         alert('Debes abrir una caja para usar Reservaciones.');
-              //         // atajo: abre Caja en el host
-              //         if (window.loadToHost) window.loadToHost('/Caja/Index');
-              //         else window.location.href = '/Caja/Index';
-              //       }, { once: true });
-              //     });
-              //   } else {
-              //     group?.classList.remove('locked');
-              //   }
-              // } catch (e) {
-              //   console.warn('No se pudo verificar caja abierta:', e);
-              // }
             })();
 
                 
@@ -1425,36 +1134,6 @@
               if (!isOpen) group?.classList.add('locked');
               else group?.classList.remove('locked');
             }
-
-            // function applyCajaLock(isOpen) {
-            //   const group = document.querySelector('.has-children.need-caja');
-            //   const links = document.querySelectorAll('a[data-need-caja="1"]');
-
-            //   // handler para clicks bloqueados
-            //   function lockedHandler(ev){
-            //     ev.preventDefault();
-            //     alert('Debes abrir una caja para usar Reservaciones.');
-            //     if (window.loadToHost) window.loadToHost('/Caja/Index');
-            //     else window.location.href = '/Caja/Index';
-            //   }
-
-            //   if (!isOpen) {
-            //     group?.classList.add('locked');
-            //     links.forEach(a => {
-            //       if (!a.dataset._lockedClick) {
-            //         a.addEventListener('click', lockedHandler, true);
-            //         a.dataset._lockedClick = "1";
-            //       }
-            //     });
-            //   } else {
-            //     group?.classList.remove('locked');
-            //     links.forEach(a => {
-            //       if (a.dataset._lockedClick) {
-            //         a.replaceWith(a.cloneNode(true)); // quita handler rápido y limpio
-            //       }
-            //     });
-            //   }
-            // }
 
             // --- consulta al servidor y aplica ---
             window.refreshCajaLock = async function () {
@@ -1514,8 +1193,42 @@
               document.querySelectorAll('.menu .has-children').forEach(li => li.classList.remove('open'));
             });
 
-    </script>
+                  // ---- Loader global (contador + anti-parpadeo) ----
+        (function(){
+          let loadingCount = 0;
+          let showTimer = null;
+          const $loader = () => document.getElementById('globalLoader');
 
+          window.showLoader = function(){
+            loadingCount++;
+            if (loadingCount === 1) {
+              clearTimeout(showTimer);
+              // pequeño delay para evitar parpadeo en cargas muy rápidas
+              showTimer = setTimeout(() => $loader()?.classList.add('show'), 150);
+            }
+          };
+          window.hideLoader = function(){
+            loadingCount = Math.max(0, loadingCount - 1);
+            if (loadingCount === 0){
+              clearTimeout(showTimer);
+              $loader()?.classList.remove('show');
+            }
+          };
+
+          // (Opcional) Monkey-patch a fetch para cubrir "todo" por defecto.
+          // Agrega el header 'X-No-Loader: 1' en llamadas de ping/silenciosas.
+          const _origFetch = window.fetch;
+          window.fetch = function(input, init){
+            const i = init || {};
+            const h = new Headers(i.headers || {});
+            const noLoader = h.get('X-No-Loader') === '1';
+            if (!noLoader) showLoader();
+            i.headers = h;
+            return _origFetch(input, i).finally(() => { if (!noLoader) hideLoader(); });
+          };
+        })();
+
+    </script>
 
 </body>
 </html>

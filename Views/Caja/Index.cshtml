@@ -178,6 +178,11 @@
         height: 50px;
         object-fit: contain;
     }
+
+    /*imagen limpiar campos*/
+    #empty-search {
+        width: 50px;
+    }
 </style>
 
 <div class="caja-ui">
@@ -249,8 +254,8 @@
         @if (!Model.Items.Any())
         {
             <div class="empty-state p-5 text-center">
-                <img src="~/img/empty-search.svg" asp-append-version="true" alt="Sin resultados"
-                     class="mb-3 empty-illus" onerror="this.style.display='none'" />
+                <img src="~/img/empty-search.png" asp-append-version="true" alt="Sin resultados"
+                     class="mb-3 empty-illus" onerror="this.style.display='none'" id="empty-search" />
                 <h5 class="fw-bold mb-1">No se encontró ningún registro</h5>
                 <p class="text-muted mb-3">Ajusta los filtros o limpia la búsqueda.</p>
 
@@ -516,57 +521,126 @@
       bootstrap.Modal.getOrCreateInstance(el).show();
     });
 
-              // Delegación a nivel documento: capturará envíos sin importar dónde esté el modal
-    document.addEventListener('submit', async (ev) => {
-      const form = ev.target;
-      if (!form) return;
 
-      // ABRIR CAJA
-          if (form.id === 'frmNueva') {
-      ev.preventDefault();
-      const fd = new FormData(form);
-      try {
-        const r = await fetch('@Url.Action("Abrir", "Caja")', {
-          method: 'POST',
-          body: fd,
-          headers: { 'X-Requested-With': 'XMLHttpRequest' },
-          credentials: 'same-origin'
-        });
-
-        if (!r.ok) {
-          const msg = await r.text();
-          alert(`Error ${r.status}: ${msg}`);
-          return;
+    //Cierra el modal de nueva caja.
+    function cleanupModalNuevaCaja() {
+        const prev = document.getElementById('modalNueva');
+        if (prev) {
+          try { bootstrap.Modal.getInstance(prev)?.hide(); } catch {}
+          // Quitar backdrop “huérfano”, por si quedó alguno
+          document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+          prev.remove();
         }
-
-        const data = await r.json();
-        window.dispatchEvent(new CustomEvent('caja:changed', { detail: { abierta: true } }));
-
-        // cierra el modal de creación
-        const m = document.getElementById('modalNueva');
-        if (m && window.bootstrap) bootstrap.Modal.getOrCreateInstance(m).hide();
-
-        // muestra confirmación y redirige en 1.5s
-        showInfoModalafterOpenModal('Caja abierta', 'La caja se abrió correctamente.');
-        // setTimeout(() => {
-        //   location.href = data.redirectUrl || '@Url.Action("Index", "Caja")';
-        // }, 1500);
-        setTimeout(() => {
-      // nada de location.href / reload
-      if (window.loadToHost) {
-        window.loadToHost(data.redirectUrl || '@Url.Action("Index", "Caja")');
-      } else {
-        // fallback (no recomendado): navegación completa
-        window.location.href = data.redirectUrl || '@Url.Action("Index", "Caja")';
-      }
-    }, 1500);
-
-      } catch (err) {
-        console.error(err);
-        alert('No se pudo abrir la caja (error de red).');
-      }
-      return;
     }
+
+    // Delegación a nivel documento: capturará envíos sin importar dónde esté el modal
+
+    document.addEventListener('submit', async (ev) => {
+    const form = ev.target;
+    if (!form || form.id !== 'frmNueva') return;
+
+    ev.preventDefault();
+
+    // Guard anti-doble envío
+    if (form.dataset.sending === '1') return;
+    form.dataset.sending = '1';
+
+    const btn = form.querySelector('button[type="submit"]');
+    btn?.setAttribute('disabled', 'disabled');
+
+    try {
+      const r = await fetch('@Url.Action("Abrir", "Caja")', {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+      });
+
+      if (!r.ok) {
+        const msg = await r.text().catch(() => '');
+        throw new Error(`Error ${r.status}: ${msg || 'No se pudo abrir la caja.'}`);
+      }
+
+      const data = await r.json();
+
+      // Notifica a quien escuche este evento
+      window.dispatchEvent(new CustomEvent('caja:changed', { detail: { abierta: true } }));
+
+      // Cierra el modal de creación
+      const m = document.getElementById('modalNueva');
+      if (m && window.bootstrap) bootstrap.Modal.getOrCreateInstance(m).hide();
+
+      cleanupModalNuevaCaja();
+
+      // Mensaje de éxito y navegación
+      showInfoModalafterOpenModal('Caja abierta', 'La caja se abrió correctamente.');
+      setTimeout(() => {
+        const url = data?.redirectUrl || '@Url.Action("Index", "Caja")';
+        if (window.loadToHost) window.loadToHost(url);
+        else window.location.href = url;
+      }, 1500);
+
+      // En éxito NO re-habilitamos (vamos a navegar)
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'No se pudo abrir la caja (error de red).');
+
+      // Solo si falla: permitir reintentar
+      btn?.removeAttribute('disabled');
+      delete form.dataset.sending;
+    }
+
+    // document.addEventListener('submit', async (ev) => {
+    //   const form = ev.target;
+    //   if (!form) return;
+
+    //   // ABRIR CAJA
+    //       if (form.id === 'frmNueva') {
+    //   ev.preventDefault();
+    //   const fd = new FormData(form);
+    //   try {
+    //     const r = await fetch('@Url.Action("Abrir", "Caja")', {
+    //       method: 'POST',
+    //       body: fd,
+    //       headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    //       credentials: 'same-origin'
+    //     });
+
+    //     if (!r.ok) {
+    //       const msg = await r.text();
+    //       alert(`Error ${r.status}: ${msg}`);
+    //       return;
+    //     }
+
+    //     const data = await r.json();
+    //     window.dispatchEvent(new CustomEvent('caja:changed', { detail: { abierta: true } }));
+
+    //     // cierra el modal de creación
+    //     const m = document.getElementById('modalNueva');
+    //     if (m && window.bootstrap) bootstrap.Modal.getOrCreateInstance(m).hide();
+
+    //     // muestra confirmación y redirige en 1.5s
+    //     showInfoModalafterOpenModal('Caja abierta', 'La caja se abrió correctamente.');
+    //     // setTimeout(() => {
+    //     //   location.href = data.redirectUrl || '@Url.Action("Index", "Caja")';
+    //     // }, 1500);
+    //     setTimeout(() => {
+    //   // nada de location.href / reload
+    //   if (window.loadToHost) {
+    //     window.loadToHost(data.redirectUrl || '@Url.Action("Index", "Caja")');
+    //   } else {
+    //     // fallback (no recomendado): navegación completa
+    //     window.location.href = data.redirectUrl || '@Url.Action("Index", "Caja")';
+    //   }
+    // }, 1500);
+
+    //   } catch (err) {
+    //     console.error(err);
+    //     alert('No se pudo abrir la caja (error de red).');
+    //   }
+    //   return;
+    // }
 
           // === AJUSTE ===
     if (form.id === 'frmAjuste') {

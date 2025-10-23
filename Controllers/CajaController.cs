@@ -136,7 +136,7 @@ namespace PIOGHOASIS.Controllers
         [HttpGet("Nueva")]
         public async Task<IActionResult> Nueva()
         {
-            var abierta = await _db.cajas.AnyAsync(c => c.EstadoCajaID == 1 && c.UsuarioAperturaID.Contains(GetUserId()));
+            var abierta = await _db.cajas.AnyAsync(c => c.EstadoCajaID == 1 && c.UsuarioAperturaID == GetUserId());
             if (abierta)
                 return BadRequest("Ya existe una caja abierta. Cierra la caja actual antes de abrir otra.");
 
@@ -145,7 +145,7 @@ namespace PIOGHOASIS.Controllers
 
             var vm = new NuevaCajaVM
             {
-                Codigo = await NextCodigoAsync(),
+                //Codigo = await NextCodigoAsync(),
                 Fecha = DateTime.Now,
                 UsuarioId = usuarioId,
                 Usuario = usuarioNombre
@@ -170,28 +170,53 @@ namespace PIOGHOASIS.Controllers
         //}
 
         // ABRIR
+        // ABRIR
         [HttpPost("Abrir")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Abrir(NuevaCajaVM vm)
         {
-            if (await _db.cajas.AnyAsync(c => c.EstadoCajaID == 1 && c.UsuarioAperturaID.Contains(GetUserId())))
+            // 1 caja abierta por usuario
+            if (await _db.cajas.AnyAsync(c => c.EstadoCajaID == 1 && c.UsuarioAperturaID == GetUserId()))
                 return BadRequest("Ya existe una caja abierta.");
 
             var caja = new Caja
             {
-                Codigo = vm.Codigo,
+                // Codigo: NO LO SETEES → lo genera la BD por DEFAULT
                 FechaApertura = vm.Fecha,
-                UsuarioAperturaID = vm.UsuarioId, // <-- usa el ID
+                UsuarioAperturaID = vm.UsuarioId,
                 MontoApertura = vm.MontoApertura,
-                EstadoCajaID = 1 // Abierta
+                EstadoCajaID = 1
             };
 
             _db.cajas.Add(caja);
-            await _db.SaveChangesAsync();
-            //return Json(new { ok = true });
+            await _db.SaveChangesAsync(); // aquí ya viene Codigo desde la BD
+
             return Json(new { ok = true, redirectUrl = Url.Action("Index", "Caja") });
-            //return IsAjax ? PartialView(nameof(Index), model) : View(model);
         }
+
+
+        //[HttpPost("Abrir")]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Abrir(NuevaCajaVM vm)
+        //{
+        //    if (await _db.cajas.AnyAsync(c => c.EstadoCajaID == 1 && c.UsuarioAperturaID.Contains(GetUserId())))
+        //        return BadRequest("Ya existe una caja abierta.");
+
+        //    var caja = new Caja
+        //    {
+        //        Codigo = vm.Codigo,
+        //        FechaApertura = vm.Fecha,
+        //        UsuarioAperturaID = vm.UsuarioId, // <-- usa el ID
+        //        MontoApertura = vm.MontoApertura,
+        //        EstadoCajaID = 1 // Abierta
+        //    };
+
+        //    _db.cajas.Add(caja);
+        //    await _db.SaveChangesAsync();
+        //    //return Json(new { ok = true });
+        //    return Json(new { ok = true, redirectUrl = Url.Action("Index", "Caja") });
+        //    //return IsAjax ? PartialView(nameof(Index), model) : View(model);
+        //}
 
 
         //[HttpPost("Abrir")]

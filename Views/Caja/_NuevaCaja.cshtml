@@ -14,10 +14,10 @@
                 <!-- HIDDEN: UsuarioId -->
                 <input type="hidden" name="UsuarioId" value="@Model.UsuarioId" />
 
-                <div class="mb-2">
+                @* <div class="mb-2">
                     <label class="form-label">Código de Caja</label>
                     <input class="form-control" name="Codigo" value="@Model.Codigo" readonly />
-                </div>
+                </div> *@
 
                 <div class="mb-2">
                     <label class="form-label">Fecha</label>
@@ -41,3 +41,20 @@
         </div>
     </div>
 </div>
+
+@* <script>
+        if (form.id === 'frmNueva') {
+      ev.preventDefault();
+      const btn = form.querySelector('button[type="submit"]');
+      btn?.setAttribute('disabled','disabled');
+      btn?.classList.add('disabled');
+
+      try {
+        const r = await fetch('...', { method:'POST', body: new FormData(form), headers:{'X-Requested-With':'XMLHttpRequest'}, credentials:'same-origin' });
+        ...
+      } finally {
+        btn?.removeAttribute('disabled');
+        btn?.classList.remove('disabled');
+      }
+    }
+</script> *@

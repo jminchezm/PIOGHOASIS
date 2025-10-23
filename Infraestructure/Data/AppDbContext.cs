@@ -368,6 +368,16 @@ namespace PIOGHOASIS.Infraestructure.Data
                 e.HasOne(p => p.Plataforma).WithMany().HasForeignKey(p => p.PlataformaID);
             });
 
+            // En OnModelCreating
+            modelBuilder.Entity<Caja>()
+                .HasIndex(c => c.Codigo)
+                .IsUnique();
+
+            modelBuilder.Entity<Caja>()
+                .Property(c => c.Codigo)
+                .ValueGeneratedOnAdd(); // EF sabe que viene de la BD (por DEFAULT)
+
+
         }
     }
 }

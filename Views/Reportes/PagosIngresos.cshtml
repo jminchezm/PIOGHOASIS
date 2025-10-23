@@ -59,6 +59,10 @@
         /* background-color:pink; */
         width: 100%;
     }
+
+    #tituloReporte{
+        margin-bottom: 10px;
+    }
 </style>
 
 <!-- Chart.js (solo para esta vista) -->
@@ -71,6 +75,9 @@
             <i class="bi bi-printer"></i>
         </button>
     </div> *@
+    <div id="tituloReporte">
+        <h2 class="tt mb-0">Reporte de pagos/ingresos</h2>
+    </div>
 
     <!-- ===== Filtros (mismo bloque visual) ===== -->
     <div class="card-filtros p-3 mb-3">
@@ -126,7 +133,7 @@
     </div>
 
     <!-- ===== KPIs (misma estética) ===== -->
-    <div class="row g-3 mb-3">
+    <div class="row g-3 mb-3 justify-content-center">
         <div class="col-sm-6 col-lg-3">
             <div class="card kpi-card">
                 <div class="card-body">
@@ -154,14 +161,14 @@
     </div>
 
     <!-- ===== Dashboards ===== -->
-    <div class="row g-3 mb-3">
+    <div class="row g-3 mb-3 justify-content-center">
         <div class="col-lg-4">
             <div class="card p-0">
                 <div class="card-header fw-bold">Por tipo de pago</div>
                 <div class="card-body"><canvas id="chTipo" height="220"></canvas></div>
             </div>
         </div>
-        <div class="col-lg-4">
+        <div class="col-lg-3">
             <div class="card p-0">
                 <div class="card-header fw-bold">Por plataforma</div>
                 <div class="card-body"><canvas id="chPlat" height="220"></canvas></div>
@@ -178,7 +185,7 @@
     <!-- ===== Tabla de pagos ===== -->
     <div class="card p-0">
         <div class="card-header fw-bold">
-            Pagos (@Model.Desde:dd/MM/yyyy – @Model.Hasta:dd/MM/yyyy)
+            Pagos (@Model.Desde – @Model.Hasta)
         </div>
         <div class="table-responsive">
             <table class="table table-hover mb-0">
@@ -204,7 +211,7 @@
                         foreach (var p in Model.Pagos)
                         {
                             <tr>
-                                <td>@p.FechaPago:dd/MM/yyyy HH:mm</td>
+                                <td>@p.FechaPago</td>
                                 <td>@p.TipoPago</td>
                                 <td>@p.FormaPago</td>
                                 <td>@(p.Plataforma ?? "—")</td>

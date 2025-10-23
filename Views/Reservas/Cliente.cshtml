@@ -332,6 +332,16 @@
             font-size: 1.25rem;
             font-weight: 800;
         }
+
+        /*Listado clientes*/
+        /* asegura que el dropdown no quede tapado por la card */
+        .hc-card, .card-ish {
+            overflow: visible;
+        }
+        /* súbelo por encima de casi todo (sin competir con modales) */
+        .ta-panel {
+            z-index: 1200;
+        }
 </style>
 
 @* <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" asp-append-version="true" />
@@ -569,6 +579,112 @@
         if (btnGo) btnGo.disabled = !d.id;
         const t = document.getElementById('cliToast');
         if (t) new bootstrap.Toast(t).show();
+      });
+    })();
+
+        (function () {
+      const $input  = document.getElementById('clienteSearch');
+      const $panel  = document.getElementById('clientePanel');
+      const $hidden = document.getElementById('clienteId');
+      const $go     = document.getElementById('btnContinuar');
+
+      if (!$input || !$panel) return;
+
+      let items = [];
+      let current = -1;
+      let lastQ = '';
+      let abortCtl = null;
+
+      function show() { $panel.style.display = 'block'; }
+      function hide() { $panel.style.display = 'none'; current = -1; }
+      function isOpen() { return $panel.style.display === 'block'; }
+
+      function initials(name) {
+        return (name || '').trim().split(/\s+/).map(s => s[0]).join('').slice(0,2).toUpperCase();
+      }
+
+      function render(list) {
+        items = list || [];
+        if (items.length === 0) {
+          $panel.innerHTML = '<div class="ta-empty">Sin resultados</div>';
+          show(); return;
+        }
+        $panel.innerHTML = items.map((x, i) => `
+          <div class="ta-item" data-i="${i}">
+            <div class="ta-avatar">${initials(x.nombre)}</div>
+            <div>
+              <div class="ta-name">${x.nombre}</div>
+              <div class="ta-sub">
+                ${x.correo ? x.correo : ''}${x.telefono ? (x.correo ? ' · ' : '') + x.telefono : ''}
+              </div>
+            </div>
+            <div class="ta-id">${x.dpi ?? ''}</div>
+          </div>
+        `).join('');
+        show();
+      }
+
+      async function search(q) {
+        if (q.length < 2) { hide(); return; }
+        if (q === lastQ) return;
+        lastQ = q;
+
+        abortCtl?.abort();
+        abortCtl = new AbortController();
+
+        try {
+          const r = await fetch(`/Reservas/BuscarClientes?q=${encodeURIComponent(q)}&top=8`, {
+            headers: { 'X-Requested-With':'XMLHttpRequest' },
+            signal: abortCtl.signal
+          });
+          const data = await r.json();
+          render(data);
+        } catch (e) {
+          if (e.name !== 'AbortError') render([]);
+        }
+      }
+
+      const debounce = (fn, ms=250) => { let t; return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn(...a), ms); }; };
+      const debSearch = debounce(search, 250);
+
+      $input.addEventListener('input', e => {
+        $hidden.value = '';
+        if ($go) $go.disabled = true;
+        debSearch((e.target.value || '').trim());
+      });
+
+      $panel.addEventListener('mousedown', e => {
+        const el = e.target.closest('.ta-item');
+        if (!el) return;
+        pick(+el.dataset.i);
+      });
+
+      function pick(i) {
+        const x = items[i];
+        if (!x) return;
+        $input.value = x.nombre + (x.dpi ? ` · ${x.dpi}` : '');
+        $hidden.value = x.id;
+        if ($go) $go.disabled = !x.id;
+        hide();
+      }
+
+      function highlight() {
+        $panel.querySelectorAll('.ta-item').forEach((el, i) => el.classList.toggle('active', i === current));
+        $panel.querySelector('.ta-item.active')?.scrollIntoView({ block: 'nearest' });
+      }
+
+      // navegación por teclado
+      $input.addEventListener('keydown', e => {
+        if (!isOpen()) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); current = Math.min(items.length - 1, current + 1); highlight(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); current = Math.max(0, current - 1); highlight(); }
+        else if (e.key === 'Enter') { if (current >= 0) { e.preventDefault(); pick(current); } }
+        else if (e.key === 'Escape') { hide(); }
+      });
+
+      // cerrar si hace click fuera
+      document.addEventListener('click', e => {
+        if (!e.target.closest('.ta-wrap')) hide();
       });
     })();
 </script>

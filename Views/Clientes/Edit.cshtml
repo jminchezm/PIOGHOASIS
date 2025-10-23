@@ -82,12 +82,13 @@
         <input type="hidden" asp-for="Persona.FotoPath" />
         <input type="hidden" asp-for="Persona.FechaRegistro" />
 
-        <div id="notaCaObligatorio">
-            <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
-        </div>
-
         <!-- ===== Persona ===== -->
         <h6 class="cc-subtitle">Datos del Cliente</h6>
+
+                <div id="notaCaObligatorio">
+                    <span class="form-text text-muted">Todos los campos con * son obligatorios.</span>
+                </div>
+
         <div class="row g-3">
           @* <div class="mb-2" id="fotoPreviewEdit">
             <img id="fotoPreview" src="@avatarUrl" class="img-thumbnail" style="max-height:140px" alt="foto-actual" />

@@ -11,6 +11,7 @@
 
     var roles = ViewBag.Roles as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
 }
+
 <style>
     .puestos-ui {
         position: relative;
@@ -165,6 +166,11 @@
         max-width: 160px;
         opacity: .85;
     }
+
+    /*imagen limpiar campos*/
+    #empty-search {
+        width: 50px;
+    }
 </style>
 
 <div class="puestos-ui">
@@ -242,7 +248,7 @@
         @if (!Model.Any())
         {
             <div class="empty-state p-5 text-center">
-                <img src="~/img/empty-search.svg" asp-append-version="true" class="mb-3 empty-illus" alt="Sin resultados" onerror="this.style.display='none'" />
+                <img src="~/img/empty-search.png" asp-append-version="true" class="mb-3 empty-illus" alt="Sin resultados" onerror="this.style.display='none'" id="empty-search" />
                 <h5 class="fw-bold mb-1">No se encontró ningún registro</h5>
                 <p class="text-muted mb-3">Ajusta los filtros o limpia la búsqueda.</p>
                 <button type="button" class="btn btn-outline-secondary js-clear-filters">

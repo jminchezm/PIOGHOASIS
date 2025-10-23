@@ -15,6 +15,7 @@ namespace PIOGHOASIS.Models
         [Required, StringLength(10)]
         public string UsuarioAperturaID { get; set; } = default!;
 
+        //[Required(ErrorMessage = "Campo obligatorio.")]
         public decimal MontoApertura { get; set; }
 
         public short EstadoCajaID { get; set; }  // FK a ESTADO_CAJA

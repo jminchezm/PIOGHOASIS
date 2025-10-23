@@ -123,18 +123,6 @@ namespace PIOGHOASIS.Controllers
             return IsAjax ? PartialView(vm) : View(vm);
         }
 
-        //[HttpGet("Create")]
-        //public async Task<IActionResult> Create()
-        //{
-        //    await CargarTiposAsync();
-        //    var m = new Habitacion
-        //    {
-        //        Codigo = await NextCodigoAsync(),
-        //        Estado = true
-        //    };
-        //    return IsAjax ? PartialView(m) : View(m);
-        //}
-
         [HttpPost("Create")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(HabitacionCreateVM vm, IFormFile? fileImagen)
@@ -228,74 +216,6 @@ namespace PIOGHOASIS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-
-        //[HttpPost("Create")]
-        //[ValidateAntiForgeryToken]
-        //public async Task<IActionResult> Create(Habitacion h, IFormFile? fileImagen)
-        //{
-        //    if (!ModelState.IsValid)
-        //    {
-        //        await CargarTiposAsync();
-        //        return IsAjax ? PartialView(h) : View(h);
-        //    }
-
-        //    if (string.IsNullOrWhiteSpace(h.Codigo) || !h.Codigo.StartsWith("HAB"))
-        //        h.Codigo = await NextCodigoAsync();
-
-        //    if (await _db.habitaciones.AnyAsync(x => x.Codigo == h.Codigo))
-        //        h.Codigo = await NextCodigoAsync();
-
-        //    if (fileImagen != null)
-        //        h.Imagen = await GuardarImagenAsync(fileImagen);
-
-        //    _db.Add(h);
-        //    await _db.SaveChangesAsync();
-
-        //    if (IsAjax)
-        //        return Json(new { ok = true, message = "¡Habitación creada!", redirectUrl = Url.Action("Index") });
-
-        //    return RedirectToAction(nameof(Index));
-        //}
-
-        // ========= DETAILS =========
-
-        // ========= DETAILS =========
-        [HttpGet("Details/{id:int}")]
-        public async Task<IActionResult> Details(int id)
-        {
-            var m = await _db.habitaciones
-                .Include(x => x.TipoHabitacion)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.HabitacionID == id);
-
-            if (m == null) return NotFound();
-
-            // Cargar tarifas de esta habitación
-            var tarifas = await _db.tarifasHabitacion
-                .Where(t => t.HabitacionID == id)
-                .OrderBy(t => t.NumeroPersonas)
-                .ThenBy(t => t.FechaInicio)
-                .AsNoTracking()
-                .ToListAsync();
-
-            ViewBag.Tarifas = tarifas;
-
-            return IsAjax ? PartialView(m) : View(m);
-        }
-
-
-        //[HttpGet("Details/{id:int}")]
-        //public async Task<IActionResult> Details(int id)
-        //{
-        //    var m = await _db.habitaciones
-        //        .Include(x => x.TipoHabitacion)
-        //        .AsNoTracking()
-        //        .FirstOrDefaultAsync(x => x.HabitacionID == id);
-
-        //    if (m == null) return NotFound();
-        //    return IsAjax ? PartialView(m) : View(m);
-        //}
-
         // ========= EDIT =========
 
         [HttpGet("Edit/{id:int}")]
@@ -339,16 +259,6 @@ namespace PIOGHOASIS.Controllers
 
             return IsAjax ? PartialView(vm) : View(vm);
         }
-
-
-        //[HttpGet("Edit/{id:int}")]
-        //public async Task<IActionResult> Edit(int id)
-        //{
-        //    var m = await _db.habitaciones.FindAsync(id);
-        //    if (m == null) return NotFound();
-        //    await CargarTiposAsync();
-        //    return IsAjax ? PartialView(m) : View(m);
-        //}
 
         [HttpPost("Edit/{id:int}")]
         [ValidateAntiForgeryToken]
@@ -421,6 +331,10 @@ namespace PIOGHOASIS.Controllers
                     });
                 }
             }
+
+            // ← evita que un valor posteado cambie el estado
+            ModelState.Remove("Habitacion.Estado");
+            vm.Habitacion.Estado = true;
 
             if (!ModelState.IsValid)
             {
@@ -550,172 +464,29 @@ namespace PIOGHOASIS.Controllers
             return RedirectToAction(nameof(Edit), new { id });
         }
 
+        // ========= DETAILS =========
+        [HttpGet("Details/{id:int}")]
+        public async Task<IActionResult> Details(int id)
+        {
+            var m = await _db.habitaciones
+                .Include(x => x.TipoHabitacion)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.HabitacionID == id);
 
-        //[HttpPost("Edit/{id:int}")]
-        //[ValidateAntiForgeryToken]
-        //public async Task<IActionResult> Edit(int id, HabitacionCreateVM vm, IFormFile? fileImagen, bool QuitarImagen = false)
-        //{
-        //    if (id != vm.Habitacion.HabitacionID) return NotFound();
+            if (m == null) return NotFound();
 
-        //    // validación de la parte Habitacion
-        //    if (!ModelState.IsValid)
-        //    {
-        //        await CargarTiposAsync();
-        //        return IsAjax ? PartialView(vm) : View(vm);
-        //    }
+            // Cargar tarifas de esta habitación
+            var tarifas = await _db.tarifasHabitacion
+                .Where(t => t.HabitacionID == id)
+                .OrderBy(t => t.NumeroPersonas)
+                .ThenBy(t => t.FechaInicio)
+                .AsNoTracking()
+                .ToListAsync();
 
-        //    // Cargar el estado actual para manejar la imagen
-        //    var actual = await _db.habitaciones.AsNoTracking()
-        //                    .FirstOrDefaultAsync(x => x.HabitacionID == id);
-        //    if (actual == null) return NotFound();
+            ViewBag.Tarifas = tarifas;
 
-        //    // Imagen (igual que ya lo hacías)
-        //    if (QuitarImagen)
-        //    {
-        //        if (!string.IsNullOrWhiteSpace(actual.Imagen))
-        //        {
-        //            var physical = Path.Combine(_env.WebRootPath, actual.Imagen.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-        //            if (System.IO.File.Exists(physical))
-        //                System.IO.File.Delete(physical);
-        //        }
-        //        vm.Habitacion.Imagen = null;
-        //    }
-        //    else if (fileImagen != null)
-        //    {
-        //        vm.Habitacion.Imagen = await GuardarImagenAsync(fileImagen);
-        //    }
-        //    else
-        //    {
-        //        vm.Habitacion.Imagen = actual.Imagen; // conservar
-        //    }
-
-        //    // ===== VALIDACIÓN Y CONVERSIÓN DE TARIFAS =====
-        //    if (vm.TarifaItems == null || vm.TarifaItems.Count == 0)
-        //        ModelState.AddModelError("", "Debe agregar al menos una tarifa.");
-
-        //    var nuevasTarifas = new List<TarifaHabitacion>();
-
-        //    if (vm.TarifaItems != null)
-        //    {
-        //        foreach (var t in vm.TarifaItems)
-        //        {
-        //            if (t.FechaFin < t.FechaInicio)
-        //                ModelState.AddModelError("", $"Rango inválido ({t.FechaInicio:yyyy-MM-dd} – {t.FechaFin:yyyy-MM-dd}).");
-
-        //            if (vm.Habitacion.CapacidadPersonas.HasValue && t.NumeroPersonas > vm.Habitacion.CapacidadPersonas.Value)
-        //                ModelState.AddModelError("", $"La ocupación {t.NumeroPersonas} supera la capacidad de la habitación.");
-
-        //            var limpio = (t.PrecioNocheStr ?? "").Replace(",", "");
-        //            if (!decimal.TryParse(limpio, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var precio))
-        //                ModelState.AddModelError("", "Precio inválido en una de las filas de tarifas.");
-        //            else if (precio <= 0)
-        //                ModelState.AddModelError("", "El precio debe ser mayor a 0.");
-
-        //            nuevasTarifas.Add(new TarifaHabitacion
-        //            {
-        //                HabitacionID = id,
-        //                NumeroPersonas = t.NumeroPersonas,
-        //                PrecioNoche = precio,
-        //                FechaInicio = t.FechaInicio.Date,
-        //                FechaFin = t.FechaFin.Date,
-        //                EtiquetaTemporada = t.EtiquetaTemporada
-        //            });
-        //        }
-        //    }
-
-        //    if (!ModelState.IsValid)
-        //    {
-        //        await CargarTiposAsync();
-        //        return IsAjax ? PartialView(vm) : View(vm);
-        //    }
-
-        //    // ===== Persistencia en transacción =====
-        //    using var tx = await _db.Database.BeginTransactionAsync();
-
-        //    try
-        //    {
-        //        // actualizar la habitación
-        //        _db.Entry(vm.Habitacion).State = EntityState.Modified;
-        //        await _db.SaveChangesAsync();
-
-        //        // eliminar tarifas anteriores
-        //        var old = await _db.tarifasHabitacion.Where(x => x.HabitacionID == id).ToListAsync();
-        //        _db.tarifasHabitacion.RemoveRange(old);
-        //        await _db.SaveChangesAsync();
-
-        //        // (opcional) validación anti-solape entre nuevas
-        //        // puedes chequear aquí que en 'nuevasTarifas' no haya traslapes por (NumeroPersonas)
-        //        bool solape = nuevasTarifas
-        //            .GroupBy(t => t.NumeroPersonas)
-        //            .Any(g => g.Select(x => (x.FechaInicio, x.FechaFin))
-        //                       .OrderBy(x => x.FechaInicio)
-        //                       .Zip(g.Select(x => (x.FechaInicio, x.FechaFin))
-        //                             .OrderBy(x => x.FechaInicio).Skip(1),
-        //                            (a, b) => a.FechaFin >= b.FechaInicio).Any(s => s));
-        //        if (solape)
-        //        {
-        //            await tx.RollbackAsync();
-        //            ModelState.AddModelError("", "Hay tarifas nuevas que se solapan en fechas para la misma ocupación.");
-        //            await CargarTiposAsync();
-        //            return IsAjax ? PartialView(vm) : View(vm);
-        //        }
-
-        //        // insertar nuevas
-        //        _db.tarifasHabitacion.AddRange(nuevasTarifas);
-
-        //        await _db.SaveChangesAsync();
-
-        //        await tx.CommitAsync();
-        //    }
-        //    catch
-        //    {
-        //        await tx.RollbackAsync();
-        //        throw;
-        //    }
-
-        //    if (IsAjax) return Json(new { ok = true, message = "¡Habitación y tarifas actualizadas!", redirectUrl = Url.Action("Index") });
-        //    return RedirectToAction(nameof(Edit), new { id });
-        //}
-
-
-        //[HttpPost("Edit/{id:int}")]
-        //[ValidateAntiForgeryToken]
-        //public async Task<IActionResult> Edit(int id, Habitacion h, IFormFile? fileImagen, bool QuitarImagen = false)
-        //{
-        //    if (id != h.HabitacionID) return NotFound();
-        //    if (!ModelState.IsValid) { await CargarTiposAsync(); return IsAjax ? PartialView(h) : View(h); }
-
-        //    var actual = await _db.habitaciones.AsNoTracking().FirstOrDefaultAsync(x => x.HabitacionID == id);
-        //    if (actual == null) return NotFound();
-
-        //    //if (QuitarImagen)
-        //    //    h.Imagen = null;              // opcional: también borra el archivo físico si quieres
-        //    if (QuitarImagen)
-        //    {
-        //        // borrar archivo físico si existía
-        //        if (!string.IsNullOrWhiteSpace(actual.Imagen))
-        //        {
-        //            var physical = Path.Combine(_env.WebRootPath, actual.Imagen.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-        //            if (System.IO.File.Exists(physical))
-        //                System.IO.File.Delete(physical);
-        //        }
-
-        //        h.Imagen = null;
-        //    }
-        //    else if (fileImagen != null)
-        //    {
-        //        h.Imagen = await GuardarImagenAsync(fileImagen);
-        //    }
-        //    else
-        //    {
-        //        h.Imagen = actual.Imagen;
-        //    }
-        //    _db.Update(h);
-        //    await _db.SaveChangesAsync();
-
-        //    if (IsAjax) return Json(new { ok = true, message = "¡Habitación actualizada!", redirectUrl = Url.Action("Index") });
-        //    return RedirectToAction(nameof(Edit), new { id = h.HabitacionID });
-        //}
+            return IsAjax ? PartialView(m) : View(m);
+        }
 
         // ========= DELETE (Toggle) =========
         [HttpGet("Delete/{id:int}")]

@@ -64,6 +64,8 @@
         public string UsuarioId { get; set; } = default!;
 
         public string Usuario { get; set; } = default!;
+
+        //[Required(ErrorMessage = "Campo obligatorio.")]
         public decimal MontoApertura { get; set; } = 0m;
     }
 
