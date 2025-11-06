@@ -1,151 +1,575 @@
-﻿@model PIOGHOASIS.Models.Reserva
+﻿@model PIOGHOASIS.Models.ViewModels.PagoDetalleReservaVM
+@using PIOGHOASIS.Services
+
 @{
     Layout = null;
-    var clienteNombre = (Model?.Cliente?.Persona?.PrimerNombre + " " + Model?.Cliente?.Persona?.PrimerApellido)?.Trim();
+
+    var reserva = Model.Reserva;
+
+    var clienteNombre = (reserva?.Cliente?.Persona?.PrimerNombre + " " + reserva?.Cliente?.Persona?.PrimerApellido)?.Trim();
     string fmt(decimal v) => v.ToString("N2");
+
+    // === Desglose de impuestos ===
+    var totalNoches = reserva.Detalles?.Sum(d => d.Noches) ?? 0;
+    if (totalNoches <= 0) totalNoches = 1; // evitar división entre 0
+
+    // Precio total por noche (con impuestos)
+    var precioTotalNoche = reserva.Total / totalNoches;
+
+    var (baseNeta, inguat, iva, total) =
+        ReservaPricingService.DesglosarDesdeTotal(precioTotalNoche, totalNoches);
+
+    var impuestosTotales = inguat + iva;
+
+
+    // ===== Datos de cancelación =====
+    // Consideramos "cancelada" si el nombre del estado contiene la palabra "cancel"
+    var esCancelada = !string.IsNullOrWhiteSpace(reserva?.Estado?.Nombre) &&
+                      reserva.Estado.Nombre!.ToUpper().Contains("CANCEL");
+
+    // Usar TODO el contenido de NotaCancelacion
+    string? motivoCancelacion = null;
+    string? motivoCancelacionHtml = null;
+
+    if (!string.IsNullOrWhiteSpace(reserva?.NotaCancelacion))
+    {
+        // Normalizamos saltos de línea
+        motivoCancelacion = reserva.NotaCancelacion.Trim();
+
+        // Para mostrarlo en HTML respetando los saltos:
+        motivoCancelacionHtml = motivoCancelacion
+            .Replace("\r\n", "\n")
+            .Replace("\r", "\n")
+            .Replace("\n", "<br />");
+    }
+
+
+    // // ===== Datos de cancelación =====
+    // // Consideramos "cancelada" si el nombre del estado contiene la palabra "cancel"
+    // var esCancelada = !string.IsNullOrWhiteSpace(reserva?.Estado?.Nombre) &&
+    //                   reserva.Estado.Nombre!.ToUpper().Contains("CANCEL");
+
+    // // Tomar SOLO la última línea de NotaCancelacion (el último motivo registrado)
+    // string? motivoCancelacion = null;
+    // if (!string.IsNullOrWhiteSpace(reserva?.NotaCancelacion))
+    // {
+    //     var lines = reserva.NotaCancelacion
+    //         .Split('\n')
+    //         .Select(l => l.Trim())
+    //         .Where(l => !string.IsNullOrWhiteSpace(l))
+    //         .ToArray();
+
+    //     if (lines.Length > 0)
+    //     {
+    //         var lastLine = lines[^1]; // última línea
+    //         // si quieres quitar el prefijo "[CANCELADA] fecha: "
+    //         var idx = lastLine.IndexOf(':');
+    //         motivoCancelacion = (idx >= 0 && idx + 1 < lastLine.Length)
+    //             ? lastLine[(idx + 1)..].Trim()
+    //             : lastLine;
+    //     }
+    // }
 }
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<title>Reserva @Model?.Codigo</title>
+    <meta charset="utf-8" />
+    <title>Reserva @reserva?.Codigo</title>
 
-<style>
-/* ====== Setup de página A4 ====== */
-@@page {
-  size: A4;
-  margin: 18mm 14mm 16mm 14mm;
-}
-html, body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif; color:#111827; }
-* { box-sizing: border-box; }
-small, .muted { color:#6b7280; }
+    <style>
+        /* ====== Setup de página A4 ====== */
+        @@page {
+            size: A4;
+            margin: 18mm 14mm 16mm 14mm;
+        }
 
-/* ====== Encabezado ====== */
-.doc-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  border-bottom: 2px solid #e5e7eb;
-  padding-bottom: 8px;
-  margin-bottom: 14px;
-}
-.brand {
-  display: flex; align-items: center; gap: 12px;
-}
-.brand img {
-  width: 64px; height: 64px; object-fit: contain; border-radius: 12px; border:1px solid #e5e7eb; padding: 6px;
-}
-.brand .name { font-size: 20px; font-weight: 800; line-height: 1.1; }
-.meta { text-align: right; font-size: 14px; }
+        html, body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+            color: #111827;
+        }
 
-/* ====== Bloque datos ====== */
-.block { margin-bottom: 16px; }
-h2.title { font-size: 16px; margin: 0 0 6px 0; font-weight: 800; }
-.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; font-size: 14px; }
-.kv .row { display:flex; justify-content:space-between; }
-.badge {
-  display:inline-block; padding:4px 8px; border-radius:999px; background:#eef2ff; border:1px solid #e5e7eb; font-weight:700;
-}
+        * {
+            box-sizing: border-box;
+        }
 
-/* ====== Tabla ====== */
-.table {
-  width: 100%; border-collapse: collapse; font-size: 14px;
-  border:1px solid #e5e7eb; border-radius:8px; overflow:hidden;
-}
-.table thead th {
-  background:#f9fafb; text-align: left; padding: 10px; border-bottom:1px solid #e5e7eb; font-weight:800;
-}
-.table tbody td {
-  padding: 10px; border-bottom:1px solid #f1f5f9;
-}
-.table tbody tr:last-child td { border-bottom: none; }
-.text-end { text-align: right; }
+        small, .muted {
+            color: #6b7280;
+        }
 
-/* ====== Totales ====== */
-.totals {
-  width: 280px; margin-left: auto; margin-top: 10px; font-size: 14px;
-}
-.totals .line { display:flex; justify-content: space-between; margin: 6px 0; }
-.totals .grand { font-size: 18px; font-weight: 800; }
+        /* ====== Encabezado ====== */
+        .doc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+        }
 
-/* ====== Footer (número de página si tu engine lo soporta) ====== */
-.footer {
-  position: fixed;
-  bottom: 10mm; left: 14mm; right: 14mm;
-  display:flex; justify-content: space-between; font-size: 12px; color:#6b7280;
-}
-.page-num:after { content: counter(page); }
-</style>
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+            .brand img {
+                width: 64px;
+                height: 64px;
+                object-fit: contain;
+                border-radius: 12px;
+                border: 1px solid #e5e7eb;
+                padding: 6px;
+            }
+
+            .brand .name {
+                font-size: 20px;
+                font-weight: 800;
+                line-height: 1.1;
+            }
+
+        .meta {
+            text-align: right;
+            font-size: 14px;
+        }
+
+        /* ====== Bloques ====== */
+        .block {
+            margin-bottom: 16px;
+        }
+
+        h2.title {
+            font-size: 16px;
+            margin: 0 0 6px 0;
+            font-weight: 800;
+        }
+
+        .kv {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 16px;
+            font-size: 14px;
+        }
+
+            .kv .row {
+                display: flex;
+                justify-content: space-between;
+            }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #eef2ff;
+            border: 1px solid #e5e7eb;
+            font-weight: 700;
+        }
+
+        /* ====== Avisos / términos ====== */
+        .notice {
+            font-size: 13px;
+            line-height: 1.5;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-left: 4px solid #f97316;
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+            .notice p {
+                margin: 4px 0;
+            }
+
+            .notice strong {
+                font-weight: 800;
+            }
+
+        .terms {
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+            .terms h3 {
+                font-size: 14px;
+                margin: 8px 0 4px 0;
+                font-weight: 800;
+            }
+
+            .terms p {
+                margin: 4px 0;
+            }
+
+            .terms ul {
+                margin: 6px 0 0 18px;
+                padding: 0;
+            }
+
+            .terms li {
+                margin-bottom: 4px;
+            }
+
+        /* ====== Tabla ====== */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+            .table thead th {
+                background: #f9fafb;
+                text-align: left;
+                padding: 10px;
+                border-bottom: 1px solid #e5e7eb;
+                font-weight: 800;
+            }
+
+            .table tbody td {
+                padding: 10px;
+                border-bottom: 1px solid #f1f5f9;
+            }
+
+            .table tbody tr:last-child td {
+                border-bottom: none;
+            }
+
+        .text-end {
+            text-align: right;
+        }
+
+        /* ====== Totales ====== */
+        .totals {
+            width: 280px;
+            margin-left: auto;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+            .totals .line {
+                display: flex;
+                justify-content: space-between;
+                margin: 6px 0;
+            }
+
+            .totals .grand {
+                font-size: 18px;
+                font-weight: 800;
+            }
+
+        /* ====== Totales de pagos ====== */
+        .pay-totals {
+            width: 260px;
+            margin-left: auto;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+
+            .pay-totals .line {
+                display: flex;
+                justify-content: space-between;
+                margin: 4px 0;
+            }
+
+        /* ====== Footer ====== */
+        .footer {
+            position: fixed;
+            /* bottom: 10mm;
+                    left: 14mm;
+                    right: 14mm; */
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .page-num:after {
+            content: counter(page);
+        }
+    </style>
 </head>
 
 <body>
 
-<header class="doc-header">
-  <div class="brand">
-    <img src="/img/logo-oasis.png" alt="Hotel Oasis" onerror="this.src='/img/logo.png'">
-    <div>
-      <div class="name">Hotel Oasis</div>
-      <div class="muted">Comprobante de Reserva</div>
-    </div>
-  </div>
+    <header class="doc-header">
+        <div class="brand">
+            <img src="/img/logo-oasis.png" alt="Hotel Oasis" onerror="this.src='/img/logo.png'">
+            <div>
+                <div class="name">Hotel Oasis</div>
+                <div class="muted">Comprobante de Reserva</div>
+            </div>
+        </div>
 
-  <div class="meta">
-    <div><strong>Código:</strong> @Model?.Codigo</div>
-    <div><strong>Fecha de emisión:</strong> @DateTime.Now</div>
-  </div>
-</header>
+        <div class="meta">
+            <div><strong>Código:</strong> @reserva?.Codigo</div>
+            <div><strong>Fecha de emisión:</strong> @DateTime.Now</div>
+        </div>
+    </header>
 
-<section class="block">
-  <h2 class="title">Datos de la Reserva</h2>
-  <div class="kv">
-    <div><strong>Cliente:</strong> @clienteNombre</div>
-    <div><strong>Noches:</strong> @((Model?.FechaCheckOut - Model?.FechaCheckIn)?.TotalDays ?? 0)</div>
-    <div><strong>Check-in:</strong> @Model?.FechaCheckIn.ToString("dd/MM/yyyy")</div>
-    <div><strong>Check-out:</strong> @Model?.FechaCheckOut.ToString("dd/MM/yyyy")</div>
-    <div><strong>Estado:</strong> @Model?.Estado?.Nombre</div>
-    <div><span class="badge">@((Model?.FechaCheckOut - Model?.FechaCheckIn)?.TotalDays ?? 0) noche(s)</span></div>
-  </div>
-</section>
+   @*  <section class="block">
+        <h2 class="title">Datos de la Reserva</h2>
+        <div class="kv">
+            <div><strong>Cliente:</strong> @clienteNombre</div>
+            <div><strong>Noches:</strong> @((reserva?.FechaCheckOut - reserva?.FechaCheckIn)?.TotalDays ?? 0)</div>
+            <div><strong>Check-in:</strong> @reserva?.FechaCheckIn.ToString("dd/MM/yyyy")</div>
+            <div><strong>Check-out:</strong> @reserva?.FechaCheckOut.ToString("dd/MM/yyyy")</div>
+            <div><strong>Estado:</strong> @reserva?.Estado?.Nombre</div>
+            <div><span class="badge">@((reserva?.FechaCheckOut - reserva?.FechaCheckIn)?.TotalDays ?? 0) noche(s)</span></div>
+        </div>
+    </section> *@
 
-<section class="block">
-  <h2 class="title">Detalle</h2>
-  <table class="table">
-    <thead>
-      <tr>
-        <th style="width:28%">Habitación</th>
-        <th style="width:12%">Personas</th>
-        <th style="width:12%">Noches</th>
-        <th style="width:18%">Precio por noche</th>
-        <th class="text-end" style="width:18%">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      @foreach (var d in Model.Detalles)
-      {
-        <tr>
-          <td>@d.Habitacion?.TipoHabitacion?.Nombre #@d.Habitacion?.NumeroHabitacion</td>
-          <td>@d.Personas</td>
-          <td>@d.Noches</td>
-          <td>Q @fmt(d.PrecioPorNoche)</td>
-          <td class="text-end">Q @fmt(d.TotalLinea)</td>
-        </tr>
-      }
-    </tbody>
-  </table>
+    <section class="block">
+        <h2 class="title">Datos de la Reserva</h2>
+        <div class="kv">
+            <div><strong>Cliente:</strong> @clienteNombre</div>
+            <div><strong>Noches:</strong> @((reserva?.FechaCheckOut - reserva?.FechaCheckIn)?.TotalDays ?? 0)</div>
+            <div><strong>Check-in:</strong> @reserva?.FechaCheckIn.ToString("dd/MM/yyyy")</div>
+            <div><strong>Check-out:</strong> @reserva?.FechaCheckOut.ToString("dd/MM/yyyy")</div>
+            <div><strong>Estado:</strong> @reserva?.Estado?.Nombre</div>
+            <div><span class="badge">@((reserva?.FechaCheckOut - reserva?.FechaCheckIn)?.TotalDays ?? 0) noche(s)</span></div>
+        </div>
+    </section>
 
-  <div class="totals">
-    <div class="line"><span>Subtotal </span><strong>Q @fmt(Model.Subtotal)</strong></div>
-    <div class="line"><span>Impuestos </span><strong>Q @fmt(Model.Impuestos)</strong></div>
-    <div class="line grand"><span>Total </span><strong>Q @fmt(Model.Total)</strong></div>
-  </div>
-</section>
+    @if (esCancelada && !string.IsNullOrWhiteSpace(motivoCancelacionHtml))
+    {
+        <section class="block">
+            <div class="notice" style="border-left-color:#dc2626;">
+                <p><strong>RESERVA CANCELADA</strong></p>
+                <p>@Html.Raw(motivoCancelacionHtml)</p>
+            </div>
+        </section>
+    }
 
-<footer class="footer">
-  <div>© @DateTime.Now.Year Hotel Oasis</div>
-  @* <div>Página <span class="page-num"></span></div> *@
-</footer>
+
+    @* @if (esCancelada && !string.IsNullOrWhiteSpace(motivoCancelacion))
+    {
+        <section class="block">
+            <div class="notice" style="border-left-color:#dc2626;">
+                <p><strong>RESERVA CANCELADA</strong></p>
+                <p>@motivoCancelacion</p>
+            </div>
+        </section>
+    } *@
+
+
+    <section class="block">
+        <h2 class="title">Detalle</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width:28%">Habitación</th>
+                    <th style="width:12%">Personas</th>
+                    <th style="width:12%">Noches</th>
+                    <th style="width:18%">Precio por noche</th>
+                    <th class="text-end" style="width:18%">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in reserva.Detalles)
+                {
+                    <tr>
+                        <td>@d.Habitacion?.TipoHabitacion?.Nombre #@d.Habitacion?.NumeroHabitacion</td>
+                        <td>@d.Personas</td>
+                        <td>@d.Noches</td>
+                        <td>Q @fmt(d.PrecioPorNoche)</td>
+                        <td class="text-end">Q @fmt(d.TotalLinea)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <div class="line"><span>Subtotal (sin impuestos)</span><strong> Q @fmt(baseNeta)</strong></div>
+            <div class="line"><span>INGUAT 10%</span><strong> Q @fmt(inguat)</strong></div>
+            <div class="line"><span>IVA 12%</span><strong> Q @fmt(iva)</strong></div>
+            <div class="line"><span>Impuestos totales</span><strong> Q @fmt(impuestosTotales)</strong></div>
+            <div class="line grand"><span>Total</span><strong> Q @fmt(total)</strong></div>
+        </div>
+
+        @if (Model.TieneDescuento)
+        {
+            <div class="totals" style="margin-top:4px; font-size:13px;">
+                <div class="line">
+                    <span>Precio de lista (promedio por noche)</span>
+                    <strong>Q @fmt(Model.PrecioListaPorNoche)</strong>
+                </div>
+                <div class="line">
+                    <span>Precio acordado (promedio por noche)</span>
+                    <strong>Q @fmt(Model.PrecioFinalPorNoche)</strong>
+                </div>
+                <div class="line">
+                    <span>Descuento por noche</span>
+                    <strong>-Q @fmt(Model.DescuentoPorNoche)</strong>
+                </div>
+                <div class="line">
+                    <span>Descuento total aplicado</span>
+                    <strong>-Q @fmt(Model.DescuentoTotal)</strong>
+                </div>
+            </div>
+        }
+
+
+    </section>
+
+    <!-- ====== Pagos ====== -->
+    <section class="block">
+        <h2 class="title">Pagos</h2>
+
+        @if (Model.Pagos != null && Model.Pagos.Any())
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width:16%">Fecha</th>
+                        <th style="width:16%">Forma</th>
+                        <th style="width:18%">Tipo</th>
+                        <th style="width:18%">Plataforma</th>
+                        <th style="width:18%">Referencia</th>
+                        <th class="text-end" style="width:14%">Monto</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Pagos)
+                    {
+                        <tr>
+                            <td>@p.FechaPago.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@p.FormaPago?.Nombre</td>
+                            <td>@p.TipoPago?.Nombre</td>
+                            <td>@(p.Plataforma?.Nombre ?? "-")</td>
+                            <td>@(string.IsNullOrWhiteSpace(p.NumeroReferencia) ? "-" : p.NumeroReferencia)</td>
+                            <td class="text-end">Q @fmt(p.MontoPagado)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="pay-totals">
+                <div class="line"><span>Total pagado</span><strong>Q @fmt(Model.Pagado)</strong></div>
+                <div class="line"><span>Saldo pendiente</span><strong>Q @fmt(Model.Pendiente)</strong></div>
+            </div>
+        }
+        else
+        {
+            <p class="muted">No hay pagos registrados para esta reserva.</p>
+        }
+    </section>
+
+    <!-- ====== Bloque de información importante ====== -->
+    <section class="block">
+        <div class="notice">
+            <p>
+                Nos agrada confirmar la siguiente información para la reservación realizada en
+                <strong>Hotel Oasis Panajachel</strong>.
+            </p>
+            <p>
+                <strong>Ambiente familiar.</strong> NO PERMITIMOS EL INGRESO Y CONSUMO DE BEBIDAS
+                ALCOHÓLICAS Y NO FUMAR EN HABITACIONES. Recargo Q350.00.
+            </p>
+            <p>
+                <strong>Formas de pago.</strong> NO ACEPTAMOS PAGO CON TARJETA DE CRÉDITO O DE DÉBITO;
+                SOLO EFECTIVO O TRANSFERENCIAS A UN MISMO BANCO. NO ACEPTAMOS
+                TRANSFERENCIAS ACH O A TERCEROS.
+            </p>
+            <p>
+                <strong>Consumos en restaurante.</strong> SI DESEA REALIZAR ALGUNA ACTIVIDAD DENTRO
+                DE LAS INSTALACIONES DEL RESTAURANTE DEBERÁ HACERLO CON ANTICIPACIÓN.
+                EL CONSUMO ADICIONAL SE DEBERÁ PAGAR EN EL MOMENTO EN EL RESTAURANTE.
+            </p>
+            <p>
+                Es importante que pueda verificar la información detallada de su reserva y, si hubiera
+                algún dato incorrecto, por favor comunicarse con uno de nuestros ejecutivos; de lo
+                contrario sabremos que está de acuerdo con lo mencionado.
+            </p>
+            <p>
+                <strong>
+                    "La habitación se considera reservada al realizar el depósito del 50% del costo
+                    de la habitación y en temporada festiva es la totalidad, somos un hotel NO
+                    REEMBOLSABLE."
+                </strong>
+            </p>
+        </div>
+    </section>
+
+    <!-- ====== Términos y Políticas ====== -->
+    <section class="block terms">
+        <h2 class="title">Términos y Políticas</h2>
+
+        <p>
+            Hotel OASIS Panajachel requiere como un mínimo de cancelación del 50% del total.
+            Antes de hacer un depósito, preguntar por la disponibilidad de las habitaciones.
+            Si son fechas festivas, el depósito debe ser del 100%.
+        </p>
+
+        <p>
+            Aplica para todas las reservas que se encuentren garantizadas con depósito,
+            transferencia o cobro con tarjeta. Se refiere a las penalidades aplicadas a reservas
+            canceladas posteriormente con un mínimo de 24 horas antes de su llegada, solicitando
+            la cancelación de la reserva e indicar la nueva fecha de su estadía; el precio será el
+            mismo aun si hubiera una promoción activa. Si no tiene ninguna fecha próxima de
+            estadía, se le cobrará una penalización por no presentarse a las instalaciones,
+            equivalente al 50% de lo depositado o lo que usted ya depositó.
+        </p>
+
+        <p>
+            Tiene un plazo de 2 meses para el cambio de fecha; solo se pueden realizar 2 cambios
+            de fecha; de lo contrario, perderá lo depositado. Somos un hotel
+            <strong>NO REEMBOLSABLE</strong>. No hacemos devoluciones de dinero, depósito, pago con
+            tarjeta o transferencias; esto es por seguridad de los huéspedes y del hotel. Todas
+            nuestras reservaciones son no reembolsables; en caso de no ser utilizadas por motivos
+            ajenos al cliente o al hotel, esta podrá aplicar a cambio de fecha en fechas no festivas.
+            No se realizan reintegros del pago de la misma.
+        </p>
+
+        <p>
+            Para aplicar al cambio de fecha deberá hacerlo con un mínimo de 48 horas; de lo
+            contrario, perderá el depósito o anticipo que ha realizado. Si son fechas festivas, no
+            hacemos cambios de fecha. Si cancela el mismo día de su estadía, no se hace ningún
+            cambio de fecha.
+        </p>
+
+        <p>
+            Si la fecha es festiva, como por ejemplo Semana Santa, Navidad, Año Nuevo o Agosto,
+            los depósitos son del 100% y aplican a un cambio de fecha como mínimo con 5 días de
+            anticipación; de lo contrario pierde el depósito. Somos un hotel
+            <strong>NO REEMBOLSABLE</strong>.
+        </p>
+
+        <p>
+            Si hace el depósito por una cantidad mayor a la estipulada, solo puede ser consumible
+            en habitaciones o bebidas en el hotel. Si tiene preguntas o necesita información
+            adicional, no dude en ponerse en contacto con nosotros: Whatsapp 3678-7895 /
+            Tel. 7762-2302, 3678-7895.
+        </p>
+
+        <h3>Políticas de Huéspedes</h3>
+        <ul>
+            <li>Tipo de cambio Q7.80 si el pago es en quetzales; si el pago es en dólares, se toma el tipo de cambio del Banco de Guatemala.</li>
+            <li>Check-in a partir de las 2:30 p.m. (flexible).</li>
+            <li>Check-out 11:30 a.m. (flexible, comunicarse a recepción).</li>
+            <li>Las únicas monedas que se reciben son: dólares, euros y quetzales.</li>
+            <li>No se permite el ingreso de armas ni de alimentos; serán sancionados con multa de Q50.00.</li>
+            <li>Se aceptan mascotas pequeñas (comunicarse a recepción).</li>
+            <li>Prohibido fumar en las habitaciones y áreas comunes. Somos un hotel libre de humo.</li>
+            <li>Prohibido el consumo de cualquier tipo de drogas.</li>
+            <li>No se permite alterar el orden y la tranquilidad del hotel, ni agredir física o verbalmente a los huéspedes o colaboradores del hotel.</li>
+            <li>No se permiten comportamientos inadecuados que falten a la moral y buenas costumbres o que puedan molestar a otros huéspedes; HOTEL OASIS tiene un concepto familiar.</li>
+            <li>No nos hacemos responsables por objetos olvidados o extraviados.</li>
+            <li>Indicar horario de salida del parqueo; si se encuentra un vehículo frente al suyo, deberá esperar la hora de salida indicada.</li>
+            <li>No se permite el uso excesivo de bebidas embriagantes en las habitaciones y áreas comunes.</li>
+            <li>No se tolerarán comportamientos racistas o discriminatorios al personal o a otros huéspedes; de lo contrario se procederá a retirar al agresor por los medios necesarios y se aplicará una penalización monetaria.</li>
+            <li>Por manchas a las sábanas se cobrará Q100.00; toalla extraviada Q100.00; por romper sábanas Q200.00. Otros daños serán evaluados y se fijará el monto a pagar.</li>
+            <li>Nos reservamos el derecho de admisión.</li>
+            <li>Por extraviar llaves se cobrarán Q90.00 (Q50 de la llave –son 2– y Q40 del llavero de cuero).</li>
+        </ul>
+    </section>
+
+    <footer class="footer">
+        <div>© @DateTime.Now.Year Hotel Oasis</div>
+        @* <div>Página <span class="page-num"></span></div> *@
+    </footer>
 
 </body>
 </html>

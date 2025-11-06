@@ -14,11 +14,33 @@ namespace PIOGHOASIS.Controllers
         public PagosController(AppDbContext db, IWebHostEnvironment env)
         { _db = db; _env = env; }
 
+        //[HttpGet("Nueva")]
+        //public async Task<IActionResult> Nueva(int reservaId)
+        //{
+        //    var r = await _db.reservas
+        //        .Include(x => x.Cliente).ThenInclude(c => c.Persona)
+        //        .AsNoTracking()
+        //        .FirstOrDefaultAsync(x => x.ReservaID == reservaId);
+        //    if (r == null) return NotFound();
+
+        //    ViewBag.TiposPago = await _db.tiposPago.Where(x => x.Estado).OrderBy(x => x.Nombre).ToListAsync();
+        //    ViewBag.FormasPago = await _db.formasPago.Where(x => x.Estado).OrderBy(x => x.Nombre).ToListAsync();
+        //    ViewBag.Plataformas = await _db.plataformasReserva.Where(x => x.Estado).OrderBy(x => x.Nombre).ToListAsync();
+
+        //    // cálculo de pagado/pendiente
+        //    var pagado = await _db.pagosReserva.Where(p => p.ReservaID == reservaId).SumAsync(p => (decimal?)p.MontoPagado) ?? 0m;
+        //    ViewBag.Pagado = pagado;
+        //    ViewBag.Pendiente = Math.Max(0m, r.Total - pagado);
+
+        //    return View(r); // tu vista elegante de “registro de pago”
+        //}
+
         [HttpGet("Nueva")]
         public async Task<IActionResult> Nueva(int reservaId)
         {
             var r = await _db.reservas
                 .Include(x => x.Cliente).ThenInclude(c => c.Persona)
+                .Include(x => x.Estado)                     // <<< para mostrar badge de estado
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.ReservaID == reservaId);
             if (r == null) return NotFound();
@@ -27,13 +49,25 @@ namespace PIOGHOASIS.Controllers
             ViewBag.FormasPago = await _db.formasPago.Where(x => x.Estado).OrderBy(x => x.Nombre).ToListAsync();
             ViewBag.Plataformas = await _db.plataformasReserva.Where(x => x.Estado).OrderBy(x => x.Nombre).ToListAsync();
 
+            // PAGOS ANTERIORES
+            var pagos = await _db.pagosReserva
+                .Include(p => p.FormaPago)
+                .Include(p => p.TipoPago)
+                .Include(p => p.Plataforma)
+                .Where(p => p.ReservaID == reservaId)
+                .OrderByDescending(p => p.FechaPago)
+                .AsNoTracking()
+                .ToListAsync();
+            ViewBag.Pagos = pagos;
+
             // cálculo de pagado/pendiente
-            var pagado = await _db.pagosReserva.Where(p => p.ReservaID == reservaId).SumAsync(p => (decimal?)p.MontoPagado) ?? 0m;
+            var pagado = pagos.Sum(p => p.MontoPagado);
             ViewBag.Pagado = pagado;
             ViewBag.Pendiente = Math.Max(0m, r.Total - pagado);
 
-            return View(r); // tu vista elegante de “registro de pago”
+            return View(r); // vista “Nueva”
         }
+
 
         public class PagoReservaPost
         {

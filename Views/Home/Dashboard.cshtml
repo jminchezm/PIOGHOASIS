@@ -106,6 +106,42 @@
                 transition: none;
             }
         }
+
+        .kpi-card {
+            background: rgba(255,255,255,.9);
+            border: 1px solid rgba(0,0,0,.06);
+            border-radius: .75rem;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+            .kpi-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 16px rgba(0,0,0,.1);
+            }
+
+        /* Hero y KPIs centrados verticalmente */
+        .hero {
+            position: relative;
+            /* min-height: 420px; */
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center; /* centra vertical */
+            justify-content: center; /* centra horizontal */
+        }
+
+        #dash-cards.kpi-over-hero {
+            position: absolute;
+            top: 50%; /* mitad del hero */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            z-index: 2;
+        }
+
+
+
+
     </style>
 </head>
 
@@ -346,8 +382,47 @@
 
         <!-- ======= CONTENT ======= -->
         <main id="appContent" class="app-content flex-grow-1">
+
+            
             <!-- Hero inicial (como en tu prototipo) -->
             <div id="hero" class="hero"></div>
+
+            <div class="container-fluid py-3 kpi-over-hero" id="dash-cards">
+                <div class="row g-3 text-center">
+                    <div class="col-6 col-md-3">
+                        <div class="card kpi-card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="small text-muted">Reservas pendientes</div>
+                                <div id="kpiPendientes" class="h3 fw-bold text-primary">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card kpi-card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="small text-muted">Habitaciones disponibles</div>
+                                <div id="kpiDisponibles" class="h3 fw-bold text-success">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card kpi-card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="small text-muted">Ingresos del día</div>
+                                <div id="kpiIngresos" class="h3 fw-bold text-warning">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card kpi-card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="small text-muted">Clientes alojados</div>
+                                <div id="kpiClientes" class="h3 fw-bold text-info">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Contenedor donde se insertará el HTML cargado -->
             @* <div id="contentHost" class="mt-3"></div> *@
@@ -545,8 +620,15 @@
         }
 
         if (!resp.ok) { window.location.href = url; return; }
-        const html = await resp.text();
+        // const html = await resp.text();
+        // if (hero) hero.style.display = 'none';
+
+                const html = await resp.text();
+
+        // Oculta el hero y las tarjetas del dashboard
         if (hero) hero.style.display = 'none';
+        const dash = document.getElementById('dash-cards');
+        if (dash) dash.style.display = 'none';
 
         if (window.swapContentIntoHost) window.swapContentIntoHost(html);
         else host.innerHTML = html;
@@ -577,11 +659,17 @@
               if (a.dataset.home === '1' || url.endsWith('/Home/Index')) {
                 const host = document.getElementById('contentHost');
                 const hero = document.getElementById('hero');
+                const dash = document.getElementById('dash-cards');
                 if (host) host.innerHTML = '';
                 if (hero) hero.style.display = '';
+                if (dash) dash.style.display = '';
+
+                //Refrescar KPIs cada vez que se entra a Inicio
+                if (window.loadDashboardKpis) window.loadDashboardKpis();
+
                 history.replaceState(null, '', url);
-                        document.querySelectorAll('.menu .has-children.open')
-                      .forEach(li => li.classList.remove('open'));
+                    document.querySelectorAll('.menu .has-children.open')
+                    .forEach(li => li.classList.remove('open'));
                 return;
               }
 
@@ -1229,6 +1317,36 @@
         })();
 
     </script>
+
+    <script>
+        // función global reutilizable
+        window.loadDashboardKpis = async function () {
+          try {
+            const r = await fetch('/Home/GetDashboardData', { headers: { 'X-Requested-With': 'XMLHttpRequest' }});
+            if (!r.ok) throw new Error('Error al cargar KPIs');
+            const data = await r.json();
+
+            const $pend = document.getElementById('kpiPendientes');
+            const $disp = document.getElementById('kpiDisponibles');
+            const $ing  = document.getElementById('kpiIngresos');
+            const $cli  = document.getElementById('kpiClientes');
+
+            if ($pend) $pend.textContent = data.reservasPendientes ?? 0;
+            if ($disp) $disp.textContent = data.habitacionesDisponibles ?? 0;
+            if ($ing)  $ing.textContent  = 'Q ' + (data.ingresosDia || 0).toLocaleString();
+            if ($cli)  $cli.textContent  = data.clientesActuales ?? 0;
+          } catch (err) {
+            console.error(err);
+          }
+        };
+
+        // primera carga
+        document.addEventListener('DOMContentLoaded', () => {
+          window.loadDashboardKpis();
+        });
+    </script>
+
+
 
 </body>
 </html>

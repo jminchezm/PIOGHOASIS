@@ -5,13 +5,32 @@
     var tiposPago = (IEnumerable<PIOGHOASIS.Models.TipoPago>)ViewBag.TiposPago ?? Enumerable.Empty<PIOGHOASIS.Models.TipoPago>();
     var formasPago = (IEnumerable<PIOGHOASIS.Models.FormaPago>)ViewBag.FormasPago ?? Enumerable.Empty<PIOGHOASIS.Models.FormaPago>();
     var plataformas = (IEnumerable<PIOGHOASIS.Models.PlataformaReserva>)ViewBag.Plataformas ?? Enumerable.Empty<PIOGHOASIS.Models.PlataformaReserva>();
+    var pagos = (IEnumerable<PIOGHOASIS.Models.PagoReserva>)ViewBag.Pagos ?? Enumerable.Empty<PIOGHOASIS.Models.PagoReserva>();
 
     decimal pagado = ViewBag.Pagado ?? 0m;
     decimal pendiente = ViewBag.Pendiente ?? 0m;
+
+    // Badge según estado
+    var estadoNombre = Model.Estado?.Nombre ?? "";
+    var estadoUpper = estadoNombre.ToUpperInvariant();
+    var estadoClase = "badge bg-secondary";
+
+    if (estadoUpper.Contains("CONFIRM"))
+    {
+        estadoClase = "badge bg-success";
+    }
+    else if (estadoUpper.Contains("CANCEL"))
+    {
+        estadoClase = "badge bg-danger";
+    }
+    else if (estadoUpper.Contains("RESERV"))
+    {
+        estadoClase = "badge bg-warning text-dark";
+    }
 }
 
 <style>
-    /* ====== LAYOUT (mismo estilo que Habitaciones/Create) ====== */
+    /* ====== LAYOUT ====== */
     .pay-create {
         position: relative;
         width: 100%;
@@ -46,7 +65,7 @@
         }
 
     .pc-card {
-        background: rgba(255,255,255,.85);
+        background: rgba(255,255,255,.9);
         border: 1px solid rgba(0,0,0,.06);
         border-radius: .75rem;
         box-shadow: 0 8px 28px rgba(0,0,0,.08);
@@ -57,7 +76,7 @@
         background: #f0a100;
         color: #1f2a37;
         font-weight: 800;
-        padding: .75rem 1rem;
+        padding: .8rem 1rem;
         border-top-left-radius: .75rem;
         border-top-right-radius: .75rem;
         border-bottom: 2px solid #d7a536;
@@ -65,6 +84,41 @@
         justify-content: space-between;
         align-items: center;
         gap: 12px
+    }
+
+        .pc-header small {
+            display: block;
+        }
+
+    .pc-resumen {
+        display: flex;
+        gap: 10px;
+        align-items: flex-end;
+        text-align: right;
+        font-size: .85rem;
+    }
+
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border-radius: 999px;
+        padding: 4px 8px;
+        border: 1px solid rgba(0,0,0,.08);
+        background: #f9fafb;
+        font-weight: 600;
+    }
+
+    .pill-OK {
+        background: #ecfdf5;
+        color: #166534;
+        border-color: #bbf7d0;
+    }
+
+    .pill-PEND {
+        background: #fef2f2;
+        color: #b91c1c;
+        border-color: #fecaca;
     }
 
     .pc-subtitle {
@@ -89,7 +143,83 @@
         color: #1f2a37
     }
 
-    /* ====== MODAL simple (mismo look) ====== */
+    /* grid interior */
+    .pc-grid-main {
+        display: grid;
+        grid-template-columns: minmax(0,2fr) minmax(0,1.3fr);
+        gap: 18px;
+    }
+    @@media(max - width: 992px)
+
+    {
+        .pc-grid-main
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    }
+
+    .pc-box {
+        background: #fff;
+        border-radius: .65rem;
+        border: 1px solid rgba(0,0,0,.05);
+        padding: 1rem .95rem;
+    }
+
+    .pc-box-title {
+        font-size: .9rem;
+        font-weight: 700;
+        margin-bottom: .35rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .pc-box-title i {
+            font-size: 1rem;
+        }
+
+    .amount-big {
+        font-size: 1.4rem;
+        font-weight: 800;
+    }
+
+    .help-text {
+        font-size: .8rem;
+        color: #6b7280;
+    }
+
+    /* ====== Tabla pagos ====== */
+    .pc-pagos {
+        margin-top: 1.25rem;
+    }
+
+        .pc-pagos table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .85rem;
+            background: #fff;
+            border-radius: .65rem;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,.06);
+        }
+
+        .pc-pagos th, .pc-pagos td {
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(0,0,0,.04);
+        }
+
+        .pc-pagos th {
+            background: #f9fafb;
+            font-weight: 700;
+        }
+
+        .pc-pagos tr:last-child td {
+            border-bottom: none;
+        }
+
+    /* ====== MODAL ====== */
     .modal-mask {
         position: fixed;
         inset: 0;
@@ -147,12 +277,32 @@
     <div class="pc-card">
         <div class="pc-header">
             <div>
-                <div class="h6 mb-0">Confirmación de Pago</div>
-                <small class="text-muted">Reserva @Model.Codigo · @Model.Cliente?.Persona?.PrimerNombre @Model.Cliente?.Persona?.PrimerApellido</small>
+                <div class="h6 mb-0">
+                    Registrar pago
+                    @if (!string.IsNullOrWhiteSpace(estadoNombre))
+                    {
+                        <span class="@estadoClase ms-2">@estadoNombre</span>
+                    }
+                </div>
+                <small class="text-muted">
+                    Reserva @Model.Codigo · @Model.Cliente?.Persona?.PrimerNombre @Model.Cliente?.Persona?.PrimerApellido
+                </small>
             </div>
-            <div class="text-end small">
-                <div>Pagado: <strong>Q @pagado.ToString("N2")</strong></div>
-                <div>Pendiente: <span class="badge-soft">Q @pendiente.ToString("N2")</span></div>
+            <div class="pc-resumen">
+                <div>
+                    <div>Total reserva</div>
+                    <div class="fw-bold">Q @Model.Total.ToString("N2")</div>
+                </div>
+                <div>
+                    <div class="pill pill-OK">
+                        <span>Pagado</span>
+                        <span>Q @pagado.ToString("N2")</span>
+                    </div>
+                    <div class="mt-1 pill pill-PEND">
+                        <span>Pendiente</span>
+                        <span>Q @pendiente.ToString("N2")</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -163,79 +313,211 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="ReservaID" value="@Model.ReservaID" />
 
-                <div class="col-12 col-md-3">
-                    <label class="form-label">Fecha de pago*</label>
-                    <input type="date" name="FechaPago" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                <div class="pc-grid-main">
+                    <!-- BLOQUE IZQUIERDO: datos principales -->
+                    <div class="pc-box">
+                        <div class="pc-box-title">
+                            <i class="bi bi-cash-stack"></i> Monto y forma de pago
+                        </div>
+
+                        <div class="col-12 col-md-5">
+                            <label class="form-label">Monto a registrar*</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Q</span>
+                                <input type="number" step="0.01" name="MontoPagado"
+                                       class="form-control amount-big"
+                                       value="@pendiente.ToString("0.##")" required />
+                            </div>
+                            <div class="help-text mt-1">
+                                Puedes registrar un anticipo o el pago total.
+                            </div>
+                            <button type="button" class="btn btn-link btn-sm ps-0 pt-1"
+                                    onclick="document.querySelector('[name=MontoPagado]').value='@pendiente.ToString("0.##")'">
+                                Usar monto pendiente
+                            </button>
+                        </div>
+
+                        <div class="row g-3 align-items-end">
+                            
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Fecha*</label>
+                                <input type="date" name="FechaPago" class="form-control"
+                                       value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Forma de pago*</label>
+                                <select name="FormaPagoID" id="FormaPagoID" class="form-select" required>
+                                    @foreach (var f in formasPago)
+                                    {
+                                        <option value="@f.FormaPagoID">@f.Nombre</option>
+                                    }
+                                </select>
+                                @* <div class="help-text">Completo o Anticipo.</div> *@
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Tipo de pago*</label>
+                                <select name="TipoPagoID" id="TipoPagoID" class="form-select" required>
+                                    @foreach (var t in tiposPago)
+                                    {
+                                        <option value="@t.TipoPagoID">@t.Nombre</option>
+                                    }
+                                </select>
+                               @*  <div class="help-text">Efectivo, transferencia, depósito, plataforma, etc.</div> *@
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Plataforma de reserva</label>
+                                <select name="PlataformaID" id="PlataformaID" class="form-select">
+                                    <option value="">(No aplica)</option>
+                                    @foreach (var p in plataformas)
+                                    {
+                                        <option value="@p.PlataformaID">@p.Nombre</option>
+                                    }
+                                </select>
+                               @*  <div class="help-text">Solo si el pago viene de Booking, Expedia, etc.</div> *@
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE DERECHO: soporte -->
+                    <div class="pc-box">
+                        <div class="pc-box-title">
+                            <i class="bi bi-paperclip"></i> Soporte y notas
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Número de referencia</label>
+                            <input type="text" name="NumeroReferencia" id="NumeroReferencia"
+                                   class="form-control"
+                                   placeholder="Obligatorio para transferencias, depósitos y plataformas" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Comprobante</label>
+                            <input type="file" name="Comprobante" id="Comprobante"
+                                   class="form-control" accept=".pdf,image/*" />
+                            <div class="help-text">
+                                Adjunta el comprobante cuando no sea efectivo (foto o PDF).
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Observaciones</label>
+                            <textarea name="Observaciones" rows="3" class="form-control"
+                                      placeholder="Notas internas sobre este pago…"></textarea>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="col-12 col-md-3">
-                    <label class="form-label">Forma de pago*</label>
-                    <select name="FormaPagoID" id="FormaPagoID" class="form-select" required>
-                        @foreach (var f in formasPago)
-                        {
-                            <option value="@f.FormaPagoID">@f.Nombre</option>
-                        }
-                    </select>
-                    <div class="form-text">Completo o Anticipo.</div>
-                </div>
-
-                <div class="col-12 col-md-3">
-                    <label class="form-label">Tipo de pago*</label>
-                    <select name="TipoPagoID" id="TipoPagoID" class="form-select" required>
-                        @foreach (var t in tiposPago)
-                        {
-                            <option value="@t.TipoPagoID">@t.Nombre</option>
-                        }
-                    </select>
-                </div>
-
-                <div class="col-12 col-md-3">
-                    <label class="form-label">Plataforma de reserva</label>
-                    <select name="PlataformaID" id="PlataformaID" class="form-select">
-                        <option value="">(No aplica)</option>
-                        @foreach (var p in plataformas)
-                        {
-                            <option value="@p.PlataformaID">@p.Nombre</option>
-                        }
-                    </select>
-                    <div class="form-text">Requerido si el tipo implica plataforma.</div>
-                </div>
-
-                <div class="col-12 col-md-3">
-                    <label class="form-label">Monto*</label>
-                    <input type="number" step="0.01" name="MontoPagado" class="form-control" value="@pendiente.ToString("0.##")" required />
-                </div>
-
-                <div class="col-12 col-md-5">
-                    <label class="form-label">Número de referencia</label>
-                    <input type="text" name="NumeroReferencia" id="NumeroReferencia" class="form-control" placeholder="Requerido salvo efectivo" />
-                </div>
-
-                <div class="col-12 col-md-4">
-                    <label class="form-label">Comprobante</label>
-                    <input type="file" name="Comprobante" id="Comprobante" class="form-control" accept=".pdf,image/*" />
-                </div>
-
-                <div class="col-12">
-                    <label class="form-label">Observaciones</label>
-                    <textarea name="Observaciones" rows="2" class="form-control" placeholder="Notas del pago…"></textarea>
-                </div>
-
-                <div class="col-12 d-flex flex-wrap gap-2 mt-2">
-                   @*  <a class="btn btn-outline-secondary ajax-nav" href="/Home/Dashboard" data-url="@Url.Action("Index", "Reservas")">
-                        Volver
-                    </a> *@
-                    <button class="btn btn-primary"><i class="bi bi-check2-circle me-1"></i> Registrar</button>
-
-                    @* <button type="button" class="btn btn-danger ms-auto" id="btnOpenCancel">
-                        <i class="bi bi-x-circle"></i> Cancelar reserva
-                    </button> *@
+                <div class="col-12 d-flex flex-wrap gap-2 mt-3">
+                    <button class="btn btn-primary">
+                        <i class="bi bi-check2-circle me-1"></i> Registrar pago
+                    </button>
 
                     <button type="button" class="btn btn-danger ms-auto" id="btnOpenCancel">
                         <i class="bi bi-x-circle"></i> Cancelar reserva
                     </button>
                 </div>
             </form>
+
+            <!-- ===== Tabla de pagos anteriores ===== -->
+            <div class="pc-pagos">
+                <h6 class="pc-subtitle">Pagos registrados</h6>
+
+                @if (pagos.Any())
+                {
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Forma</th>
+                                    <th>Tipo</th>
+                                    <th>Plataforma</th>
+                                    <th>Monto</th>
+                                    <th>Ref.</th>
+                                    <th>Comp.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in pagos)
+                                {
+
+                                    <tr>
+                                        <td>@p.FechaPago.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>@p.FormaPago?.Nombre</td>
+                                        <td>@p.TipoPago?.Nombre</td>
+                                        <td>@p.Plataforma?.Nombre</td>
+                                        <td>Q @p.MontoPagado.ToString("N2")</td>
+                                        <td>@p.NumeroReferencia</td>
+                                        <td>
+                                            @if (!string.IsNullOrWhiteSpace(p.ComprobantePath))
+                                            {
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <!-- Ver en nueva pestaña -->
+                                                    <a href="@p.ComprobantePath"
+                                                       target="_blank"
+                                                       rel="noopener"
+                                                       class="btn btn-outline-secondary"
+                                                       title="Ver comprobante">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+
+                                                    <!-- Descargar -->
+                                                    <a asp-action="DescargarComprobante"
+                                                       asp-controller="Pagos"
+                                                       asp-route-pagoId="@p.PagoReservaID"
+                                                       class="btn btn-outline-secondary"
+                                                       title="Descargar comprobante">
+                                                        <i class="bi bi-download"></i>
+                                                    </a>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                    </tr>
+
+                                    @* <tr>
+                                        <td>@p.FechaPago.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>@p.FormaPago?.Nombre</td>
+                                        <td>@p.TipoPago?.Nombre</td>
+                                        <td>@p.Plataforma?.Nombre</td>
+                                        <td>Q @p.MontoPagado.ToString("N2")</td>
+                                        <td>@p.NumeroReferencia</td>
+                                        <td>
+                                            @if (!string.IsNullOrWhiteSpace(p.ComprobantePath))
+                                            {
+                                                <a asp-action="DescargarComprobante"
+                                                   asp-controller="Pagos"
+                                                   asp-route-pagoId="@p.PagoReservaID"
+                                                   class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-file-eararrow-down"></i> Ver
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                        </td>
+                                    </tr> *@
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-light border mt-2 mb-0">
+                        Aún no se han registrado pagos para esta reserva.
+                    </div>
+                }
+            </div>
         </div>
     </div>
 </div>
@@ -267,173 +549,154 @@
 
 <script>
     (function () {
-      // ... (tu código actual)
+        // === Modal cancelación ===
+        const mask  = document.getElementById('cancelMask');
+        const open  = document.getElementById('btnOpenCancel');
+        const close = document.getElementById('btnCancelClose');
+        const doIt  = document.getElementById('btnDoCancel');
+        const frm   = document.getElementById('frmCancel');
 
-      const mask  = document.getElementById('cancelMask');
-      const open  = document.getElementById('btnOpenCancel');
-      const close = document.getElementById('btnCancelClose');
-      const doIt  = document.getElementById('btnDoCancel');
-      const frm   = document.getElementById('frmCancel');
+        const show = ()=>{ mask.style.display='flex'; mask.setAttribute('aria-hidden','false'); }
+        const hide = ()=>{ mask.style.display='none';  mask.setAttribute('aria-hidden','true'); }
 
-      const show = ()=>{ mask.style.display='flex'; mask.setAttribute('aria-hidden','false'); }
-      const hide = ()=>{ mask.style.display='none';  mask.setAttribute('aria-hidden','true'); }
+        open?.addEventListener('click', show);
+        close?.addEventListener('click', hide);
+        mask?.addEventListener('click', e => { if (e.target === mask) hide(); });
 
-      open?.addEventListener('click', show);
-      close?.addEventListener('click', hide);
-      mask?.addEventListener('click', e => { if (e.target === mask) hide(); });
+        // Enviar cancelación por AJAX
+        doIt?.addEventListener('click', async () => {
+            const url = frm.getAttribute('action');
+            const fd  = new FormData(frm);
 
-      // Enviar cancelación por AJAX
-          // Enviar cancelación por AJAX
-    doIt?.addEventListener('click', async () => {
-      const url = frm.getAttribute('action');
-      const fd  = new FormData(frm);
+            try {
+                const r = await fetch(url, {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await r.json();
 
-      try {
-        const r = await fetch(url, {
-          method: 'POST',
-          body: fd,
-          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                if (data.ok && data.redirectUrl) {
+                    const host =
+                        document.querySelector('#contentHost') ||
+                        document.querySelector('[data-ajax-host]') ||
+                        document.body;
+
+                    const r2   = await fetch(data.redirectUrl, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const html = await r2.text();
+
+                    host.innerHTML = html;
+                    history.replaceState(null, '', data.redirectUrl);
+
+                    if (window.initPuestosPager) {
+                        const printArea = host.querySelector('#printArea') || host;
+                        window.initPuestosPager(printArea);
+                    }
+                } else {
+                    alert(data.msg || 'No se pudo cancelar la reserva.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error cancelando la reserva.');
+            } finally {
+                hide();
+            }
         });
-        const data = await r.json();
-
-        if (data.ok && data.redirectUrl) {
-          // 1) Busca el contenedor donde inyectas páginas (ajusta el selector a tu layout)
-          const host =
-            document.querySelector('#contentHost') ||        // tu host principal
-            document.querySelector('[data-ajax-host]') ||    // alternativa
-            document.body;                                   // último recurso
-
-          // 2) Pide el Index como partial
-          const r2   = await fetch(data.redirectUrl, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-          });
-          const html = await r2.text();
-
-          // 3) Inyéctalo en el host
-          host.innerHTML = html;
-
-          // 4) Actualiza la URL del navegador
-          history.replaceState(null, '', data.redirectUrl);
-
-          // 5) (Opcional) Re-inicializa scripts del listado si tienes alguno
-          if (window.initPuestosPager) {
-            const printArea = host.querySelector('#printArea') || host;
-            window.initPuestosPager(printArea);
-          }
-        } else {
-          alert(data.msg || 'No se pudo cancelar la reserva.');
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Error cancelando la reserva.');
-      } finally {
-        hide();
-      }
-    });
     })();
 
-            (function () {
-      const form = document.getElementById("frmPago");
-      if (!form) return;
+    (function () {
+        const form = document.getElementById("frmPago");
+        if (!form) return;
 
-      const pendiente = parseFloat("@pendiente".replace(",", "."));
-      const monto = form.querySelector('[name="MontoPagado"]');
-      const tipoPago = form.querySelector('#TipoPagoID');
-      const formaPago = form.querySelector('#FormaPagoID');
-      const numRef = form.querySelector('#NumeroReferencia');
-      const fileInput = form.querySelector('#Comprobante');
-      const btn = form.querySelector('button[type="submit"]');
+        const pendiente = parseFloat("@pendiente".replace(",", "."));
+        const monto = form.querySelector('[name="MontoPagado"]');
+        const tipoPago = form.querySelector('#TipoPagoID');
+        const formaPago = form.querySelector('#FormaPagoID');
+        const numRef = form.querySelector('#NumeroReferencia');
+        const fileInput = form.querySelector('#Comprobante');
 
-      // ======== Helpers visuales ========
-      function showMsg(input, msg) {
-        removeMsg(input);
-        if (!msg) return;
-        input.classList.add('is-invalid');
-        const div = document.createElement('div');
-        div.className = 'invalid-feedback d-block';
-        div.textContent = msg;
-        input.insertAdjacentElement('afterend', div);
-      }
-
-      function removeMsg(input) {
-        input.classList.remove('is-invalid');
-        const next = input.nextElementSibling;
-        if (next && next.classList.contains('invalid-feedback')) next.remove();
-      }
-
-      // ======== Validación general ========
-      function validarCampos() {
-        let ok = true;
-        [monto, tipoPago, numRef, fileInput].forEach(removeMsg);
-
-        const valMonto = parseFloat(monto.value || "0");
-        const tipo = parseInt(tipoPago.value);
-        const esEfectivo = tipo === 1; // Ajustar si el id de "Efectivo" es otro
-
-        // --- Validar Monto ---
-        if (isNaN(valMonto) || valMonto <= 0) {
-          showMsg(monto, "Debe ingresar un monto válido.");
-          ok = false;
-        } else if (valMonto > pendiente) {
-          showMsg(monto, `El monto no puede superar el pendiente (Q ${pendiente.toFixed(2)}).`);
-          ok = false;
+        function showMsg(input, msg) {
+            removeMsg(input);
+            if (!msg) return;
+            input.classList.add('is-invalid');
+            const div = document.createElement('div');
+            div.className = 'invalid-feedback d-block';
+            div.textContent = msg;
+            input.insertAdjacentElement('afterend', div);
         }
 
-        // --- Ajustar Forma de pago automáticamente ---
-        if (formaPago) {
-          if (valMonto < pendiente) {
-            // buscar opción "Anticipo"
-            const anticipo = Array.from(formaPago.options)
-              .find(opt => opt.text.toLowerCase().includes("anticipo"));
-            if (anticipo) formaPago.value = anticipo.value;
-          } else {
-            // buscar opción "Completo"
-            const completo = Array.from(formaPago.options)
-              .find(opt => opt.text.toLowerCase().includes("completo"));
-            if (completo) formaPago.value = completo.value;
-          }
+        function removeMsg(input) {
+            input.classList.remove('is-invalid');
+            const next = input.nextElementSibling;
+            if (next && next.classList.contains('invalid-feedback')) next.remove();
         }
 
-        // --- Validar tipo de pago ---
-        if (!tipoPago.value) {
-          showMsg(tipoPago, "Debe seleccionar un tipo de pago.");
-          ok = false;
+        function validarCampos() {
+            let ok = true;
+            [monto, tipoPago, numRef, fileInput].forEach(removeMsg);
+
+            const valMonto = parseFloat(monto.value || "0");
+            const tipo = parseInt(tipoPago.value);
+            const esEfectivo = tipo === 1; // ajusta si el ID de efectivo es otro
+
+            if (isNaN(valMonto) || valMonto <= 0) {
+                showMsg(monto, "Debe ingresar un monto válido.");
+                ok = false;
+            } else if (valMonto > pendiente) {
+                showMsg(monto, `El monto no puede superar el pendiente (Q ${pendiente.toFixed(2)}).`);
+                ok = false;
+            }
+
+            if (formaPago) {
+                if (valMonto < pendiente) {
+                    const anticipo = Array.from(formaPago.options)
+                        .find(opt => opt.text.toLowerCase().includes("anticipo"));
+                    if (anticipo) formaPago.value = anticipo.value;
+                } else {
+                    const completo = Array.from(formaPago.options)
+                        .find(opt => opt.text.toLowerCase().includes("completo"));
+                    if (completo) formaPago.value = completo.value;
+                }
+            }
+
+            if (!tipoPago.value) {
+                showMsg(tipoPago, "Debe seleccionar un tipo de pago.");
+                ok = false;
+            }
+
+            if (!esEfectivo) {
+                if (!numRef.value.trim()) {
+                    showMsg(numRef, "Debe ingresar el número de referencia.");
+                    ok = false;
+                }
+                if (!fileInput.files.length) {
+                    showMsg(fileInput, "Debe adjuntar un comprobante (PDF o imagen).");
+                    ok = false;
+                }
+            }
+
+            return ok;
         }
 
-        // --- Validar referencia y comprobante si no es efectivo ---
-        if (!esEfectivo) {
-          if (!numRef.value.trim()) {
-            showMsg(numRef, "Debe ingresar el número de referencia.");
-            ok = false;
-          }
-          if (!fileInput.files.length) {
-            showMsg(fileInput, "Debe adjuntar un comprobante (PDF o imagen).");
-            ok = false;
-          }
-        }
-
-        return ok;
-      }
-
-      // ======== Validación en tiempo real ========
-      [monto, tipoPago, numRef, fileInput].forEach(el => {
-        el?.addEventListener('input', () => {
-          validarCampos();
-          removeMsg(el);
+        [monto, tipoPago, numRef, fileInput].forEach(el => {
+            el?.addEventListener('input', () => {
+                validarCampos();
+                removeMsg(el);
+            });
+            el?.addEventListener('change', () => {
+                validarCampos();
+                removeMsg(el);
+            });
         });
-        el?.addEventListener('change', () => {
-          validarCampos();
-          removeMsg(el);
-        });
-      });
 
-      // ======== Al enviar ========
-      form.addEventListener("submit", function (e) {
-        if (!validarCampos()) {
-          e.preventDefault();
-          e.stopPropagation();
-          window.scrollTo({ top: form.offsetTop - 80, behavior: "smooth" });
-        }
-      });
+        form.addEventListener("submit", function (e) {
+            if (!validarCampos()) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.scrollTo({ top: form.offsetTop - 80, behavior: "smooth" });
+            }
+        });
     })();
 </script>

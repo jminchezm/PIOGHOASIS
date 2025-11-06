@@ -1,8 +1,25 @@
 ﻿@model PIOGHOASIS.Models.ViewModels.ReporteReservasVM
 @{
     Layout = null;
+
     var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
     var logoUrl = baseUrl + Url.Content("~/img/login/logo-oasis.png");
+
+    string periodoDesde = Model.Desde?.ToString("dd/MM/yyyy") ?? "";
+    string periodoHasta = Model.Hasta?.ToString("dd/MM/yyyy") ?? "";
+
+    // Texto de filtros seleccionados
+    string estadoTxt = "Todos los estados";
+    if (Model.Estados != null && Model.Estados.Any(e => e.Selected))
+    {
+        estadoTxt = Model.Estados.First(e => e.Selected).Text;
+    }
+
+    string habTxt = "Todas las habitaciones";
+    if (Model.Habitaciones != null && Model.Habitaciones.Any(h => h.Selected))
+    {
+        habTxt = Model.Habitaciones.First(h => h.Selected).Text;
+    }
 }
 <!DOCTYPE html>
 <html>
@@ -13,11 +30,11 @@
         html, body {
             font-family: Arial,Helvetica,sans-serif;
             font-size: 12px;
-            color: #1f2a37
+            color: #1f2a37;
         }
 
         .container {
-            padding: 10mm 10mm
+            padding: 10mm 10mm;
         }
 
         .brand {
@@ -25,24 +42,24 @@
             width: 100%;
             border-bottom: 3px solid #d7a536;
             padding-bottom: 8px;
-            margin-bottom: 10px
+            margin-bottom: 10px;
         }
 
             .brand .left {
                 display: table-cell;
                 vertical-align: middle;
-                width: 1%
+                width: 1%;
             }
 
             .brand .right {
                 display: table-cell;
                 vertical-align: middle;
-                padding-left: 10px
+                padding-left: 10px;
             }
 
         .logo {
             width: 150px;
-            height: auto
+            height: auto;
         }
 
         .title {
@@ -50,58 +67,58 @@
             font-size: 20px;
             line-height: 1.2;
             font-weight: 800;
-            color: #1f2a37
+            color: #1f2a37;
         }
 
         .meta {
             margin-top: 2px;
             color: #6b7280;
-            font-size: 12px
+            font-size: 12px;
         }
 
         .grid2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px
+            gap: 8px;
         }
 
         .kpi {
             border: 1px solid #ddd;
             padding: 8px;
-            border-radius: 6px
+            border-radius: 6px;
         }
 
             .kpi .lbl {
                 color: #6b7280;
-                font-size: 12px
+                font-size: 12px;
             }
 
             .kpi .val {
                 font-size: 18px;
-                font-weight: 700
+                font-weight: 700;
             }
 
         table {
             width: 100%;
-            border-collapse: collapse
+            border-collapse: collapse;
         }
 
         th, td {
             border: 1px solid #ddd;
-            padding: 6px
+            padding: 6px;
         }
 
         th {
             background: #f7e1a5;
-            text-align: left
+            text-align: left;
         }
 
         .right {
-            text-align: right
+            text-align: right;
         }
 
         tbody tr:nth-child(even) {
-            background: #fffaf0
+            background: #fffaf0;
         }
     </style>
 </head>
@@ -109,22 +126,38 @@
     <div class="container">
 
         <div class="brand">
-            <div class="left"><img class="logo" src="@logoUrl" alt="Hotel Oasis" /></div>
+            <div class="left">
+                <img class="logo" src="@logoUrl" alt="Hotel Oasis" />
+            </div>
             <div class="right">
                 <h1 class="title">Reporte de Reservas</h1>
                 <div class="meta">
-                    Periodo: @Model.Desde – @Model.Hasta &nbsp; | &nbsp;
-                    @(Model.ModoPorPagos ? "Filtrado por pagos" : "Filtrado por estancias") &nbsp; | &nbsp;
+                    Periodo: @periodoDesde – @periodoHasta &nbsp; | &nbsp;
+                    Estado: @estadoTxt &nbsp; | &nbsp;
+                    Habitación: @habTxt &nbsp; | &nbsp;
                     Generado: @DateTime.Now
                 </div>
             </div>
         </div>
 
+        <!-- KPIs nuevos -->
         <div class="grid2" style="margin-bottom:10px;">
-            <div class="kpi"><div class="lbl">Ocupación</div><div class="val">@((Model.Ocupacion * 100m).ToString("0.0")) %</div></div>
-            <div class="kpi"><div class="lbl">Precio prom./n vendida (Sin impuestos)</div><div class="val">@Model.ADR.ToString("N2")</div></div> @* ADR *@
-            <div class="kpi"><div class="lbl">Ingreso por habitación disponible</div><div class="val">@Model.RevPAR.ToString("N2")</div></div> @* RevPAR *@
-            <div class="kpi"><div class="lbl">Total Cobrado</div><div class="val">@Model.TotalCobrado.ToString("N2")</div></div>
+            <div class="kpi">
+                <div class="lbl">Reservas reservadas</div>
+                <div class="val">@Model.NumReservasReservadas</div>
+            </div>
+            <div class="kpi">
+                <div class="lbl">Reservas confirmadas</div>
+                <div class="val">@Model.NumReservasConfirmadas</div>
+            </div>
+            <div class="kpi">
+                <div class="lbl">Reservas canceladas</div>
+                <div class="val">@Model.NumReservasCanceladas</div>
+            </div>
+            <div class="kpi">
+                <div class="lbl">Total cobrado</div>
+                <div class="val">@Model.TotalCobrado.ToString("N2")</div>
+            </div>
         </div>
 
         <h3>Reservas</h3>
@@ -145,7 +178,9 @@
             <tbody>
                 @if (!Model.Reservas.Any())
                 {
-                    <tr><td colspan="9">Sin reservas en el periodo.</td></tr>
+                    <tr>
+                        <td colspan="9">Sin reservas en el periodo.</td>
+                    </tr>
                 }
                 else
                 {
@@ -154,8 +189,8 @@
                         <tr>
                             <td>@r.Codigo</td>
                             <td>@r.Estado</td>
-                            <td>@r.In</td>
-                            <td>@r.Out</td>
+                            <td>@r.In.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@r.Out.ToString("dd/MM/yyyy HH:mm")</td>
                             <td>@r.Cliente</td>
                             <td>@r.Hab</td>
                             <td class="right">@r.Total.ToString("N2")</td>
@@ -167,7 +202,7 @@
             </tbody>
         </table>
 
-        <h3 style="margin-top:12px">Pagos (@Model.Desde – @Model.Hasta)</h3>
+        <h3 style="margin-top:12px">Pagos (@periodoDesde – @periodoHasta)</h3>
         <table>
             <thead>
                 <tr>
@@ -181,14 +216,16 @@
             <tbody>
                 @if (!Model.Pagos.Any())
                 {
-                    <tr><td colspan="5">Sin pagos en el periodo.</td></tr>
+                    <tr>
+                        <td colspan="5">Sin pagos en el periodo.</td>
+                    </tr>
                 }
                 else
                 {
                     foreach (var p in Model.Pagos)
                     {
                         <tr>
-                            <td>@p.FechaPago</td>
+                            <td>@p.FechaPago.ToString("dd/MM/yyyy HH:mm")</td>
                             <td>@p.Tipo</td>
                             <td>@(p.Plataforma ?? "—")</td>
                             <td>@p.CodigoReserva</td>

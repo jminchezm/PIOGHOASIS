@@ -408,28 +408,49 @@
           const tarifasAll = JSON.parse(card.getAttribute('data-tarifas') || '[]');
           const list = tarifasAll.filter(t => Number(t.Personas) === p);
 
-          const selTarifa = card.querySelector('.js-tarifa');     // puede NO existir
-          const priceEl   = card.querySelector('.price-night');
-          const totalEl   = card.querySelector('.total-night');
-          const hPersonas = card.querySelector('.js-personas-hidden');
-          const hTarifa   = card.querySelector('.js-tarifa-hidden');
+        const selTarifa = card.querySelector('.js-tarifa');     // puede NO existir
+        const priceEl   = card.querySelector('.price-night');
+        const hPersonas = card.querySelector('.js-personas-hidden');
+        const hTarifa   = card.querySelector('.js-tarifa-hidden');
 
-          if (hPersonas) hPersonas.value = String(p);
+        if (hPersonas) hPersonas.value = String(p);
 
-          // Sin combo de tarifa: modo AUTO
-          if (!selTarifa) {
+        // Sin combo de tarifa: modo AUTO
+        if (!selTarifa) {
             if (list.length > 0) {
-              const t = list[0];
-              if (priceEl) priceEl.textContent = 'Q. ' + fmt(Number(t.PrecioNoche || 0));
-              if (totalEl) totalEl.textContent = 'Q. ' + fmt(Number(t.TotalConImpuestos || 0));
-              if (hTarifa) hTarifa.value = t.TarifaID ?? '';
+            const t = list[0];
+            if (priceEl) priceEl.textContent = 'Q. ' + fmt(Number(t.PrecioNoche || 0)); // YA con impuestos
+            if (hTarifa) hTarifa.value = t.TarifaID ?? '';
             } else {
-              if (priceEl) priceEl.textContent = 'Q. ' + fmt(0);
-              if (totalEl) totalEl.textContent = 'Q. ' + fmt(0);
-              if (hTarifa) hTarifa.value = '';
+            if (priceEl) priceEl.textContent = 'Q. ' + fmt(0);
+            if (hTarifa) hTarifa.value = '';
             }
             return;
-          }
+        }
+
+
+          // const selTarifa = card.querySelector('.js-tarifa');     // puede NO existir
+          // const priceEl   = card.querySelector('.price-night');
+          // const totalEl   = card.querySelector('.total-night');
+          // const hPersonas = card.querySelector('.js-personas-hidden');
+          // const hTarifa   = card.querySelector('.js-tarifa-hidden');
+
+          // if (hPersonas) hPersonas.value = String(p);
+
+          // // Sin combo de tarifa: modo AUTO
+          // if (!selTarifa) {
+          //   if (list.length > 0) {
+          //     const t = list[0];
+          //     if (priceEl) priceEl.textContent = 'Q. ' + fmt(Number(t.PrecioNoche || 0));
+          //     if (totalEl) totalEl.textContent = 'Q. ' + fmt(Number(t.TotalConImpuestos || 0));
+          //     if (hTarifa) hTarifa.value = t.TarifaID ?? '';
+          //   } else {
+          //     if (priceEl) priceEl.textContent = 'Q. ' + fmt(0);
+          //     if (totalEl) totalEl.textContent = 'Q. ' + fmt(0);
+          //     if (hTarifa) hTarifa.value = '';
+          //   }
+          //   return;
+          // }
 
           // Con combo de tarifa: reconstruir opciones
           selTarifa.innerHTML = '';

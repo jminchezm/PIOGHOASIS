@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using PIOGHOASIS.Infraestructure.Data;
 using PIOGHOASIS.Models.ViewModels;
@@ -13,7 +14,7 @@ namespace PIOGHOASIS.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IWebHostEnvironment _env;
-        //public ReportesController(AppDbContext db) => _db = db;
+
         public ReportesController(AppDbContext db, IWebHostEnvironment env)
         {
             _db = db;
@@ -28,13 +29,13 @@ namespace PIOGHOASIS.Controllers
             return "file:///" + norm;
         }
 
-
         // ====== Construcción del VM Reporte Clientes ======
         private async Task<ReporteClientesVM> BuildReporteClientes(DateTime? desde, DateTime? hasta, bool soloActivos)
         {
             var vm = new ReporteClientesVM
             {
-                Desde = (desde ?? DateTime.Today.AddMonths(-1)).Date,
+                //Desde = (desde ?? DateTime.Today.AddMonths(-1)).Date,
+                Desde = (desde ?? DateTime.Today).Date,
                 Hasta = (hasta ?? DateTime.Today).Date,
                 SoloActivos = soloActivos
             };
@@ -88,8 +89,8 @@ namespace PIOGHOASIS.Controllers
                 .ToList();
 
             var mapDeptos = await _db.departamentos
-            .AsNoTracking()
-            .ToDictionaryAsync(x => x.DepartamentoID, x => x.Nombre);
+                .AsNoTracking()
+                .ToDictionaryAsync(x => x.DepartamentoID, x => x.Nombre);
 
             vm.TicketPromedioCliente = gastadoPorCliente.Count == 0
                 ? 0
@@ -104,23 +105,15 @@ namespace PIOGHOASIS.Controllers
 
             // ===== Por Departamento (solo GTM) =====
             vm.PorDepartamento = clientes
-            .Where(c => (c.Persona.PaisID ?? "").ToUpper() == "GTM" && c.Persona.DepartamentoID.HasValue)
-            .GroupBy(c => c.Persona.DepartamentoID!.Value)
-            .Select(g => new ItemClaveCount(
-                mapDeptos.ContainsKey(g.Key) ? mapDeptos[g.Key] : $"Depto {g.Key}",
-                g.Count()
-            ))
-            .OrderByDescending(x => x.Conteo)
-            .Take(10)
-            .ToList();
-
-            //vm.PorDepartamento = clientes
-            //    .Where(c => (c.Persona.PaisID ?? "").ToUpper() == "GTM" && c.Persona.DepartamentoID.HasValue)
-            //    .GroupBy(c => c.Persona.DepartamentoID!.Value)
-            //    .Select(g => new ItemClaveCount("Depto " + g.Key, g.Count()))
-            //    .OrderByDescending(x => x.Conteo)
-            //    .Take(10) // top 10
-            //    .ToList();
+                .Where(c => (c.Persona.PaisID ?? "").ToUpper() == "GTM" && c.Persona.DepartamentoID.HasValue)
+                .GroupBy(c => c.Persona.DepartamentoID!.Value)
+                .Select(g => new ItemClaveCount(
+                    mapDeptos.ContainsKey(g.Key) ? mapDeptos[g.Key] : $"Depto {g.Key}",
+                    g.Count()
+                ))
+                .OrderByDescending(x => x.Conteo)
+                .Take(10)
+                .ToList();
 
             // ===== Edades (buckets) =====
             int Edad(DateTime? fn)
@@ -144,7 +137,7 @@ namespace PIOGHOASIS.Controllers
                 .Select(c => BucketEdad(Edad(c.Persona.FechaNacimiento)))
                 .GroupBy(s => s)
                 .Select(g => new ItemClaveCount(g.Key, g.Count()))
-                .OrderBy(s => s.Clave) // orden aproximado
+                .OrderBy(s => s.Clave)
                 .ToList();
 
             // ===== Altas por mes (en el rango) =====
@@ -157,7 +150,8 @@ namespace PIOGHOASIS.Controllers
 
             // ===== Top clientes por gasto (en el rango) =====
             var top = pagosRango
-                .GroupBy(p => new {
+                .GroupBy(p => new
+                {
                     p.Reserva.Cliente.ClienteID,
                     p.Reserva.Cliente.Persona.PrimerNombre,
                     p.Reserva.Cliente.Persona.SegundoNombre,
@@ -170,7 +164,7 @@ namespace PIOGHOASIS.Controllers
                     ((g.Key.PrimerNombre ?? "") + " " + (g.Key.SegundoNombre ?? "") + " " + (g.Key.PrimerApellido ?? "") + " " + (g.Key.SegundoApellido ?? "")).Replace("  ", " ").Trim(),
                     g.Key.DPI,
                     g.Sum(x => x.MontoPagado),
-                    g.Select(x => x.ReservaID).Distinct().Count(),   // si tu entidad de pago tiene ReservaID
+                    g.Select(x => x.ReservaID).Distinct().Count(),
                     g.Max(x => (DateTime?)x.FechaPago)
                 ))
                 .OrderByDescending(x => x.TotalPagado)
@@ -181,7 +175,8 @@ namespace PIOGHOASIS.Controllers
             // ===== Detalle =====
             var pagosPorClienteTodo = pagosRango
                 .GroupBy(p => p.Reserva.Cliente.ClienteID)
-                .ToDictionary(g => g.Key, g => new {
+                .ToDictionary(g => g.Key, g => new
+                {
                     Total = g.Sum(x => x.MontoPagado),
                     Ult = g.Max(x => (DateTime?)x.FechaPago)
                 });
@@ -190,7 +185,8 @@ namespace PIOGHOASIS.Controllers
                 .GroupBy(r => r.Cliente.ClienteID)
                 .ToDictionary(g => g.Key, g => g.Count());
 
-            vm.Detalle = clientes.Select(c => {
+            vm.Detalle = clientes.Select(c =>
+            {
                 var nombre = ((c.Persona.PrimerNombre ?? "") + " " + (c.Persona.SegundoNombre ?? "") + " " +
                               (c.Persona.PrimerApellido ?? "") + " " + (c.Persona.SegundoApellido ?? "")).Replace("  ", " ").Trim();
                 pagosPorClienteTodo.TryGetValue(c.ClienteID, out var pg);
@@ -211,7 +207,7 @@ namespace PIOGHOASIS.Controllers
         public async Task<IActionResult> ClientesReporte(DateTime? desde, DateTime? hasta, bool soloActivos = true)
         {
             var vm = await BuildReporteClientes(desde, hasta, soloActivos);
-            return View(vm); // Vista: Views/Reportes/ClientesReporte.cshtml (opcional si la quieres)
+            return View(vm);
         }
 
         // ====== PDF ======
@@ -239,11 +235,9 @@ namespace PIOGHOASIS.Controllers
             };
         }
 
-
-
         // ====== Construcción del VM (compartido HTML + PDF) ======
         private async Task<ReporteIngresosVM> BuildReporteIngresos(
-    DateTime? desde, DateTime? hasta, short? tipoPagoId, short? formaPagoId, short? plataformaId)
+            DateTime? desde, DateTime? hasta, short? tipoPagoId, short? formaPagoId, short? plataformaId)
         {
             var vm = new ReporteIngresosVM
             {
@@ -321,7 +315,6 @@ namespace PIOGHOASIS.Controllers
             return vm;
         }
 
-
         // ====== HTML ======
         [HttpGet("PagosIngresos")]
         public async Task<IActionResult> PagosIngresos(DateTime? desde, DateTime? hasta, short? tipoPagoId, short? formaPagoId, short? plataformaId)
@@ -338,22 +331,20 @@ namespace PIOGHOASIS.Controllers
         // ====== PDF ======
         [HttpGet("PagosIngresosPdf")]
         public async Task<IActionResult> PagosIngresosPdf(
-    DateTime? desde, DateTime? hasta, short? tipoPagoId, short? formaPagoId, short? plataformaId)
+            DateTime? desde, DateTime? hasta, short? tipoPagoId, short? formaPagoId, short? plataformaId)
         {
             var vm = await BuildReporteIngresos(desde, hasta, tipoPagoId, formaPagoId, plataformaId);
 
             var webRoot = _env.WebRootPath;
             var logoPath = Path.Combine(webRoot, "img", "login", "logo-oasis.png");
 
-            // 👇 Intenta con y sin "dist"
             var chartCandidates = new[]
             {
-        Path.Combine(webRoot, "lib", "chartjs-2", "Chart.min.js"),           // <- como lo tienes ahora
-        Path.Combine(webRoot, "lib", "chartjs-2", "dist", "Chart.min.js")    // <- ubicación anterior
-    };
+                Path.Combine(webRoot, "lib", "chartjs-2", "Chart.min.js"),
+                Path.Combine(webRoot, "lib", "chartjs-2", "dist", "Chart.min.js")
+            };
             var chartPath = chartCandidates.FirstOrDefault(System.IO.File.Exists);
 
-            // Logo como data URI
             if (System.IO.File.Exists(logoPath))
             {
                 var bytes = await System.IO.File.ReadAllBytesAsync(logoPath);
@@ -364,7 +355,6 @@ namespace PIOGHOASIS.Controllers
                 ViewBag.LogoDataUri = null;
             }
 
-            // Chart.js embebido en línea (solo si se encontró)
             ViewBag.ChartInline = chartPath != null
                 ? await System.IO.File.ReadAllTextAsync(chartPath, Encoding.UTF8)
                 : null;
@@ -376,7 +366,6 @@ namespace PIOGHOASIS.Controllers
                 "--viewport-size 1280x1024",
                 "--dpi 180",
                 "--print-media-type",
-                // === Footer ===
                 "--footer-center \"Página [page] de [toPage]\"",
                 "--footer-font-size 9",
                 "--footer-spacing 4"
@@ -390,180 +379,63 @@ namespace PIOGHOASIS.Controllers
             };
         }
 
-
-
-
-
-        // ReportesController.cs  (método PagosIngresosPdf)
-        //[HttpGet("PagosIngresosPdf")]
-        //public async Task<IActionResult> PagosIngresosPdf(
-        //    DateTime? desde, DateTime? hasta, short? tipoPagoId, short? formaPagoId, short? plataformaId)
-        //{
-        //    var vm = await BuildReporteIngresos(desde, hasta, tipoPagoId, formaPagoId, plataformaId);
-
-        //    if (_env == null) throw new InvalidOperationException("IWebHostEnvironment no disponible.");
-        //    var webRoot = _env.WebRootPath;                // ...\wwwroot
-
-        //    // Rutas locales
-        //    var logoPath = Path.Combine(webRoot, "img", "login", "logo-oasis.png");
-        //    var chartPath = Path.Combine(webRoot, "lib", "chartjs-2", "dist", "Chart.min.js"); // <— v2.9.4 ES5
-
-        //    // file:///... para wkhtmltopdf + verificación de existencia
-        //    string FileUrl(string p) => "file:///" + p.Replace("\\", "/");
-        //    ViewBag.LogoUrl = System.IO.File.Exists(logoPath) ? FileUrl(logoPath) : "";
-        //    //ViewBag.ChartJs = System.IO.File.Exists(chartPath) ? FileUrl(chartPath) : "";
-        //    ViewBag.ChartJs = "file:///" + chartPath.Replace("\\", "/");
-
-        //    // switches pensados para JS + archivos locales
-        //    var switches = string.Join(" ",
-        //        "--enable-local-file-access",
-        //        $"--allow \"{webRoot}\"",                // <— permite leer wwwroot
-        //        "--enable-javascript",
-        //        "--no-stop-slow-scripts",
-        //        "--window-status ready",                // esperamos a window.status='ready'
-        //        "--javascript-delay 3000",              // margen extra para pintar/convertir
-        //        "--viewport-size 1280x1024",
-        //        "--load-error-handling ignore",
-        //        "--dpi 180"
-        //    );
-
-        //    return new Rotativa.AspNetCore.ViewAsPdf("PagosIngresosPdf", vm)
-        //    {
-        //        PageSize = Rotativa.AspNetCore.Options.Size.A4,
-        //        PageOrientation = Rotativa.AspNetCore.Options.Orientation.Portrait,
-        //        CustomSwitches = switches
-        //    };
-        //}
-
-        // ReportesController.cs (método PagosIngresosPdf)
-        //[HttpGet("PagosIngresosPdf")]
-        //public async Task<IActionResult> PagosIngresosPdf(
-        //    DateTime? desde, DateTime? hasta, short? tipoPagoId, short? formaPagoId, short? plataformaId)
-        //{
-        //    var vm = await BuildReporteIngresos(desde, hasta, tipoPagoId, formaPagoId, plataformaId);
-
-        //    var webRoot = _env.WebRootPath;
-
-        //    var logoPath = Path.Combine(webRoot, "img", "login", "logo-oasis.png");
-        //    var chartPath = Path.Combine(webRoot, "lib", "chartjs-2", "Chart.min.js"); // <-- v2.9.4 ES5
-
-        //    ViewBag.LogoUrl = System.IO.File.Exists(logoPath) ? FileUrl(logoPath) : "";
-        //    ViewBag.ChartJs = System.IO.File.Exists(chartPath) ? FileUrl(chartPath) : "";
-
-        //    var switches = string.Join(" ",
-        //        "--enable-local-file-access",
-        //        "--enable-javascript",
-        //        "--no-stop-slow-scripts",
-        //        "--window-status ready",
-        //        "--javascript-delay 2000",
-        //        "--viewport-size 1280x1024",
-        //        "--load-error-handling ignore",
-        //        "--dpi 180"
-        //    );
-
-        //    return new Rotativa.AspNetCore.ViewAsPdf("PagosIngresosPdf", vm)
-        //    {
-        //        PageSize = Rotativa.AspNetCore.Options.Size.A4,
-        //        PageOrientation = Rotativa.AspNetCore.Options.Orientation.Portrait,
-        //        CustomSwitches = switches
-        //    };
-        //}
-
-
-        //[HttpGet("PagosIngresosPdf")]
-        //public async Task<IActionResult> PagosIngresosPdf(
-        //DateTime? desde, DateTime? hasta, short? tipoPagoId, short? formaPagoId, short? plataformaId)
-        //{
-        //    var vm = await BuildReporteIngresos(desde, hasta, tipoPagoId, formaPagoId, plataformaId);
-
-        //    // Rutas locales (evita HTTP hacia tu propio sitio)
-        //    var webRoot = _env.WebRootPath; // …/wwwroot
-        //    ViewBag.LogoUrl = FileUrl(webRoot, "img", "login", "logo-oasis.png");
-        //    ViewBag.ChartJs = FileUrl(webRoot, "lib", "chart.js", "dist", "chart.umd.min.js"); // <— sin “dist”
-
-        //    // IMPORTANTES para JS y archivos locales
-        //    var switches = string.Join(" ",
-        //        "--enable-javascript",
-        //        "--no-stop-slow-scripts",
-        //        "--window-status ready",
-        //        "--viewport-size 1280x1024",
-        //        "--load-error-handling ignore",
-        //        "--dpi 180",
-        //        "--enable-local-file-access",   // <— necesario para file:///
-        //        "--javascript-delay 400"        // pequeña espera extra
-        //    );
-
-        //    return new ViewAsPdf("PagosIngresosPdf", vm)
-        //    {
-        //        PageSize = Size.A4,
-        //        PageOrientation = Orientation.Portrait,
-        //        CustomSwitches = switches
-        //    };
-        //}
-
-
-        //    [HttpGet("PagosIngresosPdf")]
-        //    public async Task<IActionResult> PagosIngresosPdf(
-        //DateTime? desde, DateTime? hasta, short? tipoPagoId, short? formaPagoId, short? plataformaId)
-        //    {
-        //        var vm = await BuildReporteIngresos(desde, hasta, tipoPagoId, formaPagoId, plataformaId);
-
-        //        // URLs absolutas para wkhtmltopdf
-        //        ViewBag.BaseUrl = $"{Request.Scheme}://{Request.Host}";
-        //        ViewBag.LogoUrl = ViewBag.BaseUrl + Url.Content("~/img/login/logo-oasis.png");
-        //        ViewBag.ChartJs = ViewBag.BaseUrl + Url.Content("~/lib/chart.js/dist/chart.umd.js");
-
-        //        // IMPORTANTE: habilitar JS y esperar la señal "ready"
-        //        var switches = string.Join(" ",
-        //            "--enable-javascript",
-        //            "--no-stop-slow-scripts",
-        //            "--window-status ready",                 // esperamos a window.status='ready'
-        //            "--viewport-size 1280x1024",             // da un viewport realista para Chart.js
-        //            "--load-error-handling ignore",
-        //            "--dpi 180"
-        //        // ,"--javascript-delay 300"              // opcional, si quieres una mínima espera adicional
-        //        );
-
-        //        return new Rotativa.AspNetCore.ViewAsPdf("PagosIngresosPdf", vm)
-        //        {
-        //            PageSize = Rotativa.AspNetCore.Options.Size.A4,
-        //            PageOrientation = Rotativa.AspNetCore.Options.Orientation.Portrait,
-        //            CustomSwitches = switches
-        //        };
-        //    }
-
-        //[HttpGet("PagosIngresosPdf")]
-        //public async Task<IActionResult> PagosIngresosPdf(DateTime? desde, DateTime? hasta, short? tipoPagoId, short? formaPagoId, short? plataformaId)
-        //{
-        //    var vm = await BuildReporteIngresos(desde, hasta, tipoPagoId, formaPagoId, plataformaId);
-
-        //    ViewBag.BaseUrl = $"{Request.Scheme}://{Request.Host}";
-        //    ViewBag.LogoUrl = ViewBag.BaseUrl + Url.Content("~/img/login/logo-oasis.png");
-
-        //    return new ViewAsPdf("PagosIngresosPdf", vm)
-        //    {
-        //        PageSize = Size.A4,
-        //        PageOrientation = Orientation.Portrait,
-        //        CustomSwitches = "--dpi 180"
-        //    };
-        //}
-
-
-        // ====== FACTOR COMÚN (arma el VM para HTML y PDF) ======
-        private async Task<ReporteReservasVM> BuildReporteReservas(DateTime? desde, DateTime? hasta, int? estadoId, bool modoPorPagos)
+        // ====== FACTOR COMÚN (arma el VM para HTML y PDF de Reservas) ======
+        private async Task<ReporteReservasVM> BuildReporteReservas(
+            DateTime? desde, DateTime? hasta, string? estado, int? habitacionId)
         {
-            var vm = new ReporteReservasVM
+            var hoy = DateTime.Today;
+
+            var dDesde = (desde ?? new DateTime(hoy.Year, hoy.Month, 1)).Date;
+            var dHasta = (hasta ?? hoy).Date;
+
+            var d = dDesde;
+            var h = dHasta.AddDays(1); // exclusivo
+
+            // ==== Combos de estados ====
+            var estadosDb = await _db.estadosReserva
+                .OrderBy(e => e.Nombre)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var estadosSelect = new List<SelectListItem>
             {
-                Desde = desde ?? DateTime.Today,
-                Hasta = hasta ?? DateTime.Today,
-                EstadoId = estadoId,
-                ModoPorPagos = modoPorPagos
+                new SelectListItem { Value = "", Text = "Todos los estados", Selected = string.IsNullOrWhiteSpace(estado) }
             };
 
-            var d = vm.Desde!.Value.Date;
-            var h = vm.Hasta!.Value.Date.AddDays(1); // exclusivo
+            estadosSelect.AddRange(
+                estadosDb.Select(e => new SelectListItem
+                {
+                    Value = e.Codigo,
+                    Text = e.Nombre,
+                    Selected = !string.IsNullOrWhiteSpace(estado) &&
+                               (string.Equals(e.Codigo, estado, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(e.Nombre, estado, StringComparison.OrdinalIgnoreCase))
+                })
+            );
 
-            // === BASE: reservas que se solapan con el rango (por estancia)
+            // ==== Combos de habitaciones ====
+            var habsDb = await _db.habitaciones
+                .Include(hb => hb.TipoHabitacion)
+                .Where(hb => hb.Estado)
+                .OrderBy(hb => hb.NumeroHabitacion)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var habsSelect = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "", Text = "Todas las habitaciones", Selected = !habitacionId.HasValue }
+            };
+
+            habsSelect.AddRange(
+                habsDb.Select(hb => new SelectListItem
+                {
+                    Value = hb.HabitacionID.ToString(),
+                    Text = $"{hb.TipoHabitacion.Nombre} #{hb.NumeroHabitacion}",
+                    Selected = habitacionId.HasValue && habitacionId.Value == hb.HabitacionID
+                })
+            );
+
+            // === BASE: reservas que se solapan con el rango (por estancia) ===
             var qRes = _db.reservas
                 .Include(r => r.Cliente).ThenInclude(c => c.Persona)
                 .Include(r => r.Estado)
@@ -572,12 +444,25 @@ namespace PIOGHOASIS.Controllers
                 .AsNoTracking()
                 .Where(r => !(r.FechaCheckOut <= d || r.FechaCheckIn >= h));
 
-            if (estadoId.HasValue)
-                qRes = qRes.Where(r => r.EstadoReservaID == estadoId.Value);
+            // Filtro por estado (código o nombre)
+            if (!string.IsNullOrWhiteSpace(estado))
+            {
+                var estUp = estado.Trim().ToUpper();
+                qRes = qRes.Where(r =>
+                    r.Estado.Codigo.ToUpper() == estUp ||
+                    r.Estado.Nombre.ToUpper() == estUp);
+            }
+
+            // Filtro por habitación
+            if (habitacionId.HasValue)
+            {
+                var idHab = habitacionId.Value;
+                qRes = qRes.Where(r => r.Detalles.Any(dtl => dtl.HabitacionID == idHab));
+            }
 
             var reservas = await qRes.ToListAsync();
 
-            // KPIs rápidos
+            // ==== KPIs clásicos (los dejamos calculados por si los usas) ====
             int NochesEnRango(DateTime ci, DateTime co)
             {
                 var ini = ci < d ? d : ci;
@@ -590,89 +475,131 @@ namespace PIOGHOASIS.Controllers
             var nochesDisponibles = habitacionesActivas * Math.Max(0, (h - d).Days);
             var roomRevenue = reservas.Sum(r => r.Detalles.Sum(x => x.TotalLinea)); // sin impuestos
 
-            vm.Ocupacion = nochesDisponibles == 0 ? 0 : (decimal)nochesOcupadas / nochesDisponibles;
-            vm.ADR = nochesOcupadas == 0 ? 0 : (nochesOcupadas == 0 ? 0 : roomRevenue / nochesOcupadas);
-            vm.RevPAR = vm.ADR * vm.Ocupacion;
+            var ocupacion = nochesDisponibles == 0 ? 0 : (decimal)nochesOcupadas / nochesDisponibles;
+            var adr = nochesOcupadas == 0 ? 0 : (nochesOcupadas == 0 ? 0 : roomRevenue / nochesOcupadas);
+            var revpar = adr * ocupacion;
 
-            vm.LlegadasHoy = reservas.Count(r => r.FechaCheckIn.Date == DateTime.Today);
-            vm.SalidasHoy = reservas.Count(r => r.FechaCheckOut.Date == DateTime.Today);
+            var llegadasHoy = reservas.Count(r => r.FechaCheckIn.Date == DateTime.Today);
+            var salidasHoy = reservas.Count(r => r.FechaCheckOut.Date == DateTime.Today);
 
-            // Listado de reservas (transaccional)
-            vm.Reservas = reservas.Select(r =>
-            {
-                var pagado = r.Pagos.Sum(p => p.MontoPagado);
-                var hab = r.Detalles
-                    .Select(d => $"{d.Habitacion.TipoHabitacion.Nombre} #{d.Habitacion.NumeroHabitacion}")
-                    .FirstOrDefault() ?? "—";
-                var cliente = $"{r.Cliente.Persona.PrimerNombre} {r.Cliente.Persona.PrimerApellido}".Trim();
-                return new ReservaRow(
-                    r.Codigo, r.Estado.Nombre, r.FechaCheckIn, r.FechaCheckOut,
-                    cliente, hab, r.Total, pagado, r.Total - pagado
-                );
-            }).OrderByDescending(x => x.In).ToList();
+            // ==== Listado de reservas ====
+            var reservasRows = reservas
+                .Select(r =>
+                {
+                    var pagado = r.Pagos.Sum(p => p.MontoPagado);
+                    var hab = r.Detalles
+                        .Select(d => $"{d.Habitacion.TipoHabitacion.Nombre} #{d.Habitacion.NumeroHabitacion}")
+                        .FirstOrDefault() ?? "—";
+                    var cliente = $"{r.Cliente.Persona.PrimerNombre} {r.Cliente.Persona.PrimerApellido}".Trim();
 
-            // === Pagos (modo por pagos)
+                    return new ReservaRow(
+                        r.Codigo,
+                        r.Estado.Nombre,
+                        r.FechaCheckIn,
+                        r.FechaCheckOut,
+                        cliente,
+                        hab,
+                        r.Total,
+                        pagado,
+                        r.Total - pagado
+                    );
+                })
+                .OrderByDescending(x => x.In)
+                .ToList();
+
+            var cuentasPorCobrar = reservasRows.Where(r => r.Pendiente > 0).Sum(r => r.Pendiente);
+
+            // === Pagos en el rango ===
             var qPagos = _db.pagosReserva
                 .Include(p => p.TipoPago)
                 .Include(p => p.Plataforma)
                 .Include(p => p.Reserva)
                 .AsNoTracking()
-                .Where(p => p.FechaPago.Date >= d && p.FechaPago.Date < h);
+                .Where(p => p.FechaPago.Date >= dDesde && p.FechaPago.Date <= dHasta);
+
+            // Si hay filtros por estado/habitación, restringimos pagos a las reservas ya filtradas
+            if (!string.IsNullOrWhiteSpace(estado) || habitacionId.HasValue)
+            {
+                var idsRes = reservas.Select(r => r.ReservaID).ToHashSet();
+                qPagos = qPagos.Where(p => idsRes.Contains(p.ReservaID));
+            }
 
             var pagos = await qPagos.ToListAsync();
 
-            vm.TotalCobrado = pagos.Sum(p => p.MontoPagado);
-            
-            vm.Pagos = pagos
-            .OrderByDescending(p => p.FechaPago)
-            .Select(p => new PagoRowRes(
-                p.FechaPago,
-                p.TipoPago?.Nombre ?? "—",
-                p.Plataforma?.Nombre,
-                p.MontoPagado,
-                p.Reserva.Codigo))
-            .ToList();
+            var totalCobrado = pagos.Sum(p => p.MontoPagado);
 
+            var pagosRows = pagos
+                .OrderByDescending(p => p.FechaPago)
+                .Select(p => new PagoRowRes(
+                    p.FechaPago,
+                    p.TipoPago?.Nombre ?? "—",
+                    p.Plataforma?.Nombre,
+                    p.MontoPagado,
+                    p.Reserva.Codigo))
+                .ToList();
 
-            //vm.Pagos = pagos
-            //    .OrderByDescending(p => p.FechaPago)
-            //    .Select(p => new PagoRoww(
-            //        p.FechaPago, p.TipoPago?.Nombre ?? "—", p.Plataforma?.Nombre, p.MontoPagado, p.Reserva.Codigo))
-            //    .ToList();
-
-            vm.PorTipoPago = pagos
+            var porTipoPago = pagos
                 .GroupBy(p => p.TipoPago?.Nombre ?? "—")
                 .Select(g => new ItemMonto(g.Key, g.Sum(x => x.MontoPagado)))
                 .ToList();
 
-            vm.PorPlataforma = pagos
+            var porPlataforma = pagos
                 .GroupBy(p => p.Plataforma?.Nombre ?? "—")
                 .Select(g => new ItemMonto(g.Key, g.Sum(x => x.MontoPagado)))
-                .Where(x => x.Monto > 0)                      // 👈 filtra ceros
+                .Where(x => x.Monto > 0)
                 .OrderByDescending(x => x.Monto)
                 .ToList();
 
-            // Cuentas por cobrar (reservas del rango con pendiente > 0)
-            vm.CuentasPorCobrar = vm.Reservas.Where(r => r.Pendiente > 0).Sum(r => r.Pendiente);
+            // ==== KPIs NUEVOS (reservadas / confirmadas / canceladas) ====
+            int numReservadas = reservas.Count(r => (r.Estado?.Nombre ?? "").ToUpper().Contains("RESERV"));
+            int numConfirmadas = reservas.Count(r => (r.Estado?.Nombre ?? "").ToUpper().Contains("CONFIRM"));
+            int numCanceladas = reservas.Count(r => (r.Estado?.Nombre ?? "").ToUpper().Contains("CANCEL"));
+
+            var vm = new ReporteReservasVM
+            {
+                Desde = dDesde,
+                Hasta = dHasta,
+
+                EstadoSeleccionado = estado,
+                HabitacionSeleccionadaId = habitacionId,
+                Estados = estadosSelect,
+                Habitaciones = habsSelect,
+
+                NumReservasReservadas = numReservadas,
+                NumReservasConfirmadas = numConfirmadas,
+                NumReservasCanceladas = numCanceladas,
+                TotalCobrado = totalCobrado,
+
+                LlegadasHoy = llegadasHoy,
+                SalidasHoy = salidasHoy,
+                Ocupacion = ocupacion,
+                ADR = adr,
+                RevPAR = revpar,
+                CuentasPorCobrar = cuentasPorCobrar,
+
+                Reservas = reservasRows,
+                Pagos = pagosRows,
+                PorTipoPago = porTipoPago,
+                PorPlataforma = porPlataforma
+            };
 
             return vm;
         }
 
         // ====== HTML ======
         [HttpGet("Reservas")]
-        public async Task<IActionResult> Reservas(DateTime? desde, DateTime? hasta, int? estadoId, bool modoPorPagos = false)
+        public async Task<IActionResult> Reservas(DateTime? desde, DateTime? hasta, string? estado, int? habitacionId)
         {
-            var vm = await BuildReporteReservas(desde, hasta, estadoId, modoPorPagos);
+            var vm = await BuildReporteReservas(desde, hasta, estado, habitacionId);
             return View(vm);
         }
 
         // ====== PDF (Rotativa) ======
         [HttpGet("ReservasPdf")]
-        public async Task<IActionResult> ReservasPdf(DateTime? desde, DateTime? hasta, int? estadoId, bool modoPorPagos = false)
+        public async Task<IActionResult> ReservasPdf(DateTime? desde, DateTime? hasta, string? estado, int? habitacionId)
         {
-            var vm = await BuildReporteReservas(desde, hasta, estadoId, modoPorPagos);
+            var vm = await BuildReporteReservas(desde, hasta, estado, habitacionId);
 
-            // Logo absoluto para wkhtmltopdf
             ViewBag.BaseUrl = $"{Request.Scheme}://{Request.Host}";
             ViewBag.LogoUrl = ViewBag.BaseUrl + Url.Content("~/img/login/logo-oasis.png");
 
@@ -680,7 +607,15 @@ namespace PIOGHOASIS.Controllers
             {
                 PageSize = Size.A4,
                 PageOrientation = Orientation.Portrait,
-                CustomSwitches = "--dpi 180"
+                PageMargins = new Margins { Top = 10, Right = 10, Bottom = 15, Left = 10 },
+                CustomSwitches = string.Join(" ", new[]
+                {
+                    "--footer-center \"Página [page] de [toPage]\"",
+                    "--footer-font-size 9",
+                    "--footer-spacing 5",
+                    "--footer-font-name 'Arial'",
+                   //"--footer-line" // agrega una línea sobre el footer
+                })
             };
         }
     }

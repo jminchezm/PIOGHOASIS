@@ -27,6 +27,9 @@
         public decimal TotalConImpuestos { get; set; }   // precio+noche con impuestos
 
         public List<TarifaOpcionVM> Tarifas { get; set; } = new();
+
+        // NUEVO: personas para las que SÍ hay tarifa
+        public List<int> PersonasDisponibles { get; set; } = new();
     }
 
     public class TarifaOpcionVM
@@ -35,6 +38,12 @@
         public int? TarifaID { get; set; }
         public decimal PrecioNoche { get; set; }
         public decimal TotalConImpuestos { get; set; }
+
+        // Desglose POR NOCHE (opcional, por si quieres mostrarlo en algún lado)
+        public decimal BaseSinImpuestos { get; set; }
+        public decimal Inguat { get; set; }
+        public decimal Iva { get; set; }
+
         public string? Etiqueta { get; set; }
     }
 
@@ -73,6 +82,20 @@
         // Cliente seleccionado
         public string? ClienteID { get; set; }
         public string? ClienteNombre { get; set; }
+
+        // === NUEVO: guardar precio de lista / original ===
+        public decimal PrecioNocheOriginal { get; set; }
+
+        public bool TieneDescuento =>
+            PrecioNocheOriginal > 0 && PrecioNoche < PrecioNocheOriginal;
+
+        public decimal DescuentoPorNoche =>
+            (PrecioNocheOriginal > 0 && PrecioNocheOriginal > PrecioNoche)
+                ? (PrecioNocheOriginal - PrecioNoche)
+                : 0m;
+
+        public decimal DescuentoTotal =>
+            DescuentoPorNoche * Noches;
     }
 
     public class ReservaCreateVM

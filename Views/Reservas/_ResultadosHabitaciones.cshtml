@@ -1,15 +1,42 @@
 ﻿@model IEnumerable<PIOGHOASIS.Models.ViewModels.HabitacionDisponibleVM>
 @{
     Layout = null;
+    var habsSinTarifa = ViewBag.HabitacionesSinTarifa as List<string> ?? new List<string>();
 }
 
 
 @if (!Model.Any())
 {
-    <div class="alert alert-warning mb-0">No hay disponibilidad para ese rango/personas.</div>
+    // <div class="alert alert-warning mb-0">No hay disponibilidad para ese rango/personas.</div>
+
+    <div class="alert alert-warning mb-0">
+        No hay disponibilidad para ese rango/personas.
+        @if (habsSinTarifa.Any())
+        {
+            <br />
+            <span class="small text-muted">
+                Nota interna: las siguientes habitaciones no se muestran porque no tienen una tarifa vigente
+                para este rango de fechas:
+                <strong>@string.Join(", ", habsSinTarifa)</strong>.
+                Actualice las fechas o cree una nueva tarifa en el módulo de tarifas.
+            </span>
+        }
+    </div>
+
 }
 else
 {
+
+    @* Opcional: aun habiendo resultados, avisar que hay otras habitaciones sin tarifa *@
+    @if (habsSinTarifa.Any())
+    {
+        <div class="alert alert-info mb-2 py-2 small">
+            Algunas habitaciones no se muestran porque no tienen una tarifa vigente:
+            <strong>@string.Join(", ", habsSinTarifa)</strong>.
+            Revise y actualice sus tarifas si es necesario.
+        </div>
+    }
+
     <div class="vstack gap-4">
         @foreach (var h in Model)
         {
@@ -18,8 +45,12 @@ else
             var jsonTarifas = System.Text.Json.JsonSerializer.Serialize(h.Tarifas);
             var tarifasIniciales = h.Tarifas.Where(t => t.Personas == h.PersonasSeleccionadas).ToList();
 
-                var precioIni = (tarifasIniciales.FirstOrDefault()?.PrecioNoche ?? h.PrecioNoche);
-                var totalIni  = (tarifasIniciales.FirstOrDefault()?.TotalConImpuestos ?? h.TotalConImpuestos);
+                // var precioIni = (tarifasIniciales.FirstOrDefault()?.PrecioNoche ?? h.PrecioNoche);
+                // var totalIni  = (tarifasIniciales.FirstOrDefault()?.TotalConImpuestos ?? h.TotalConImpuestos);
+
+            // precioIni YA incluye impuestos
+            var precioIni = (tarifasIniciales.FirstOrDefault()?.PrecioNoche ?? h.PrecioNoche);
+
 
 
             <div class="rs-room"
@@ -36,12 +67,17 @@ else
                         <h5 class="rs-room__title">@h.Titulo</h5>
 
                         <div class="rs-room__price text-end">
+                            <div class="label">Precio por noche (con impuestos)</div>
+                            <div class="amount price-night">Q. @precioIni.ToString("N2")</div>
+                        </div>
+
+                        @*<div class="rs-room__price text-end">
                             <div class="label">Precio por noche</div>
                             <div class="amount price-night">Q. @precioIni.ToString("N2")</div>
 
                             <div class="text-muted small mt-1">Total c/ impuestos</div>
                             <div class="amount total-night">Q. @totalIni.ToString("N2")</div>
-                        </div>
+                        </div>*@
                     </div>
 
                     <div class="rs-room__meta">
@@ -57,13 +93,22 @@ else
                         <div class="left d-flex align-items-center gap-3 flex-wrap">
                             <div>
                                 <label class="me-2">Personas</label>
-                                <select class="form-select form-select-sm w-auto js-personas">
+                                @* <select class="form-select form-select-sm w-auto js-personas">
                                     @for (var i = 1; i <= h.Capacidad; i++)
                                     {
                                         if (i == h.PersonasSeleccionadas)
                                         { <option value="@i" selected>@i</option> }
                                         else
                                         { <option value="@i">@i</option> }
+                                    }
+                                </select> *@
+
+                                <select class="form-select form-select-sm w-auto js-personas">
+                                    @foreach (var p in h.PersonasDisponibles)
+                                    {
+                                        <option value="@p" selected="@(p == h.PersonasSeleccionadas ? "selected" : null)">
+                                            @p
+                                        </option>
                                     }
                                 </select>
                             </div>

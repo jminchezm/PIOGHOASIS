@@ -30,9 +30,17 @@
         border-radius: .75rem
     }
 
-    .kpi-card .small {
-        color: #6b7280
+    .kpi-card {
+        background: rgba(255,255,255,.90);
+        border-radius: .75rem;
+        border: 1px solid rgba(0,0,0,.06);
+        box-shadow: 0 6px 22px rgba(0,0,0,.08);
     }
+
+        .kpi-card .small {
+            color: #6b7280;
+        }
+
 
     .caja-ui table {
         background: #fff
@@ -89,56 +97,49 @@
     </div>
 
     <!-- ===== KPIs ===== -->
-    <div class="row g-3 mb-3">
+    <div class="row g-3 mb-3 justify-content-center">
         <div class="col-sm-6 col-lg-2">
-            <div class="card kpi-card">
-                <div class="card-body">
-                    <div class="small">Total clientes</div>
-                    <div class="h4 mb-0">@Model.TotalClientes</div>
+            <div class="card kpi-card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Total clientes</div>
+                    <div class="h3 mb-0 fw-bold">@Model.TotalClientes</div>
                 </div>
             </div>
         </div>
         <div class="col-sm-6 col-lg-2">
-            <div class="card kpi-card">
-                <div class="card-body">
-                    <div class="small">Nuevos</div>
-                    <div class="h4 mb-0">@Model.NuevosEnRango</div>
+            <div class="card kpi-card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Nuevos</div>
+                    <div class="h3 mb-0 fw-bold">@Model.NuevosEnRango</div>
                 </div>
             </div>
         </div>
         <div class="col-sm-6 col-lg-2">
-            <div class="card kpi-card">
-                <div class="card-body">
-                    <div class="small">Con reserva</div>
-                    <div class="h4 mb-0">@Model.ClientesConReserva</div>
+            <div class="card kpi-card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Con reserva</div>
+                    <div class="h3 mb-0 fw-bold">@Model.ClientesConReserva</div>
                 </div>
             </div>
         </div>
         <div class="col-sm-6 col-lg-2">
-            <div class="card kpi-card">
-                <div class="card-body">
-                    <div class="small">Repetidores (2+)</div>
-                    <div class="h4 mb-0">@Model.Repetidores</div>
+            <div class="card kpi-card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Repetidores (2+)</div>
+                    <div class="h3 mb-0 fw-bold">@Model.Repetidores</div>
                 </div>
             </div>
         </div>
         <div class="col-sm-6 col-lg-2">
-            <div class="card kpi-card">
-                <div class="card-body">
-                    <div class="small">Ticket prom.</div>
-                    <div class="h4 mb-0">Q. @Model.TicketPromedioCliente.ToString("N2")</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-lg-2">
-            <div class="card kpi-card">
-                <div class="card-body">
-                    <div class="small">Países</div>
-                    <div class="h4 mb-0">@Model.PaisTopCount</div>
+            <div class="card kpi-card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column">
+                    <div class="small text-muted text-uppercase fw-semibold mb-1">Países</div>
+                    <div class="h3 mb-0 fw-bold">@Model.PaisTopCount</div>
                 </div>
             </div>
         </div>
     </div>
+
 
     <!-- ===== Dashboards ===== -->
     <div class="row g-3 mb-3 justify-content-center">

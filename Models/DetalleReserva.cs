@@ -20,6 +20,12 @@
         // (Opcional) guarda la TarifaID usada para auditoría
         public int? TarifaID { get; set; }
 
+        public decimal? PrecioListaPorNoche { get; set; }
+        public decimal? DescuentoPorNoche { get; set; }
+
+        // (opcional) propiedad de conveniencia
+        public decimal DescuentoTotalLinea => (DescuentoPorNoche ?? 0m) * Noches;
+
         public Reserva Reserva { get; set; } = null!;
         public Habitacion Habitacion { get; set; } = null!;
         public TarifaHabitacion? Tarifa { get; set; }

@@ -27,20 +27,6 @@ namespace PIOGHOASIS.Controllers
         public ReservasController(AppDbContext db, IReservaPricingService pricing)
         { _db = db; _pricing = pricing; }
 
-        // Listado (mock)
-        //[HttpGet("")]
-        //[HttpGet("Index")]
-        //public async Task<IActionResult> Index()
-        //{
-        //    var list = await _db.reservas
-        //        .Include(r => r.Cliente).ThenInclude(c => c.Persona)
-        //        .Include(r => r.Detalles).ThenInclude(d => d.Habitacion)
-        //        .OrderByDescending(r => r.ReservaID)
-        //        .Take(50).AsNoTracking().ToListAsync();
-
-        //    return View(list);
-        //}
-
         [HttpGet("")]
         [HttpGet("Index")]
         public async Task<IActionResult> Index(string? codigo, string? cliente, DateTime? desde, DateTime? hasta, string? estado)
@@ -130,6 +116,7 @@ namespace PIOGHOASIS.Controllers
         [HttpGet("ElegirHabitacion")]
         public IActionResult ElegirHabitacion() => View(new BusquedaHabitacionVM());
 
+
         [HttpGet("Buscar")]
         [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         public async Task<IActionResult> Buscar(DateTime? checkIn, DateTime? checkOut, int personas = 1)
@@ -179,6 +166,7 @@ namespace PIOGHOASIS.Controllers
                 .ToListAsync();
 
             var res = new List<HabitacionDisponibleVM>();
+            var habsSinTarifa = new List<string>(); // para mensaje interno
 
             foreach (var h in habsDisponibles)
             {
@@ -222,13 +210,25 @@ namespace PIOGHOASIS.Controllers
                     {
                         foreach (var t in tarifasDb)
                         {
-                            var (_, _, tot) = ReservaPricingService.Totales(t.PrecioNoche, 1);
+                            // precio final por noche CON impuestos, tal cual viene de BD
+                            var precioVenta = decimal.Round(t.PrecioNoche, 2, MidpointRounding.AwayFromZero);
+
+                            // solo para obtener base/impuestos
+                            var (baseNeta, inguat, iva, _) = ReservaPricingService.DesglosarDesdeTotal(precioVenta, 1);
+
                             item.Tarifas.Add(new TarifaOpcionVM
                             {
                                 Personas = p,
                                 TarifaID = t.TarifaID,
-                                PrecioNoche = t.PrecioNoche,
-                                TotalConImpuestos = tot,
+
+                                // Lo que se muestra en la tarjeta: EXACTO a lo que grabaste
+                                PrecioNoche = precioVenta,
+                                TotalConImpuestos = precioVenta, // 1 noche
+
+                                BaseSinImpuestos = baseNeta,
+                                Inguat = inguat,
+                                Iva = iva,
+
                                 Etiqueta = string.IsNullOrWhiteSpace(t.EtiquetaTemporada)
                                            ? $"Tarifa {p} persona(s)"
                                            : t.EtiquetaTemporada
@@ -237,24 +237,140 @@ namespace PIOGHOASIS.Controllers
                     }
                     else
                     {
-                        var (precio, tarifaId) = await _pricing.PrecioPorNoche(h.HabitacionID, p, ci, co);
-                        if (precio > 0)
+                        var (precioConImpuestos, tarifaId) =
+                            await _pricing.PrecioPorNoche(h.HabitacionID, p, ci, co);
+
+                        if (precioConImpuestos > 0)
                         {
-                            var (_, _, tot) = ReservaPricingService.Totales(precio, 1);
+                            var precioVenta = decimal.Round(precioConImpuestos, 2, MidpointRounding.AwayFromZero);
+                            var (baseNeta, inguat, iva, _) = ReservaPricingService.DesglosarDesdeTotal(precioVenta, 1);
+
                             item.Tarifas.Add(new TarifaOpcionVM
                             {
                                 Personas = p,
                                 TarifaID = tarifaId,
-                                PrecioNoche = precio,
-                                TotalConImpuestos = tot,
+
+                                PrecioNoche = precioVenta,
+                                TotalConImpuestos = precioVenta,
+
+                                BaseSinImpuestos = baseNeta,
+                                Inguat = inguat,
+                                Iva = iva,
+
                                 Etiqueta = "Tarifa estándar"
                             });
                         }
                     }
+
+
+                    //if (tarifasDb.Count > 0)
+                    //{
+                    //    foreach (var t in tarifasDb)
+                    //    {
+                    //        // t.PrecioNoche = precio de venta (con impuestos)
+                    //        var (baseNeta, inguat, iva, total) = ReservaPricingService.DesglosarDesdeTotal(t.PrecioNoche, 1);
+
+                    //        item.Tarifas.Add(new TarifaOpcionVM
+                    //        {
+                    //            Personas = p,
+                    //            TarifaID = t.TarifaID,
+
+                    //            // Lo que mostraremos en las tarjetas:
+                    //            PrecioNoche = total,              // precio por noche con impuestos
+                    //            TotalConImpuestos = total,        // 1 noche => igual
+
+                    //            // Desglose por noche:
+                    //            BaseSinImpuestos = baseNeta,
+                    //            Inguat = inguat,
+                    //            Iva = iva,
+
+                    //            Etiqueta = string.IsNullOrWhiteSpace(t.EtiquetaTemporada)
+                    //                       ? $"Tarifa {p} persona(s)"
+                    //                       : t.EtiquetaTemporada
+                    //        });
+                    //    }
+                    //}
+                    //else
+                    //{
+                    //    // Asegúrate de que este servicio te devuelva precio de venta (con impuestos)
+                    //    var (precioConImpuestos, tarifaId) = await _pricing.PrecioPorNoche(h.HabitacionID, p, ci, co);
+                    //    if (precioConImpuestos > 0)
+                    //    {
+                    //        var (baseNeta, inguat, iva, total) = ReservaPricingService.DesglosarDesdeTotal(precioConImpuestos, 1);
+
+                    //        item.Tarifas.Add(new TarifaOpcionVM
+                    //        {
+                    //            Personas = p,
+                    //            TarifaID = tarifaId,
+
+                    //            PrecioNoche = total,
+                    //            TotalConImpuestos = total,
+
+                    //            BaseSinImpuestos = baseNeta,
+                    //            Inguat = inguat,
+                    //            Iva = iva,
+
+                    //            Etiqueta = "Tarifa estándar"
+                    //        });
+                    //    }
+                    //}
+
+
+                    //else
+                    //{
+                    //    var (precio, tarifaId) = await _pricing.PrecioPorNoche(h.HabitacionID, p, ci, co);
+                    //    if (precio > 0)
+                    //    {
+                    //        var (_, _, tot) = ReservaPricingService.Totales(precio, 1);
+                    //        item.Tarifas.Add(new TarifaOpcionVM
+                    //        {
+                    //            Personas = p,
+                    //            TarifaID = tarifaId,
+                    //            PrecioNoche = precio,
+                    //            TotalConImpuestos = tot,
+                    //            Etiqueta = "Tarifa estándar"
+                    //        });
+                    //    }
+                    //}
                 }
 
-                var active = item.Tarifas.FirstOrDefault(t => t.Personas == defaultPersonas)
-                          ?? item.Tarifas.FirstOrDefault();
+                // ========= BLOQUE: personas con tarifa disponible =========
+
+                var personasDisponibles = item.Tarifas
+                    .Select(t => t.Personas)
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToList();
+
+                // Si no hay ninguna tarifa válida para esta habitación, ni la mostramos
+                if (!personasDisponibles.Any())
+                {
+                    habsSinTarifa.Add($"{h.TipoHabitacion?.Nombre} #{h.NumeroHabitacion}");
+                    continue;
+                }
+
+                // *** NUEVO: filtrar por la ocupación digitada ***
+                // Solo queremos habitaciones que tengan tarifa para "personas"
+                if (personas > 0 && !personasDisponibles.Contains(personas))
+                {
+                    // opcionalmente podrías guardar aquí para otro mensaje
+                    continue;
+                }
+
+                item.PersonasDisponibles = personasDisponibles;
+
+                // Personas seleccionadas: usamos la cantidad digitada (ya sabemos que existe tarifa para ella)
+                var personasSeleccionadas = personas > 0 ? personas : item.PersonasSeleccionadas;
+
+                if (!personasDisponibles.Contains(personasSeleccionadas))
+                    personasSeleccionadas = personasDisponibles.First();
+
+                item.PersonasSeleccionadas = personasSeleccionadas;
+
+                // Tarifa activa según PersonasSeleccionadas
+                var active = item.Tarifas
+                    .FirstOrDefault(t => t.Personas == personasSeleccionadas)
+                    ?? item.Tarifas.FirstOrDefault();
 
                 if (active != null)
                 {
@@ -263,8 +379,12 @@ namespace PIOGHOASIS.Controllers
                     item.TotalConImpuestos = active.TotalConImpuestos;
                 }
 
+                // ================================================================
+
                 res.Add(item);
             }
+
+            ViewBag.HabitacionesSinTarifa = habsSinTarifa;
 
             // === Respuesta según contexto (AJAX vs navegación completa)
             if (IsAjax)
@@ -284,41 +404,52 @@ namespace PIOGHOASIS.Controllers
         //[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
         //public async Task<IActionResult> Buscar(DateTime? checkIn, DateTime? checkOut, int personas = 1)
         //{
+        //    // === Caso sin fechas o fechas inválidas: devuelve parcial vacío (muestra la alerta)
         //    if (checkIn == null || checkOut == null || checkOut <= checkIn)
-        //        return PartialView("_ResultadosHabitaciones", new List<HabitacionDisponibleVM>());
+        //    {
+        //        var vacio = new List<HabitacionDisponibleVM>();
+
+        //        if (IsAjax) // <-- usa tu helper ya existente en el controlador
+        //            return PartialView("_ResultadosHabitaciones", vacio);
+
+        //        // Navegación full: reconstruye la vista host y embebe el parcial dentro del panel blanco
+        //        ViewData["Resultados"] = await this.RenderViewAsync("_ResultadosHabitaciones", vacio, partial: true);
+        //        return View("ElegirHabitacion", new BusquedaHabitacionVM());
+        //    }
 
         //    var ci = checkIn.Value.Date;
         //    var co = checkOut.Value.Date;
 
-        //    // 1) Estados que BLOQUEAN inventario (ajusta los códigos a los tuyos)
-        //    var codigosBloqueo = new[] { "ESTHAB0001", "ESTHAB0002"}; // Reservada, Confirmada, Check-in (ejemplo)
+        //    // 1) Estados que BLOQUEAN inventario
+        //    var codigosBloqueo = new[] { "ESTHAB0001", "ESTHAB0002" }; // Reservada, Confirmada (ajusta a tus códigos)
         //    var idsBloqueo = await _db.estadosReserva
         //        .Where(e => codigosBloqueo.Contains(e.Codigo))
         //        .Select(e => e.EstadoReservaID)
         //        .ToListAsync();
 
-        //    // 2) Si no usas códigos, puedes resolver por nombre (fallback):
+        //    // 2) Fallback por nombre si no hay coincidencias por código
         //    if (!idsBloqueo.Any())
         //    {
-        //        var nombres = new[] { "RESERVADA", "CONFIRMADA"}; // usa begins-with "CHECK" por si es "Check-in"
+        //        var nombres = new[] { "RESERVADA", "CONFIRMADA" };
         //        idsBloqueo = await _db.estadosReserva
         //            .Where(e => nombres.Any(n => e.Nombre.ToUpper().Contains(n)))
         //            .Select(e => e.EstadoReservaID)
         //            .ToListAsync();
         //    }
 
-        //    // 3) Buscar habitaciones DISPONIBLES: no tengan solape con reservas en estados bloqueantes
+        //    // 3) Habitaciones disponibles (sin solape con reservas en estados bloqueantes)
         //    var habsDisponibles = await _db.habitaciones
         //        .Where(h => h.Estado)
         //        .Include(h => h.TipoHabitacion)
         //        .Where(h => !_db.detalleReservas.Any(d =>
         //            d.HabitacionID == h.HabitacionID &&
-        //            idsBloqueo.Contains(d.Reserva.EstadoReservaID) &&      // ← ya no hardcodeado
+        //            idsBloqueo.Contains(d.Reserva.EstadoReservaID) &&
         //            !(d.Reserva.FechaCheckOut <= ci || d.Reserva.FechaCheckIn >= co)))
         //        .AsNoTracking()
         //        .ToListAsync();
 
         //    var res = new List<HabitacionDisponibleVM>();
+        //    var habsSinTarifa = new List<string>(); // ← NUEVO
 
         //    foreach (var h in habsDisponibles)
         //    {
@@ -337,25 +468,23 @@ namespace PIOGHOASIS.Controllers
         //            PersonasSeleccionadas = defaultPersonas
         //        };
 
-        //        // Catálogo de tarifas
+        //        // Tarifas por # de personas
         //        for (int p = 1; p <= cap; p++)
         //        {
-        //            var tarifasDb = await _db.tarifasHabitacion
-        //                .AsNoTracking()
+        //            var tarifasDb = await _db.tarifasHabitacion.AsNoTracking()
         //                .Where(t => t.HabitacionID == h.HabitacionID
-        //                         && t.NumeroPersonas == p
-        //                         && t.FechaInicio <= ci
-        //                         && t.FechaFin >= co.AddDays(-1))
+        //                            && t.NumeroPersonas == p
+        //                            && t.FechaInicio <= ci
+        //                            && t.FechaFin >= co.AddDays(-1))
         //                .OrderBy(t => t.PrecioNoche)
         //                .ToListAsync();
 
         //            if (tarifasDb.Count == 0)
         //            {
-        //                tarifasDb = await _db.tarifasHabitacion
-        //                    .AsNoTracking()
+        //                tarifasDb = await _db.tarifasHabitacion.AsNoTracking()
         //                    .Where(t => t.HabitacionID == h.HabitacionID
-        //                             && t.NumeroPersonas == p
-        //                             && !(t.FechaFin < ci || t.FechaInicio > co.AddDays(-1)))
+        //                                && t.NumeroPersonas == p
+        //                                && !(t.FechaFin < ci || t.FechaInicio > co.AddDays(-1)))
         //                    .OrderBy(t => t.PrecioNoche)
         //                    .ToListAsync();
         //            }
@@ -371,7 +500,9 @@ namespace PIOGHOASIS.Controllers
         //                        TarifaID = t.TarifaID,
         //                        PrecioNoche = t.PrecioNoche,
         //                        TotalConImpuestos = tot,
-        //                        Etiqueta = string.IsNullOrWhiteSpace(t.EtiquetaTemporada) ? $"Tarifa {p} persona(s)" : t.EtiquetaTemporada
+        //                        Etiqueta = string.IsNullOrWhiteSpace(t.EtiquetaTemporada)
+        //                                   ? $"Tarifa {p} persona(s)"
+        //                                   : t.EtiquetaTemporada
         //                    });
         //                }
         //            }
@@ -393,7 +524,36 @@ namespace PIOGHOASIS.Controllers
         //            }
         //        }
 
-        //        var active = item.Tarifas.FirstOrDefault(t => t.Personas == defaultPersonas) ?? item.Tarifas.FirstOrDefault();
+        //        // ========= BLOQUE: personas con tarifa disponible =========
+
+        //        var personasDisponibles = item.Tarifas
+        //            .Select(t => t.Personas)
+        //            .Distinct()
+        //            .OrderBy(x => x)
+        //            .ToList();
+
+        //        // Si no hay ninguna tarifa válida para esta habitación, ni la mostramos
+        //        if (!personasDisponibles.Any())
+        //        {
+        //            habsSinTarifa.Add($"{h.TipoHabitacion?.Nombre} #{h.NumeroHabitacion}"); // ← guardar para el mensaje
+        //            continue;
+        //        }
+
+        //        item.PersonasDisponibles = personasDisponibles;
+
+        //        // Ajustar PersonasSeleccionadas al rango de personas con tarifa
+        //        var personasSeleccionadas = item.PersonasSeleccionadas;
+
+        //        if (!personasDisponibles.Contains(personasSeleccionadas))
+        //            personasSeleccionadas = personasDisponibles.First();
+
+        //        item.PersonasSeleccionadas = personasSeleccionadas;
+
+        //        // Tarifa activa según PersonasSeleccionadas
+        //        var active = item.Tarifas
+        //            .FirstOrDefault(t => t.Personas == personasSeleccionadas)
+        //            ?? item.Tarifas.FirstOrDefault();
+
         //        if (active != null)
         //        {
         //            item.TarifaSeleccionadaID = active.TarifaID;
@@ -401,135 +561,29 @@ namespace PIOGHOASIS.Controllers
         //            item.TotalConImpuestos = active.TotalConImpuestos;
         //        }
 
+        //        // ================================================================
+
         //        res.Add(item);
         //    }
 
-        //    return PartialView("_ResultadosHabitaciones", res);
-        //}
+        //    // Pasamos la lista al partial
+        //    ViewBag.HabitacionesSinTarifa = habsSinTarifa;
 
+        //    // === Respuesta según contexto (AJAX vs navegación completa)
+        //    if (IsAjax)
+        //        return PartialView("_ResultadosHabitaciones", res);
 
-        //[HttpGet("Buscar")]
-        //[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-        //public async Task<IActionResult> Buscar(DateTime? checkIn, DateTime? checkOut, int personas = 1)
-        //{
-        //    if (checkIn == null || checkOut == null || checkOut <= checkIn)
-        //        return PartialView("_ResultadosHabitaciones", new List<HabitacionDisponibleVM>());
-
-        //    var ci = checkIn.Value.Date;
-        //    var co = checkOut.Value.Date;
-
-        //    var habsDisponibles = await _db.habitaciones
-        //        .Where(h => h.Estado)                         // bool directo, OK
-        //        .Include(h => h.TipoHabitacion)               // esto sí es válido aquí
-        //        .Where(h => !_db.detalleReservas.Any(d =>     // <-- sin Include en subquery
-        //            d.HabitacionID == h.HabitacionID &&
-        //            (d.Reserva.EstadoReservaID == 1 ||        // estados que bloquean inventario
-        //             d.Reserva.EstadoReservaID == 2 ||
-        //             d.Reserva.EstadoReservaID == 3) &&
-        //            !(d.Reserva.FechaCheckOut <= ci || d.Reserva.FechaCheckIn >= co)
-        //        ))
-        //        .AsNoTracking()
-        //        .ToListAsync();
-
-        //    var res = new List<HabitacionDisponibleVM>();
-
-        //    foreach (var h in habsDisponibles)
+        //    ViewData["Resultados"] = await this.RenderViewAsync("_ResultadosHabitaciones", res, partial: true);
+        //    return View("ElegirHabitacion", new BusquedaHabitacionVM
         //    {
-        //        var cap = Math.Max(1, (int)(h.CapacidadPersonas ?? 1));
-        //        var defaultPersonas = Math.Clamp(personas, 1, cap);
-
-        //        var item = new HabitacionDisponibleVM
-        //        {
-        //            HabitacionID = h.HabitacionID,
-        //            Codigo = h.Codigo,
-        //            Imagen = string.IsNullOrWhiteSpace(h.Imagen) ? "/img/DefaultHabitacion.png" : h.Imagen,
-        //            Titulo = $"{h.TipoHabitacion?.Nombre} #{h.NumeroHabitacion}",
-        //            TipoNombre = h.TipoHabitacion?.Nombre ?? "",
-        //            NumeroHabitacion = h.NumeroHabitacion,
-        //            Capacidad = cap,
-        //            PersonasSeleccionadas = defaultPersonas
-        //        };
-
-        //        // Catálogo de tarifas por #personas
-        //        for (int p = 1; p <= cap; p++)
-        //        {
-
-        //            var tarifasDb = await _db.tarifasHabitacion
-        //            .AsNoTracking()
-        //            .Where(t => t.HabitacionID == h.HabitacionID
-        //                     && t.NumeroPersonas == p
-        //                     && t.FechaInicio <= ci
-        //                     && t.FechaFin >= co.AddDays(-1))
-        //            .OrderBy(t => t.PrecioNoche)
-        //            .ToListAsync();
-
-        //            // 2) Si no encontró nada, prueba con "se solapa con el rango"
-        //            if (tarifasDb.Count == 0)
-        //            {
-
-        //                tarifasDb = await _db.tarifasHabitacion
-        //                .AsNoTracking()
-        //                .Where(t => t.HabitacionID == h.HabitacionID
-        //                         && t.NumeroPersonas == p
-        //                         && !(t.FechaFin < ci || t.FechaInicio > co.AddDays(-1)))
-        //                .OrderBy(t => t.PrecioNoche)
-        //                .ToListAsync();
-
-        //            }
-
-        //            if (tarifasDb.Count > 0)
-        //            {
-        //                foreach (var t in tarifasDb)
-        //                {
-        //                    var (_, imp, tot) = ReservaPricingService.Totales(t.PrecioNoche, 1);
-        //                    item.Tarifas.Add(new TarifaOpcionVM
-        //                    {
-        //                        Personas = p,
-        //                        TarifaID = t.TarifaID,
-        //                        PrecioNoche = t.PrecioNoche,
-        //                        TotalConImpuestos = tot,
-        //                        Etiqueta = string.IsNullOrWhiteSpace(t.EtiquetaTemporada)
-        //                                                ? $"Tarifa {p} persona(s)"
-        //                                                : t.EtiquetaTemporada
-        //                    });
-        //                }
-        //            }
-        //            else
-        //            {
-        //                // Fallback: pricing service
-        //                var (precio, tarifaId) = await _pricing.PrecioPorNoche(h.HabitacionID, p, ci, co);
-        //                if (precio > 0)
-        //                {
-        //                    var (_, imp, tot) = ReservaPricingService.Totales(precio, 1);
-        //                    item.Tarifas.Add(new TarifaOpcionVM
-        //                    {
-        //                        Personas = p,
-        //                        TarifaID = tarifaId,
-        //                        PrecioNoche = precio,
-        //                        TotalConImpuestos = tot,
-        //                        Etiqueta = "Tarifa estándar"
-        //                    });
-        //                }
-        //            }
-        //        }
-
-        //        // Selección activa (la que coincide con "personas" del filtro)
-        //        var active = item.Tarifas.FirstOrDefault(t => t.Personas == defaultPersonas)
-        //                  ?? item.Tarifas.FirstOrDefault();
-        //        if (active != null)
-        //        {
-        //            item.TarifaSeleccionadaID = active.TarifaID;
-        //            item.PrecioNoche = active.PrecioNoche;
-        //            item.TotalConImpuestos = active.TotalConImpuestos;
-        //        }
-
-        //        res.Add(item);
-        //    }
-
-        //    return PartialView("_ResultadosHabitaciones", res);
+        //        CheckIn = checkIn,
+        //        CheckOut = checkOut,
+        //        Personas = personas
+        //    });
         //}
 
         // Selecciona 1 habitación y pasa a resumen
+
         [HttpPost("Seleccionar")]
         public async Task<IActionResult> Seleccionar(int habitacionId, DateTime checkIn, DateTime checkOut, int personas, int? tarifaId)
         {
@@ -574,9 +628,9 @@ namespace PIOGHOASIS.Controllers
             }
 
             var noches = (int)(checkOut.Date - checkIn.Date).TotalDays;
-            var (sub, imp, tot) = ReservaPricingService.Totales(precio, noches);
 
-            //var resumen = new List<ReservaResumenVM>();
+            // precio = precio de venta por noche (con impuestos)
+            var (baseNeta, inguat, iva, total) = ReservaPricingService.DesglosarDesdeTotal(precio, noches);
 
             var resumen = new ReservaResumenVM
             {
@@ -586,11 +640,22 @@ namespace PIOGHOASIS.Controllers
                 Personas = personas,
                 HabitacionID = habitacionId,
                 HabitacionTitulo = $"{h.TipoHabitacion?.Nombre} #{h.NumeroHabitacion}",
+
+                // Precio de venta por noche (con impuestos)
                 PrecioNoche = precio,
                 TarifaID = tarifaUsada,
-                Subtotal = sub,
-                Impuestos = imp,
-                Total = tot
+
+                // === NUEVO: guardar precio de lista ===
+                PrecioNocheOriginal = precio,
+
+                // Subtotal sin impuestos (todas las noches)
+                Subtotal = baseNeta,
+
+                // Impuestos totales (INGUAT + IVA de todas las noches)
+                Impuestos = inguat + iva,
+
+                // Total a pagar (con impuestos)
+                Total = total
             };
 
             HttpContext.Session.SetString(KEY, System.Text.Json.JsonSerializer.Serialize(resumen));
@@ -605,6 +670,112 @@ namespace PIOGHOASIS.Controllers
             // Navegación normal
             return RedirectToAction(nameof(Cliente));
         }
+
+
+        //[HttpPost("Seleccionar")]
+        //public async Task<IActionResult> Seleccionar(int habitacionId, DateTime checkIn, DateTime checkOut, int personas, int? tarifaId)
+        //{
+        //    var h = await _db.habitaciones.Include(x => x.TipoHabitacion)
+        //                                  .FirstOrDefaultAsync(x => x.HabitacionID == habitacionId);
+        //    if (h == null) return NotFound();
+
+        //    var cap = Math.Max(1, (int)(h.CapacidadPersonas ?? 1));
+        //    personas = Math.Clamp(personas, 1, cap);
+
+        //    decimal precio;
+        //    int? tarifaUsada;
+
+        //    if (tarifaId.HasValue)
+        //    {
+        //        // Validar la tarifa elegida
+        //        var t = await _db.tarifasHabitacion.FirstOrDefaultAsync(x =>
+        //            x.TarifaID == tarifaId.Value &&
+        //            x.HabitacionID == habitacionId &&
+        //            x.NumeroPersonas == personas &&
+        //            // rango de fechas: [FechaInicio, FechaFin] cubre TODO el rango (ajusta a tu regla)
+        //            x.FechaInicio <= checkIn.Date && x.FechaFin >= checkOut.Date.AddDays(-1));
+
+        //        if (t == null)
+        //        {
+        //            // si la tarifa enviada no es válida, volvemos al pricing service
+        //            var r = await _pricing.PrecioPorNoche(habitacionId, personas, checkIn, checkOut);
+        //            precio = r.precio;
+        //            tarifaUsada = r.tarifaId;
+        //        }
+        //        else
+        //        {
+        //            precio = t.PrecioNoche;
+        //            tarifaUsada = t.TarifaID;
+        //        }
+        //    }
+        //    else
+        //    {
+        //        var r = await _pricing.PrecioPorNoche(habitacionId, personas, checkIn, checkOut);
+        //        precio = r.precio;
+        //        tarifaUsada = r.tarifaId;
+        //    }
+
+        //    var noches = (int)(checkOut.Date - checkIn.Date).TotalDays;
+
+        //    // precio = precio de venta por noche (con impuestos)
+        //    var (baseNeta, inguat, iva, total) = ReservaPricingService.DesglosarDesdeTotal(precio, noches);
+
+        //    var resumen = new ReservaResumenVM
+        //    {
+        //        CheckIn = checkIn.Date,
+        //        CheckOut = checkOut.Date,
+        //        Noches = noches,
+        //        Personas = personas,
+        //        HabitacionID = habitacionId,
+        //        HabitacionTitulo = $"{h.TipoHabitacion?.Nombre} #{h.NumeroHabitacion}",
+
+        //        // Precio de venta por noche (con impuestos)
+        //        PrecioNoche = precio,
+        //        TarifaID = tarifaUsada,
+
+        //        // Subtotal sin impuestos (todas las noches)
+        //        Subtotal = baseNeta,
+
+        //        // Impuestos totales (INGUAT + IVA de todas las noches)
+        //        Impuestos = inguat + iva,
+
+        //        // Total a pagar (con impuestos)
+        //        Total = total
+        //    };
+
+
+        //    //var noches = (int)(checkOut.Date - checkIn.Date).TotalDays;
+        //    //var (sub, imp, tot) = ReservaPricingService.Totales(precio, noches);
+
+        //    ////var resumen = new List<ReservaResumenVM>();
+
+        //    //var resumen = new ReservaResumenVM
+        //    //{
+        //    //    CheckIn = checkIn.Date,
+        //    //    CheckOut = checkOut.Date,
+        //    //    Noches = noches,
+        //    //    Personas = personas,
+        //    //    HabitacionID = habitacionId,
+        //    //    HabitacionTitulo = $"{h.TipoHabitacion?.Nombre} #{h.NumeroHabitacion}",
+        //    //    PrecioNoche = precio,
+        //    //    TarifaID = tarifaUsada,
+        //    //    Subtotal = sub,
+        //    //    Impuestos = imp,
+        //    //    Total = tot
+        //    //};
+
+        //    HttpContext.Session.SetString(KEY, System.Text.Json.JsonSerializer.Serialize(resumen));
+
+        //    // Si viene por AJAX devolvemos una URL para redirigir al paso Cliente
+        //    if (Request.Headers.TryGetValue("X-Requested-With", out var xh) &&
+        //        string.Equals(xh.ToString(), "XMLHttpRequest", StringComparison.OrdinalIgnoreCase))
+        //    {
+        //        return Json(new { ok = true, redirectUrl = Url.Action(nameof(Cliente)) });
+        //    }
+
+        //    // Navegación normal
+        //    return RedirectToAction(nameof(Cliente));
+        //}
 
         // Paso 2: Cliente
         [HttpGet("Cliente")]
@@ -689,17 +860,41 @@ namespace PIOGHOASIS.Controllers
 
         [HttpPost("Confirmar")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ConfirmarPost()
+        public async Task<IActionResult> ConfirmarPost(decimal precioNoche)
         {
             var r = GetResumen();
             if (r == null || r.ClienteID == null)
             {
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     return Json(new { ok = false, msg = "Sesión de reserva perdida.", redirectUrl = Url.Action(nameof(ElegirHabitacion)) });
+
                 return RedirectToAction(nameof(ElegirHabitacion));
             }
 
-            // Verificación final de disponibilidad
+            // 1) Normalizar precio enviado
+            if (precioNoche <= 0)
+                precioNoche = r.PrecioNoche; // si viene algo raro, no lo cambio
+
+            // 2) Si el usuario modificó el precio, recalculamos todo
+            if (precioNoche != r.PrecioNoche)
+            {
+                // Guardar precio original si no estaba seteado (por seguridad)
+                if (r.PrecioNocheOriginal <= 0)
+                    r.PrecioNocheOriginal = r.PrecioNoche;
+
+                r.PrecioNoche = precioNoche;
+
+                // precioNoche = precio de venta por noche (con impuestos)
+                var (baseNeta, inguat, iva, total) = ReservaPricingService.DesglosarDesdeTotal(precioNoche, r.Noches);
+
+                r.Subtotal = baseNeta;
+                r.Impuestos = inguat + iva;
+                r.Total = total;
+
+                SaveResumen(r);  // vuelvo a dejar todo coherente en sesión
+            }
+
+            // 3) Verificación final de disponibilidad
             if (!await _pricing.HabitacionDisponible(r.HabitacionID, r.CheckIn, r.CheckOut))
             {
                 var msg = "La habitación ya no está disponible.";
@@ -718,7 +913,7 @@ namespace PIOGHOASIS.Controllers
                     ClienteID = r.ClienteID!,
                     UsuarioID = GetUserId(),
                     UsuarioFinaliza = null,
-                    EstadoReservaID = await EstadoId("ESTHAB0001"), // "Reservada" (ajusta si corresponde)
+                    EstadoReservaID = await EstadoId("ESTHAB0001"), // "Reservada"
                     FechaCheckIn = r.CheckIn,
                     FechaCheckOut = r.CheckOut,
                     Subtotal = r.Subtotal,
@@ -730,25 +925,60 @@ namespace PIOGHOASIS.Controllers
                 _db.reservas.Add(reserva);
                 await _db.SaveChangesAsync();
 
+                // ===== NUEVO: calcular precio de lista y descuento histórico =====
+                decimal? precioLista = null;
+                decimal? descPorNoche = null;
+
+                // Si en el flujo se guardó el precio de lista en la sesión:
+                if (r.PrecioNocheOriginal > 0)
+                {
+                    precioLista = r.PrecioNocheOriginal;
+
+                    if (r.PrecioNocheOriginal > r.PrecioNoche)
+                        descPorNoche = r.PrecioNocheOriginal - r.PrecioNoche;
+                }
+
+                // Crear detalle con los nuevos campos
                 var det = new DetalleReserva
                 {
                     ReservaID = reserva.ReservaID,
                     HabitacionID = r.HabitacionID,
                     Personas = r.Personas,
                     Noches = r.Noches,
+
+                    // Precio realmente cobrado
                     PrecioPorNoche = r.PrecioNoche,
                     TotalLinea = r.PrecioNoche * r.Noches,
-                    TarifaID = r.TarifaID
+                    TarifaID = r.TarifaID,
+
+                    // Históricos
+                    PrecioListaPorNoche = precioLista,
+                    DescuentoPorNoche = descPorNoche
                 };
+
                 _db.detalleReservas.Add(det);
                 await _db.SaveChangesAsync();
+
+
+                //var det = new DetalleReserva
+                //{
+                //    ReservaID = reserva.ReservaID,
+                //    HabitacionID = r.HabitacionID,
+                //    Personas = r.Personas,
+                //    Noches = r.Noches,
+                //    PrecioPorNoche = r.PrecioNoche,              // ← precio negociado o de lista
+                //    TotalLinea = r.PrecioNoche * r.Noches,
+                //    TarifaID = r.TarifaID
+                //};
+                //_db.detalleReservas.Add(det);
+                //await _db.SaveChangesAsync();
 
                 await tx.CommitAsync();
                 HttpContext.Session.Remove(KEY);
 
                 var url = Url.Action(nameof(Detalles), new { id = reserva.ReservaID });
 
-                // 🔁 Si viene por AJAX devolvemos JSON (lo usa el script para modal + redirección)
+                // Si viene por AJAX devolvemos JSON
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                     return Json(new { ok = true, redirectUrl = url });
 
@@ -766,67 +996,6 @@ namespace PIOGHOASIS.Controllers
             }
         }
 
-
-        //[HttpPost("Confirmar")]
-        //public async Task<IActionResult> ConfirmarPost()
-        //{
-        //    var r = GetResumen();
-        //    if (r == null || r.ClienteID == null) return RedirectToAction(nameof(ElegirHabitacion));
-
-        //    // Verifica disponibilidad última vez
-        //    if (!await _pricing.HabitacionDisponible(r.HabitacionID, r.CheckIn, r.CheckOut))
-        //    {
-        //        TempData["msg"] = "La habitación ya no está disponible.";
-        //        return RedirectToAction(nameof(ElegirHabitacion));
-        //    }
-
-        //    using var tx = await _db.Database.BeginTransactionAsync();
-        //    try
-        //    {
-        //        var reserva = new Reserva
-        //        {
-        //            ClienteID = r.ClienteID!,
-        //            UsuarioID = GetUserId(),
-        //            //usuarioIDNombre = ClaimTypes.NameIdentifier,
-        //            UsuarioFinaliza = null,
-        //            //usuarioFinalizaNombre = null,
-        //            //usuarioFinalizaNombre = reserva.USUARIO
-        //            EstadoReservaID = await EstadoId("ESTHAB0001"),
-        //            FechaCheckIn = r.CheckIn,
-        //            FechaCheckOut = r.CheckOut,
-        //            Subtotal = r.Subtotal,
-        //            Impuestos = r.Impuestos,
-        //            Total = r.Total,
-        //            Codigo = await NextCodigoAsync()
-        //        };
-
-        //        _db.reservas.Add(reserva);
-        //        await _db.SaveChangesAsync();
-
-        //        var det = new DetalleReserva
-        //        {
-        //            ReservaID = reserva.ReservaID,
-        //            HabitacionID = r.HabitacionID,
-        //            Personas = r.Personas,
-        //            Noches = r.Noches,
-        //            PrecioPorNoche = r.PrecioNoche,
-        //            TotalLinea = r.PrecioNoche * r.Noches,
-        //            TarifaID = r.TarifaID
-        //        };
-        //        _db.detalleReservas.Add(det);
-        //        await _db.SaveChangesAsync();
-
-        //        await tx.CommitAsync();
-        //        HttpContext.Session.Remove(KEY);
-
-        //        return RedirectToAction(nameof(Detalles), new { id = reserva.ReservaID });
-        //    }
-        //    catch
-        //    {
-        //        await tx.RollbackAsync();
-        //        throw;
-        //    }
-        //}
 
         [HttpGet("Detalles/{id:int}")]
         public async Task<IActionResult> Detalles(int id)
@@ -865,7 +1034,7 @@ namespace PIOGHOASIS.Controllers
             return $"RES{(n + 1).ToString("D7")}";
         }
 
-    [HttpGet("ReservaPdf/{id:int}")]
+        [HttpGet("ReservaPdf/{id:int}")]
         public async Task<IActionResult> ReservaPdf(int id, bool descargar = false)
         {
             var r = await _db.reservas
@@ -877,18 +1046,63 @@ namespace PIOGHOASIS.Controllers
 
             if (r == null) return NotFound();
 
-            // Si quieres pasar algo adicional por ViewData (opcional)
-            // var vdd = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary()) { Model = r };
-            // vdd["Algo"] = "Valor";
+            // === Cargar pagos de la reserva ===
+            var pagos = await _db.pagosReserva
+                .Include(p => p.FormaPago)
+                .Include(p => p.TipoPago)
+                .Include(p => p.Plataforma)
+                .Where(p => p.ReservaID == id)
+                .OrderBy(p => p.FechaPago)
+                .AsNoTracking()
+                .ToListAsync();
 
-            var pdf = new ViewAsPdf("ReservaPdf", r)   // <-- busca Views/Reservas/ReservaPdf.cshtml
+            var pagado = pagos.Sum(p => p.MontoPagado);
+            var pendiente = Math.Max(0m, r.Total - pagado);
+
+            var vm = new PIOGHOASIS.Models.ViewModels.PagoDetalleReservaVM
+            {
+                Reserva = r,
+                Pagos = pagos,
+                Pagado = pagado,
+                Pendiente = pendiente
+            };
+
+            // ===== NUEVO: calcular precio de lista y descuento desde DETALLE_RESERVA =====
+            decimal precioListaAcum = 0m;
+            decimal precioFinalAcum = 0m;
+            int nochesTotales = 0;
+
+            if (r.Detalles != null && r.Detalles.Any())
+            {
+                foreach (var d in r.Detalles)
+                {
+                    nochesTotales += d.Noches;
+
+                    // Precio final guardado
+                    precioFinalAcum += d.PrecioPorNoche * d.Noches;
+
+                    // Precio de lista histórico: si no existe, asumimos que lista == final (sin descuento)
+                    var listaNoche = d.PrecioListaPorNoche ?? d.PrecioPorNoche;
+                    precioListaAcum += listaNoche * d.Noches;
+                }
+
+                if (nochesTotales > 0 && precioListaAcum > precioFinalAcum)
+                {
+                    vm.PrecioListaPorNoche = precioListaAcum / nochesTotales;
+                    vm.PrecioFinalPorNoche = precioFinalAcum / nochesTotales;
+                    vm.DescuentoPorNoche = vm.PrecioListaPorNoche - vm.PrecioFinalPorNoche;
+                    vm.DescuentoTotal = precioListaAcum - precioFinalAcum;
+                }
+            }
+            // ===== FIN NUEVO =====
+
+            var pdf = new ViewAsPdf("ReservaPdf", vm)   // <-- ahora el modelo ES PagoDetalleReservaVM
             {
                 PageSize = Size.A4,
                 PageOrientation = Orientation.Portrait,
                 PageMargins = new Margins { Top = 18, Right = 14, Bottom = 16, Left = 14 },
                 CustomSwitches = "--print-media-type --footer-center \"Página [page] de [toPage]\" --footer-font-size 8 --footer-spacing 5",
                 ContentDisposition = descargar ? ContentDisposition.Attachment : ContentDisposition.Inline,
-                // ViewData = vdd
             };
 
             if (descargar)
@@ -896,6 +1110,39 @@ namespace PIOGHOASIS.Controllers
 
             return pdf;
         }
+
+
+        //[HttpGet("ReservaPdf/{id:int}")]
+        //    public async Task<IActionResult> ReservaPdf(int id, bool descargar = false)
+        //    {
+        //        var r = await _db.reservas
+        //            .Include(x => x.Cliente).ThenInclude(c => c.Persona)
+        //            .Include(x => x.Estado)
+        //            .Include(x => x.Detalles).ThenInclude(d => d.Habitacion).ThenInclude(h => h.TipoHabitacion)
+        //            .AsNoTracking()
+        //            .FirstOrDefaultAsync(x => x.ReservaID == id);
+
+        //        if (r == null) return NotFound();
+
+        //        // Si quieres pasar algo adicional por ViewData (opcional)
+        //        // var vdd = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary()) { Model = r };
+        //        // vdd["Algo"] = "Valor";
+
+        //        var pdf = new ViewAsPdf("ReservaPdf", r)   // <-- busca Views/Reservas/ReservaPdf.cshtml
+        //        {
+        //            PageSize = Size.A4,
+        //            PageOrientation = Orientation.Portrait,
+        //            PageMargins = new Margins { Top = 18, Right = 14, Bottom = 16, Left = 14 },
+        //            CustomSwitches = "--print-media-type --footer-center \"Página [page] de [toPage]\" --footer-font-size 8 --footer-spacing 5",
+        //            ContentDisposition = descargar ? ContentDisposition.Attachment : ContentDisposition.Inline,
+        //            // ViewData = vdd
+        //        };
+
+        //        if (descargar)
+        //            pdf.FileName = $"Reserva_{r.Codigo}.pdf";
+
+        //        return pdf;
+        //    }
 
 
 
@@ -1091,6 +1338,40 @@ namespace PIOGHOASIS.Controllers
                 ?? User.Identity?.Name
                 ?? "usuario";
         }
+
+        [HttpPost("RecalcularResumen")]
+        [ValidateAntiForgeryToken]
+        public IActionResult RecalcularResumen(decimal precioNoche)
+        {
+            var r = GetResumen();
+            if (r == null)
+                return BadRequest("Sesión de reserva perdida.");
+
+            // Normalizar
+            if (precioNoche <= 0)
+                precioNoche = r.PrecioNoche;
+
+            // Asegurarnos de que hay precio original
+            if (r.PrecioNocheOriginal <= 0)
+                r.PrecioNocheOriginal = r.PrecioNoche;
+
+            // Actualizar precio acordado
+            r.PrecioNoche = precioNoche;
+
+            // Recalcular totales con la MISMA lógica que en ConfirmarPost
+            var (baseNeta, inguat, iva, total) = ReservaPricingService.DesglosarDesdeTotal(precioNoche, r.Noches);
+
+            r.Subtotal = baseNeta;
+            r.Impuestos = inguat + iva;
+            r.Total = total;
+
+            // Guardar en sesión para que todo siga consistente
+            SaveResumen(r);
+
+            // Devolver solo el resumen (sidebar) actualizado
+            return PartialView("_ResumenReservaSidebar", r);
+        }
+
 
 
     }

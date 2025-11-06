@@ -72,13 +72,11 @@
         grid-template-columns: 1.2fr .8fr;
         gap: 24px
     }
+
     @@media (max-width: 992px) {
-        .flow-grid
-
-    {
-        grid-template-columns: 1fr
-    }
-
+        .flow-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     .card-ish {
@@ -187,7 +185,7 @@
             <div class="flow-wrap">
                 <div class="flow-grid">
 
-                    <!-- Izquierda: Confirmación (usa card-ish/sec/sec-title como Cliente) -->
+                    <!-- Izquierda: Confirmación + edición de precio -->
                     <div class="card-ish">
                         <div class="sec">
                             <div class="sec-title">Confirmación</div>
@@ -206,14 +204,48 @@
 
                             <form method="post" asp-action="Confirmar" class="mt-2">
                                 @Html.AntiForgeryToken()
-                                <button class="btn-accent">
+
+                                <h5 class="mt-2 mb-2">Precio y totales</h5>
+
+                                <div class="mb-2">
+                                    <label class="form-label">Precio por noche (lista)</label>
+                                    <input class="form-control form-control-sm"
+                                           value="@Model.PrecioNocheOriginal.ToString("N2")"
+                                           readonly />
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label">
+                                        Precio por noche acordado
+                                        <span class="text-muted small">(con impuestos)</span>
+                                    </label>
+                                    <input class="form-control form-control-sm"
+                                           name="precioNoche"
+                                           type="number"
+                                           step="0.01"
+                                           min="0"
+                                           value="@($"{Model.PrecioNoche:0.00}")" />
+                                    <small class="text-muted">
+                                        Puedes modificar este valor si se pactó un precio diferente con el cliente.
+                                    </small>
+                                </div>
+
+                                @if (Model.TieneDescuento)
+                                {
+                                    <div class="alert alert-info py-2 mt-2">
+                                        Descuento por noche: <strong>Q @Model.DescuentoPorNoche.ToString("N2")</strong><br />
+                                        Descuento total: <strong>Q @Model.DescuentoTotal.ToString("N2")</strong>
+                                    </div>
+                                }
+
+                                <button class="btn-accent mt-3">
                                     <i class="bi bi-check2-circle"></i> Confirmar Reserva
                                 </button>
                             </form>
                         </div>
                     </div>
 
-                    <!-- Derecha: Resumen (SIN CAMBIOS) -->
+                    <!-- Derecha: Resumen (igual que antes) -->
                     <aside class="card-ish summary">
                         @await Html.PartialAsync("_ResumenReservaSidebar", Model)
                     </aside>
@@ -223,3 +255,50 @@
         </div>
     </div>
 </div>
+
+<script>
+    (function () {
+        const input = document.querySelector('input[name="precioNoche"]');
+        const summary = document.querySelector('aside.summary');
+        const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+
+        if (!input || !summary || !tokenInput) return;
+
+        let timer = null;
+
+        input.addEventListener('input', function () {
+            const val = this.value;
+
+            // si está vacío o cero, no molestamos al servidor
+            if (!val || parseFloat(val) <= 0) return;
+
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                const fd = new FormData();
+                fd.append('precioNoche', val);
+
+                fetch('@Url.Action("RecalcularResumen", "Reservas")', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'RequestVerificationToken': tokenInput.value
+                    },
+                    body: fd
+                })
+                    .then(r => {
+                        if (!r.ok) throw new Error('Error al recalcular resumen');
+                        return r.text();
+                    })
+                    .then(html => {
+                        // Reemplaza solo el contenido del resumen
+                        summary.innerHTML = html;
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        // Si quieres, podrías mostrar un pequeño mensaje de error.
+                    });
+            }, 400); // pequeño debounce para no disparar en cada tecla
+        });
+    })();
+</script>
+

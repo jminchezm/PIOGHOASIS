@@ -77,7 +77,6 @@ namespace PIOGHOASIS.Controllers
             // nombre del rol para UI y Authorize
             string roleName = (user.Rol?.Estado ?? false) ? user.Rol!.Nombre : "Usuario";
 
-            // opcional: deja también el ID del rol por si lo quieres usar en lógica
             string roleId = user.RolID ?? "N/A";
 
             string avatarUrl = Url.Action("Avatar", "Usuario", new { id = user.UsuarioID })
@@ -91,20 +90,19 @@ namespace PIOGHOASIS.Controllers
                 .Distinct()
                 .ToListAsync();
 
-            // Claim type para módulos (personalizado)
+            // Claim type para módulos
             const string ModuleClaimType = "perm.module";
 
-            // claims (agrega lo que necesites)
+            // claims
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.UsuarioID),
                 new Claim(ClaimTypes.Name, displayName),
-                new Claim(ClaimTypes.Role, roleName), // nombre del rol
-                new Claim("role_id", roleId),         // id del rol (útil para refrescar)
+                new Claim(ClaimTypes.Role, roleName),
+                new Claim("role_id", roleId),   
                 new Claim("avatar", avatarUrl)
             };
 
-            // Agrega un claim por cada código de módulo permitido
             claims.AddRange(modCodes.Select(c => new Claim(ModuleClaimType, c)));
 
 
@@ -116,7 +114,7 @@ namespace PIOGHOASIS.Controllers
                 cp,
                 new AuthenticationProperties
                 {
-                    IsPersistent = true, // "Recordarme" si luego agregas checkbox
+                    IsPersistent = true,
                     ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8)
                 });
 
@@ -124,7 +122,7 @@ namespace PIOGHOASIS.Controllers
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
 
-            return RedirectToAction("Dashboard", "Home"); // tu dashboard
+            return RedirectToAction("Dashboard", "Home");
         }
 
         [HttpPost]

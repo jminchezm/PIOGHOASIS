@@ -1,15 +1,27 @@
 ﻿@model PIOGHOASIS.Models.Reserva
+@using PIOGHOASIS.Services
+
 @{
     ViewData["Title"] = $"Reserva {Model.Codigo}";
     Layout = null;
-    // Rutas sugeridas (ajústalas si tus controladores difieren)
     var verPdfUrl = Url.Action("ReservaPdf", "Reservas", new { id = Model.ReservaID, descargar = false });
     var pagarUrl = Url.Action("Nueva", "Pagos", new { reservaId = Model.ReservaID });
     var downPdfUrl = Url.Action("ReservaPdf", "Reservas", new { id = Model.ReservaID, descargar = true });
+
+    // === Desglosar impuestos totales ===
+    // Se asume que Model.Total ya incluye impuestos (10% INGUAT + 12% IVA)
+    var desglose = ReservaPricingService.DesglosarDesdeTotal(
+        Model.Total / (Model.Detalles.Sum(d => d.Noches) == 0 ? 1 : Model.Detalles.Sum(d => d.Noches)),
+        Model.Detalles.Sum(d => d.Noches)
+    );
+    var baseNeta = desglose.baseNeta;
+    var inguat = desglose.inguat;
+    var iva = desglose.iva;
+    var total = desglose.total;
+    var impuestosTot = inguat + iva;
 }
 
 <style>
-    /* === SOLO añadimos el fondo tipo "hab-create" === */
     .hab-create {
         position: relative;
         width: 100%;
@@ -22,7 +34,6 @@
         background-size: cover;
     }
 
-    /* Lienzo */
     .rd-wrap {
         max-width: 1200px;
         margin: 24px auto;
@@ -43,7 +54,7 @@
         gap: 16px;
         padding: 18px 20px;
         border-bottom: 1px solid rgba(0,0,0,.06);
-        background: linear-gradient(#fff, #fafafa);
+        background: linear-gradient(#fff,#fafafa);
         border-top-left-radius: .85rem;
         border-top-right-radius: .85rem;
     }
@@ -124,7 +135,6 @@
         }
     }
 
-    /* Tabla */
     .rd-table {
         width: 100%;
         border-collapse: collapse;
@@ -145,7 +155,6 @@
             border-bottom: none;
         }
 
-    /* Totales */
     .totals {
         background: #fff;
         border: 1px solid rgba(0,0,0,.06);
@@ -169,33 +178,22 @@
 </style>
 
 <div class="hab-create">
-    <!-- <- solo envolvemos tu contenido -->
     <div class="rd-wrap">
         <div class="rd-card">
-
             <!-- Encabezado -->
             <div class="rd-head">
                 <div class="left">
-                    <!-- Cambia la ruta del logo si es necesario -->
                     <img class="rd-logo" src="/img/logo-oasis.png" alt="Hotel Oasis" onerror="this.src='/img/logo.png'">
                     <div>
                         <h5 class="rd-title">Reserva @Model.Codigo</h5>
-                        <div class="rd-sub">
-                            @Model.FechaCheckIn.ToString("dd/MM/yyyy") ➜ @Model.FechaCheckOut.ToString("dd/MM/yyyy")
-                        </div>
+                        <div class="rd-sub">@Model.FechaCheckIn.ToString("dd/MM/yyyy") ➜ @Model.FechaCheckOut.ToString("dd/MM/yyyy")</div>
                         <div class="rd-sub">Cliente: @Model.Cliente?.Persona?.PrimerNombre @Model.Cliente?.Persona?.PrimerApellido</div>
                     </div>
                 </div>
-
                 <div class="rd-actions">
-                    <!-- Ver/Descargar PDF -->
                     <a class="btn-sleek" href="@verPdfUrl" target="_blank" rel="noopener">
                         <i class="bi bi-filetype-pdf"></i> Ver PDF de Reserva
                     </a>
-                    @* <a class="btn-sleek" href="@downPdfUrl" target="_blank" rel="noopener">
-                        <i class="bi bi-file-earmark-arrow-down"></i> Descargar PDF
-                    </a> *@
-                    <!-- Confirmar/Pagos -->
                     <a class="btn-primaryish ajax-nav"
                        href="/Home/Dashboard"
                        data-url="@pagarUrl"
@@ -209,7 +207,7 @@
             <div class="rd-body">
                 <div class="rd-grid">
 
-                    <!-- Col izquierda: líneas -->
+                    <!-- Columna izquierda -->
                     <div>
                         <table class="rd-table">
                             <thead>
@@ -236,12 +234,14 @@
                         </table>
                     </div>
 
-                    <!-- Col derecha: Totales -->
+                    <!-- Columna derecha: Totales -->
                     <aside class="totals">
-                        <div class="rowline"><span>Subtotal</span><strong>Q @Model.Subtotal.ToString("N2")</strong></div>
-                        <div class="rowline"><span>Impuestos</span><strong>Q @Model.Impuestos.ToString("N2")</strong></div>
+                        <div class="rowline"><span>Subtotal (sin impuestos)</span><strong>Q @baseNeta.ToString("N2")</strong></div>
+                        <div class="rowline"><span>INGUAT 10%</span><strong>Q @inguat.ToString("N2")</strong></div>
+                        <div class="rowline"><span>IVA 12%</span><strong>Q @iva.ToString("N2")</strong></div>
+                        <div class="rowline"><span>Impuestos totales</span><strong>Q @impuestosTot.ToString("N2")</strong></div>
                         <hr />
-                        <div class="rowline total"><span>Total</span><strong>Q @Model.Total.ToString("N2")</strong></div>
+                        <div class="rowline total"><span>Total</span><strong>Q @total.ToString("N2")</strong></div>
                     </aside>
 
                 </div>
@@ -249,244 +249,3 @@
         </div>
     </div>
 </div>
-
-
-
-@* @model PIOGHOASIS.Models.Reserva
-@{
-    ViewData["Title"] = $"Reserva {Model.Codigo}";
-    Layout = null;
-    // Rutas sugeridas (ajústalas si tus controladores difieren)
-    var verPdfUrl = Url.Action("ReservaPdf", "Reservas", new { id = Model.ReservaID, descargar = false });
-    var pagarUrl = Url.Action("Nueva", "Pagos", new { reservaId = Model.ReservaID });
-    var downPdfUrl = Url.Action("ReservaPdf", "Reservas", new { id = Model.ReservaID, descargar = true });
-}
-
-<style>
-    /* Lienzo */
-    .rd-wrap {
-        max-width: 1200px;
-        margin: 24px auto;
-        padding: 0 16px;
-    }
-
-    .rd-card {
-        background: #fff;
-        border: 1px solid rgba(0,0,0,.06);
-        border-radius: .85rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,.06);
-    }
-
-    .rd-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        padding: 18px 20px;
-        border-bottom: 1px solid rgba(0,0,0,.06);
-        background: linear-gradient(#fff, #fafafa);
-        border-top-left-radius: .85rem;
-        border-top-right-radius: .85rem;
-    }
-
-        .rd-head .left {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-    .rd-logo {
-        width: 56px;
-        height: 56px;
-        object-fit: contain;
-        border-radius: 12px;
-        background: #fff;
-        border: 1px solid rgba(0,0,0,.06);
-        padding: 6px;
-    }
-
-    .rd-title {
-        font-weight: 800;
-        font-size: 1.05rem;
-        margin: 0;
-    }
-
-    .rd-sub {
-        color: #6b7280;
-    }
-
-    .rd-actions {
-        display: flex;
-        gap: 10px;
-    }
-
-    .btn-sleek {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        border-radius: .65rem;
-        padding: 10px 14px;
-        border: 1px solid #e5e7eb;
-        background: #fff;
-        font-weight: 700;
-    }
-
-        .btn-sleek:hover {
-            background: #f9fafb;
-        }
-
-    .btn-primaryish {
-        background: #1f6aff;
-        color: #fff;
-        border: none;
-        border-radius: .65rem;
-        padding: 10px 14px;
-        font-weight: 800;
-    }
-
-        .btn-primaryish:hover {
-            filter: brightness(.98);
-            color: #fff;
-        }
-
-    .rd-body {
-        padding: 18px 20px 22px;
-    }
-
-    .rd-grid {
-        display: grid;
-        grid-template-columns: 1.2fr .8fr;
-        gap: 22px;
-    }
-    @@media (max-width: 992px) {
-        .rd-grid
-
-    {
-        grid-template-columns: 1fr;
-    }
-
-    }
-
-    /* Tabla */
-    .rd-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-        .rd-table th, .rd-table td {
-            padding: 10px 12px;
-            border-bottom: 1px dashed #eee;
-        }
-
-        .rd-table th {
-            font-weight: 800;
-            color: #374151;
-            background: #fafafa;
-        }
-
-        .rd-table tr:last-child td {
-            border-bottom: none;
-        }
-
-    /* Totales */
-    .totals {
-        background: #fff;
-        border: 1px solid rgba(0,0,0,.06);
-        border-radius: .75rem;
-        padding: 14px 16px;
-        box-shadow: 0 8px 20px rgba(0,0,0,.05);
-        position: sticky;
-        top: 16px;
-    }
-
-        .totals .rowline {
-            display: flex;
-            justify-content: space-between;
-            margin: 6px 0;
-        }
-
-        .totals .total {
-            font-size: 1.25rem;
-            font-weight: 800;
-        }
-</style>
-
-<div class="rd-wrap">
-    <div class="rd-card">
-
-        <!-- Encabezado -->
-        <div class="rd-head">
-            <div class="left">
-                <!-- Cambia la ruta del logo si es necesario -->
-                <img class="rd-logo" src="/img/logo-oasis.png" alt="Hotel Oasis" onerror="this.src='/img/logo.png'">
-                <div>
-                    <h5 class="rd-title">Reserva @Model.Codigo</h5>
-                    <div class="rd-sub">
-                        @Model.FechaCheckIn.ToString("dd/MM/yyyy") ➜ @Model.FechaCheckOut.ToString("dd/MM/yyyy")
-                    </div>
-                    <div class="rd-sub">Cliente: @Model.Cliente?.Persona?.PrimerNombre @Model.Cliente?.Persona?.PrimerApellido</div>
-                </div>
-            </div>
-
-            <div class="rd-actions">
-                <!-- Ver/Descargar PDF -->
-                <a class="btn-sleek" href="@verPdfUrl" target="_blank" rel="noopener">
-                    <i class="bi bi-filetype-pdf"></i> Ver PDF
-                </a>
-                <a class="btn-sleek" href="@downPdfUrl" target="_blank" rel="noopener">
-                    <i class="bi bi-file-earmark-arrow-down"></i> Descargar PDF
-                </a>
-                <!-- Confirmar/Pagos -->
-                <a class="btn-primaryish" href="@pagarUrl" target="_blank" rel="noopener">
-                    <i class="bi bi-credit-card"></i> Confirmar / Pagos
-                </a>
-            </div>
-        </div>
-
-        <!-- Cuerpo -->
-        <div class="rd-body">
-            <div class="rd-grid">
-
-                <!-- Col izquierda: líneas -->
-                <div>
-                    <table class="rd-table">
-                        <thead>
-                            <tr>
-                                <th>Hab.</th>
-                                <th>Personas</th>
-                                <th>Noches</th>
-                                <th>Precio/noche</th>
-                                <th class="text-end">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var d in Model.Detalles)
-                            {
-                                <tr>
-                                    <td>@d.Habitacion?.Codigo</td>
-                                    <td>@d.Personas</td>
-                                    <td>@d.Noches</td>
-                                    <td>Q @d.PrecioPorNoche.ToString("N2")</td>
-                                    <td class="text-end">Q @d.TotalLinea.ToString("N2")</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Col derecha: Totales -->
-                <aside class="totals">
-                    <div class="rowline"><span>Subtotal</span><strong>Q @Model.Subtotal.ToString("N2")</strong></div>
-                    <div class="rowline"><span>Impuestos</span><strong>Q @Model.Impuestos.ToString("N2")</strong></div>
-                    <hr />
-                    <div class="rowline total"><span>Total</span><strong>Q @Model.Total.ToString("N2")</strong></div>
-                </aside>
-
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
- *@

@@ -65,7 +65,7 @@ tbody tr:nth-child(even){background:#fffaf0}
         <div class="kpi"><div class="lbl">Nuevos en el periodo</div><div class="val">@Model.NuevosEnRango</div></div>
         <div class="kpi"><div class="lbl">Clientes con reserva</div><div class="val">@Model.ClientesConReserva</div></div>
         <div class="kpi"><div class="lbl">Repetidores (2+ reservas)</div><div class="val">@Model.Repetidores</div></div>
-        <div class="kpi"><div class="lbl">Ticket promedio por cliente</div><div class="val">@Money(Model.TicketPromedioCliente)</div></div>
+        @* <div class="kpi"><div class="lbl">Ticket promedio por cliente</div><div class="val">@Money(Model.TicketPromedioCliente)</div></div> *@
         <div class="kpi"><div class="lbl">Países distintos</div><div class="val">@Model.PaisTopCount</div></div>
     </div>
 
