@@ -659,82 +659,166 @@
         }
 
         // ================== AJUSTE DE CAJA (frmAjuste) ==================
-        if (form.id === 'frmAjuste') {
-            ev.preventDefault();
 
-            try {
-                // 1) POST: guardar ajuste
-                const r = await fetch(form.action, {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    credentials: 'same-origin'
-                });
+            if (form.id === 'frmAjuste') {
+        ev.preventDefault();
 
-                if (!r.ok) {
-                    const msg = await r.text().catch(() => '');
-                    alert(msg || 'No se pudo agregar el ajuste.');
-                    return;
-                }
+        // 🔒 Anti doble envío
+        if (form.dataset.sending === '1') return;
+        form.dataset.sending = '1';
 
-                const data = await r.json();
-                if (!data.ok) {
-                    alert('No se pudo agregar el ajuste.');
-                    return;
-                }
+        const btn = form.querySelector('button[type="submit"]');
+        btn?.setAttribute('disabled', 'disabled');
 
-                // 2) GET: recargar detalle de la caja
-                const r2 = await fetch(`/Caja/Detalle/${data.cajaId}`, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                if (!r2.ok) {
-                    console.error('Detalle no cargó:', r2.status, await r2.text());
-                    alert('No se pudo refrescar el detalle.');
-                    return;
-                }
+        try {
+            // 1) POST: guardar ajuste
+            const r = await fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
 
-                const html = await r2.text();
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                const newModal = doc.querySelector('#modalDetalle');
-                if (!newModal) {
-                    alert('Respuesta inválida del servidor.');
-                    return;
-                }
-
-                // modal actual (ya abierto)
-                let curModal = document.getElementById('modalDetalle');
-
-                if (!curModal) {
-                    // si por lo que sea no existe, lo inyectamos de cero
-                    const host = document.getElementById('modalHost');
-                    host.innerHTML = html;
-                    curModal = document.getElementById('modalDetalle');
-                    if (curModal && curModal.parentElement !== document.body)
-                        document.body.appendChild(curModal);
-                    bootstrap.Modal.getOrCreateInstance(curModal).show();
-                } else {
-                    // reemplazamos solo el contenido
-                    const curContent = curModal.querySelector('.modal-content');
-                    const newContent = newModal.querySelector('.modal-content');
-                    if (curContent && newContent) {
-                        const cloned = document.importNode(newContent, true);
-                        curContent.replaceWith(cloned);
-                    }
-                    // nos aseguramos de que el modal siga visible
-                    bootstrap.Modal.getOrCreateInstance(curModal).show();
-                }
-
-                // 3) mostrar “snackbar” OK dentro del modal
-                showInlineBeforeForm(curModal, 'Ajuste agregado correctamente.');
-
-            } catch (err) {
-                console.error('Error procesando el ajuste:', err);
-                const curModal = document.getElementById('modalDetalle');
-                showInlineBeforeForm(curModal, 'Ajuste agregado (con aviso).');
+            if (!r.ok) {
+                const msg = await r.text().catch(() => '');
+                alert(msg || 'No se pudo agregar el ajuste.');
+                return;
             }
 
-            return;
+            const data = await r.json();
+            if (!data.ok) {
+                alert(data.msg || 'No se pudo agregar el ajuste.');
+                return;
+            }
+
+            // 2) GET: recargar detalle de la caja
+            const r2 = await fetch(`/Caja/Detalle/${data.cajaId}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!r2.ok) {
+                console.error('Detalle no cargó:', r2.status, await r2.text());
+                alert('No se pudo refrescar el detalle.');
+                return;
+            }
+
+            const html = await r2.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newModal = doc.querySelector('#modalDetalle');
+            if (!newModal) {
+                alert('Respuesta inválida del servidor.');
+                return;
+            }
+
+            let curModal = document.getElementById('modalDetalle');
+
+            if (!curModal) {
+                const host = document.getElementById('modalHost');
+                host.innerHTML = html;
+                curModal = document.getElementById('modalDetalle');
+                if (curModal && curModal.parentElement !== document.body)
+                    document.body.appendChild(curModal);
+                bootstrap.Modal.getOrCreateInstance(curModal).show();
+            } else {
+                const curContent = curModal.querySelector('.modal-content');
+                const newContent = newModal.querySelector('.modal-content');
+                if (curContent && newContent) {
+                    const cloned = document.importNode(newContent, true);
+                    curContent.replaceWith(cloned);
+                }
+                bootstrap.Modal.getOrCreateInstance(curModal).show();
+            }
+
+            showInlineBeforeForm(curModal, 'Ajuste agregado correctamente.');
+        } catch (err) {
+            console.error('Error procesando el ajuste:', err);
+            const curModal = document.getElementById('modalDetalle');
+            showInlineBeforeForm(curModal, 'Error al procesar el ajuste.');
+        } finally {
+            // ✅ Siempre reactivamos el botón y permitimos otro envío
+            btn?.removeAttribute('disabled');
+            delete form.dataset.sending;
         }
+
+        return;
+    }
+
+
+        // if (form.id === 'frmAjuste') {
+        //     ev.preventDefault();
+
+        //     try {
+        //         // 1) POST: guardar ajuste
+        //         const r = await fetch(form.action, {
+        //             method: 'POST',
+        //             body: new FormData(form),
+        //             headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        //             credentials: 'same-origin'
+        //         });
+
+        //         if (!r.ok) {
+        //             const msg = await r.text().catch(() => '');
+        //             alert(msg || 'No se pudo agregar el ajuste.');
+        //             return;
+        //         }
+
+        //         const data = await r.json();
+        //         if (!data.ok) {
+        //             alert('No se pudo agregar el ajuste.');
+        //             return;
+        //         }
+
+        //         // 2) GET: recargar detalle de la caja
+        //         const r2 = await fetch(`/Caja/Detalle/${data.cajaId}`, {
+        //             headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        //         });
+        //         if (!r2.ok) {
+        //             console.error('Detalle no cargó:', r2.status, await r2.text());
+        //             alert('No se pudo refrescar el detalle.');
+        //             return;
+        //         }
+
+        //         const html = await r2.text();
+        //         const doc = new DOMParser().parseFromString(html, 'text/html');
+        //         const newModal = doc.querySelector('#modalDetalle');
+        //         if (!newModal) {
+        //             alert('Respuesta inválida del servidor.');
+        //             return;
+        //         }
+
+        //         // modal actual (ya abierto)
+        //         let curModal = document.getElementById('modalDetalle');
+
+        //         if (!curModal) {
+        //             // si por lo que sea no existe, lo inyectamos de cero
+        //             const host = document.getElementById('modalHost');
+        //             host.innerHTML = html;
+        //             curModal = document.getElementById('modalDetalle');
+        //             if (curModal && curModal.parentElement !== document.body)
+        //                 document.body.appendChild(curModal);
+        //             bootstrap.Modal.getOrCreateInstance(curModal).show();
+        //         } else {
+        //             // reemplazamos solo el contenido
+        //             const curContent = curModal.querySelector('.modal-content');
+        //             const newContent = newModal.querySelector('.modal-content');
+        //             if (curContent && newContent) {
+        //                 const cloned = document.importNode(newContent, true);
+        //                 curContent.replaceWith(cloned);
+        //             }
+        //             // nos aseguramos de que el modal siga visible
+        //             bootstrap.Modal.getOrCreateInstance(curModal).show();
+        //         }
+
+        //         // 3) mostrar “snackbar” OK dentro del modal
+        //         showInlineBeforeForm(curModal, 'Ajuste agregado correctamente.');
+
+        //     } catch (err) {
+        //         console.error('Error procesando el ajuste:', err);
+        //         const curModal = document.getElementById('modalDetalle');
+        //         showInlineBeforeForm(curModal, 'Ajuste agregado (con aviso).');
+        //     }
+
+        //     return;
+        // }
     });
 
 

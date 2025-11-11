@@ -1,0 +1,72 @@
+﻿@* @model PIOGHOASIS.Models.ViewModels.ReservaResumenVM
+@{
+    Layout = null;
+}
+
+<div class="rs-summary__title">Resumen de reserva</div>
+
+@if (Model.Lineas == null || !Model.Lineas.Any())
+{
+    <div class="rs-summary__empty">
+        Aún no has agregado habitaciones a la reserva.
+    </div>
+}
+else
+{
+    <div class="small mb-2">
+        <strong>@Model.CheckIn.ToString("dd/MM/yyyy")</strong>
+        &nbsp;–&nbsp;
+        <strong>@Model.CheckOut.ToString("dd/MM/yyyy")</strong>
+        (@Model.Noches noche(s))
+    </div>
+
+    <ul class="list-unstyled small mb-3">
+        @for (int i = 0; i < Model.Lineas.Count; i++)
+        {
+            var l = Model.Lineas[i];
+            <li class="mb-2 border-bottom pb-2 d-flex justify-content-between">
+                <div>
+                    <div class="fw-bold">@l.HabitacionTitulo</div>
+                    <div>@l.Personas persona(s) · @l.Noches noche(s)</div>
+                </div>
+                <div class="text-end">
+                    <div>Q. @l.Total.ToString("N2")</div>
+
+                    <form method="post"
+                          action="@Url.Action("QuitarLinea","Reservas")"
+                          class="mt-1 js-remove-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="habitacionId" value="@l.HabitacionID" />
+                        <button type="button"
+                                class="btn btn-link btn-sm text-danger p-0 js-remove-line">
+                            Quitar
+                        </button>
+                    </form>
+                </div>
+            </li>
+        }
+    </ul>
+
+
+    <hr class="my-2" />
+
+    <div class="d-flex justify-content-between small">
+        <span>Subtotal</span>
+        <strong>Q. @Model.Subtotal.ToString("N2")</strong>
+    </div>
+    <div class="d-flex justify-content-between small">
+        <span>Impuestos</span>
+        <strong>Q. @Model.Impuestos.ToString("N2")</strong>
+    </div>
+    <div class="d-flex justify-content-between fw-bold mt-1">
+        <span>Total</span>
+        <span>Q. @Model.Total.ToString("N2")</span>
+    </div>
+
+    <div class="rs-summary__footer mt-3">
+        <a href="@Url.Action("Cliente", "Reservas")" class="rs-btn-muted">
+            Continuar
+        </a>
+    </div>
+}
+ *@

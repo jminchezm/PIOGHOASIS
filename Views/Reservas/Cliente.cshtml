@@ -3,12 +3,27 @@
     Layout = null;
     ViewData["Title"] = "Datos del cliente";
 
+    // Personas “base” para regresar a la búsqueda:
+    // tomo las de la primera habitación, y si no hay, uso 1.
+    var personasBase = Model.Resumen.Lineas.Any()
+        ? Model.Resumen.Lineas.First().Personas
+        : 1;
+
     var volverUrl = Url.Action("ElegirHabitacion", "Reservas", new
     {
         checkIn = Model.Resumen.CheckIn.ToString("yyyy-MM-dd"),
         checkOut = Model.Resumen.CheckOut.ToString("yyyy-MM-dd"),
-        personas = Model.Resumen.Personas
+        personas = personasBase
     });
+
+    var resumen = Model.Resumen;
+
+    // var volverUrl = Url.Action("ElegirHabitacion", "Reservas", new
+    // {
+    //     checkIn = Model.Resumen.CheckIn.ToString("yyyy-MM-dd"),
+    //     checkOut = Model.Resumen.CheckOut.ToString("yyyy-MM-dd"),
+    //     personas = Model.Resumen.Personas
+    // });
 }
 
 <style>
@@ -354,10 +369,17 @@
 
 <div class="hab-create">
     <div class="d-flex justify-content-end mb-2">
-        <a class="hc-back ajax-nav" href="/Home/Dashboard" data-url="@volverUrl">
+        <a class="hc-back ajax-nav"
+           href="@volverUrl"
+           data-url="@volverUrl">
             <i class="bi bi-arrow-left"></i> Volver a reservas
         </a>
     </div>
+    @* <div class="d-flex justify-content-end mb-2">
+        <a class="hc-back ajax-nav" href="/Home/Dashboard" data-url="@volverUrl">
+            <i class="bi bi-arrow-left"></i> Volver a reservas
+        </a>
+    </div> *@
 
     <div class="hc-card">
         <div class="hc-header">Datos del cliente</div>
@@ -379,14 +401,23 @@
                                     <div class="ta-wrap ta-big">
                                         <i class="bi bi-search ta-icon"></i>
 
+
                                         <input id="clienteSearch" class="form-control ta-input" type="text"
-                                               placeholder="Escribe nombre o DPI…" autocomplete="off" />
+                                               placeholder="Escribe nombre o DPI…" autocomplete="off"
+                                               value="@resumen.ClienteNombre" />
+
+
+                                        @* <input id="clienteSearch" class="form-control ta-input" type="text"
+                                               placeholder="Escribe nombre o DPI…" autocomplete="off" /> *@
 
                                         <!-- Panel de resultados -->
                                         <div id="clientePanel" class="ta-panel"></div>
 
                                         <!-- Valor real para POST -->
-                                        <input type="hidden" name="clienteId" id="clienteId" required />
+                                        <input type="hidden" name="clienteId" id="clienteId" required
+                                               value="@resumen.ClienteID" />
+
+                                        @* <input type="hidden" name="clienteId" id="clienteId" required /> *@
 
                                         <i class="bi bi-chevron-down ta-caret"></i>
                                     </div>
@@ -398,7 +429,12 @@
                                     <a id="btnNuevoCliente" class="btn btn-success" href="#">
                                         <i class="bi bi-person-plus"></i> Nuevo
                                     </a>
-                                    <button id="btnContinuar" class="btn-accent" disabled>Continuar</button>
+                                    <button id="btnContinuar" class="btn-accent"
+                                            @(string.IsNullOrEmpty(resumen.ClienteID) ? "disabled" : "")>
+                                        Continuar
+                                    </button>
+
+                                    @* <button id="btnContinuar" class="btn-accent" disabled>Continuar</button> *@
                                 </div>
                             </form>
                         </div>

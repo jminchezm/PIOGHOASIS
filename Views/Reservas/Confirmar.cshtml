@@ -37,7 +37,16 @@
         border-top-left-radius: .75rem;
         border-top-right-radius: .75rem;
         border-bottom: 2px solid #d7a536;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
     }
+
+        .hc-header small {
+            font-weight: 600;
+            color: #78350f;
+        }
 
     .hc-back {
         position: sticky;
@@ -94,7 +103,201 @@
     .sec-title {
         font-weight: 800;
         font-size: 1.15rem;
-        margin-bottom: .75rem
+        margin-bottom: .35rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .sec-title i {
+            font-size: 1.1rem;
+            color: #2563eb;
+        }
+
+    .sec-subtitle {
+        font-size: .9rem;
+        color: #6b7280;
+        margin-bottom: .75rem;
+    }
+
+    /* Bloque de datos principales */
+    .confirm-info {
+        background: #f9fafb;
+        border-radius: .75rem;
+        padding: 12px 14px;
+        border: 1px solid #e5e7eb;
+        margin-bottom: 14px;
+    }
+
+    .confirm-info-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1.1fr;
+        gap: 6px 18px;
+        font-size: .9rem;
+    }
+
+    @@media (max-width: 576px) {
+        .confirm-info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .confirm-info-label {
+        font-weight: 700;
+        color: #374151;
+    }
+
+    .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+    }
+
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: .8rem;
+        border: 1px solid #e5e7eb;
+        background: #eff6ff;
+        color: #1f2937;
+        font-weight: 600;
+    }
+
+        .pill i {
+            font-size: .9rem;
+            opacity: .7;
+        }
+
+    /* Lista de habitaciones / precios */
+    .sec-block-title {
+        font-size: .95rem;
+        font-weight: 700;
+        margin: 10px 0 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .sec-block-title span.badge {
+            font-size: .75rem;
+            border-radius: 999px;
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+    .room-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 4px;
+    }
+
+    .room-card {
+        border-radius: .75rem;
+        border: 1px solid #e5e7eb;
+        background: #f9fafb;
+        padding: 10px 12px;
+        position: relative;
+    }
+
+        .room-card.highlight {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+        }
+
+    .room-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+    }
+
+    .room-title {
+        font-weight: 700;
+        font-size: .96rem;
+    }
+
+    .room-meta {
+        font-size: .8rem;
+        color: #6b7280;
+    }
+
+    .badge-discount {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: .7rem;
+        background: #dcfce7;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+        font-weight: 700;
+    }
+
+        .badge-discount i {
+            font-size: .9rem;
+        }
+
+    .room-body {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: .85rem;
+    }
+
+    .rowline {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin: .35rem 0;
+        font-size: .85rem;
+    }
+
+        .rowline small {
+            font-size: .78rem;
+        }
+
+        .rowline label {
+            margin: 0;
+        }
+
+    .muted {
+        color: #6b7280
+    }
+
+    /* Input precio acordado */
+    .price-input-group {
+        max-width: 210px;
+    }
+
+        .price-input-group .input-group-text {
+            background: #f3f4f6;
+            border-right: 0;
+        }
+
+        .price-input-group .form-control {
+            border-left: 0;
+            font-weight: 600;
+        }
+
+            .price-input-group .form-control:focus {
+                box-shadow: none;
+                border-color: #2563eb;
+            }
+
+    .line-total-label {
+        font-weight: 600;
+    }
+
+    .line-total-value {
+        font-weight: 800;
+        font-size: .95rem;
     }
 
     /* Botón primario consistente */
@@ -105,7 +308,10 @@
         border-radius: 12px;
         padding: 10px 18px;
         font-weight: 800;
-        box-shadow: 0 10px 20px rgba(37,99,235,.15)
+        box-shadow: 0 10px 20px rgba(37,99,235,.15);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
 
         .btn-accent:hover {
@@ -159,16 +365,6 @@
             font-size: 1.25rem;
             font-weight: 800
         }
-
-    .muted {
-        color: #6b7280
-    }
-
-    .rowline {
-        display: flex;
-        gap: 10px;
-        margin: .35rem 0
-    }
 </style>
 
 <div class="hab-create">
@@ -179,67 +375,154 @@
     </div>
 
     <div class="hc-card">
-        <div class="hc-header">Confirmar reserva</div>
+        <div class="hc-header">
+            <span>Confirmar reserva</span>
+            <small><i class="bi bi-shield-check me-1"></i>Revisa cliente, fechas y precios antes de confirmar</small>
+        </div>
 
         <div class="p-3 p-md-4">
             <div class="flow-wrap">
                 <div class="flow-grid">
 
-                    <!-- Izquierda: Confirmación + edición de precio -->
+                    <!-- Izquierda: Confirmación -->
                     <div class="card-ish">
                         <div class="sec">
-                            <div class="sec-title">Confirmación</div>
-
-                            <div class="rowline"><strong>Cliente:</strong> <span>@Model.ClienteNombre</span></div>
-                            <div class="rowline"><strong>Habitación:</strong> <span>@Model.HabitacionTitulo</span></div>
-                            <div class="rowline">
-                                <strong>Fechas:</strong>
-                                <span>
-                                    @Model.CheckIn.ToString("dd/MM/yyyy") — @Model.CheckOut.ToString("dd/MM/yyyy")
-                                    <span class="muted">(@Model.Noches noche/s)</span>
-                                </span>
+                            <div class="sec-title">
+                                <i class="bi bi-clipboard-check"></i>
+                                <span>Confirmación</span>
+                            </div>
+                            <div class="sec-subtitle">
+                                Verifica los datos del huésped y ajusta, si es necesario, el precio acordado por noche en cada habitación.
                             </div>
 
-                            <hr class="my-3" />
-
-                            <form method="post" asp-action="Confirmar" class="mt-2">
-                                @Html.AntiForgeryToken()
-
-                                <h5 class="mt-2 mb-2">Precio y totales</h5>
-
-                                <div class="mb-2">
-                                    <label class="form-label">Precio por noche (lista)</label>
-                                    <input class="form-control form-control-sm"
-                                           value="@Model.PrecioNocheOriginal.ToString("N2")"
-                                           readonly />
-                                </div>
-
-                                <div class="mb-2">
-                                    <label class="form-label">
-                                        Precio por noche acordado
-                                        <span class="text-muted small">(con impuestos)</span>
-                                    </label>
-                                    <input class="form-control form-control-sm"
-                                           name="precioNoche"
-                                           type="number"
-                                           step="0.01"
-                                           min="0"
-                                           value="@($"{Model.PrecioNoche:0.00}")" />
-                                    <small class="text-muted">
-                                        Puedes modificar este valor si se pactó un precio diferente con el cliente.
-                                    </small>
-                                </div>
-
-                                @if (Model.TieneDescuento)
-                                {
-                                    <div class="alert alert-info py-2 mt-2">
-                                        Descuento por noche: <strong>Q @Model.DescuentoPorNoche.ToString("N2")</strong><br />
-                                        Descuento total: <strong>Q @Model.DescuentoTotal.ToString("N2")</strong>
+                            <!-- Bloque resumen cliente/fechas -->
+                            <div class="confirm-info">
+                                <div class="confirm-info-grid">
+                                    <div>
+                                        <div class="confirm-info-label">
+                                            <i class="bi bi-person-circle me-1"></i>Cliente
+                                        </div>
+                                        <div>@Model.ClienteNombre</div>
                                     </div>
-                                }
+                                    <div>
+                                        <div class="confirm-info-label">
+                                            <i class="bi bi-calendar-event me-1"></i>Fechas
+                                        </div>
+                                        <div>
+                                            @Model.CheckIn.ToString("dd/MM/yyyy") — @Model.CheckOut.ToString("dd/MM/yyyy")
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="confirm-info-label">
+                                            <i class="bi bi-moon-stars me-1"></i>Noches
+                                        </div>
+                                        <div>@Model.Noches noche(s)</div>
+                                    </div>
+                                    <div>
+                                        <div class="confirm-info-label">
+                                            <i class="bi bi-door-closed me-1"></i>Habitaciones
+                                        </div>
+                                        <div>@Model.Lineas.Count habitación(es)</div>
+                                    </div>
+                                </div>
 
-                                <button class="btn-accent mt-3">
-                                    <i class="bi bi-check2-circle"></i> Confirmar Reserva
+                                <div class="pill-row">
+                                    <span class="pill">
+                                        <i class="bi bi-people-fill"></i>
+                                        @Model.Lineas.Sum(l => l.Personas) huésped(es)
+                                    </span>
+                                    <span class="pill">
+                                        <i class="bi bi-cash-coin"></i>
+                                        Total actual: Q @Model.Total.ToString("N2")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Habitaciones -->
+                            <div class="sec-block-title">
+                                <span>Habitaciones y precios</span>
+                                <span class="badge">@Model.Lineas.Count ítem(s)</span>
+                            </div>
+
+                            @if (!Model.Lineas.Any())
+                            {
+                                <div class="alert alert-warning mb-2">
+                                    No hay habitaciones en el resumen. Vuelve al paso anterior.
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="room-list">
+                                    @foreach (var l in Model.Lineas)
+                                    {
+                                        var tieneDescuento = l.PrecioNocheOriginal > 0 && l.PrecioNocheOriginal > l.PrecioNoche;
+                                        <div class="room-card @(tieneDescuento ? "highlight" : "")">
+                                            <div class="room-header">
+                                                <div>
+                                                    <div class="room-title">@l.HabitacionTitulo</div>
+                                                    <div class="room-meta">
+                                                        <i class="bi bi-people me-1"></i>@l.Personas persona(s)
+                                                        ·
+                                                        <i class="bi bi-moon me-1"></i>@l.Noches noche(s)
+                                                    </div>
+                                                </div>
+
+                                                @if (tieneDescuento)
+                                                {
+                                                    <div class="badge-discount">
+                                                        <i class="bi bi-tag-fill"></i>
+                                                        Descuento aplicado
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            <div class="room-body">
+                                                @* Precio de lista (si existe y es distinto) *@
+                                                @if (tieneDescuento)
+                                                {
+                                                    <div class="rowline">
+                                                        <span class="text-muted small">Precio lista por noche</span>
+                                                        <span class="text-muted small text-decoration-line-through">
+                                                            Q @l.PrecioNocheOriginal.ToString("N2")
+                                                        </span>
+                                                    </div>
+                                                }
+
+                                                <div class="rowline align-items-center">
+                                                    <label class="mb-0">
+                                                        <span>Precio acordado por noche</span><br />
+                                                        <small class="text-muted">
+                                                            Con impuestos incluidos
+                                                        </small>
+                                                    </label>
+                                                    <div class="input-group input-group-sm price-input-group">
+                                                        <span class="input-group-text">Q</span>
+                                                        <input type="number"
+                                                               step="0.01"
+                                                               min="0"
+                                                               class="form-control text-end js-precio-noche"
+                                                               value="@l.PrecioNoche.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+                                                               data-habitacion-id="@l.HabitacionID" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="rowline">
+                                                    <span class="line-total-label">Total línea</span>
+                                                    <span class="line-total-value">
+                                                        Q @l.Total.ToString("N2")
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+
+                            <form method="post" asp-action="ConfirmarPost" class="mt-3">
+                                @Html.AntiForgeryToken()
+                                <button class="btn-accent">
+                                    <i class="bi bi-check2-circle"></i>
+                                    Confirmar Reserva
                                 </button>
                             </form>
                         </div>
@@ -258,47 +541,58 @@
 
 <script>
     (function () {
-        const input = document.querySelector('input[name="precioNoche"]');
-        const summary = document.querySelector('aside.summary');
         const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
-
-        if (!input || !summary || !tokenInput) return;
+        if (!tokenInput) return;
 
         let timer = null;
 
-        input.addEventListener('input', function () {
-            const val = this.value;
+        function attachPrecioHandlers() {
+            document.querySelectorAll('.js-precio-noche').forEach(input => {
+                if (input.dataset.bound === "1") return; // evitar doble binding
+                input.dataset.bound = "1";
 
-            // si está vacío o cero, no molestamos al servidor
-            if (!val || parseFloat(val) <= 0) return;
+                const handler = () => {
+                    const habitacionId = input.dataset.habitacionId;
+                    if (!habitacionId) return;
 
-            clearTimeout(timer);
-            timer = setTimeout(() => {
-                const fd = new FormData();
-                fd.append('precioNoche', val);
+                    // convertir valor a número (admite coma/punto)
+                    const raw = (input.value || "").replace(',', '.');
+                    const val = parseFloat(raw);
+                    if (isNaN(val) || val <= 0) return;
 
-                fetch('@Url.Action("RecalcularResumen", "Reservas")', {
-                    method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'RequestVerificationToken': tokenInput.value
-                    },
-                    body: fd
-                })
-                    .then(r => {
-                        if (!r.ok) throw new Error('Error al recalcular resumen');
-                        return r.text();
-                    })
-                    .then(html => {
-                        // Reemplaza solo el contenido del resumen
-                        summary.innerHTML = html;
-                    })
-                    .catch(err => {
-                        console.error(err);
-                        // Si quieres, podrías mostrar un pequeño mensaje de error.
-                    });
-            }, 400); // pequeño debounce para no disparar en cada tecla
-        });
+                    clearTimeout(timer);
+                    timer = setTimeout(() => {
+                        const fd = new FormData();
+                        fd.append('habitacionId', habitacionId);
+                        fd.append('precioNoche', val.toString().replace(',', '.'));
+
+                        fetch('@Url.Action("ActualizarPrecioLinea", "Reservas")', {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'RequestVerificationToken': tokenInput.value
+                            },
+                            body: fd
+                        })
+                            .then(r => {
+                                if (!r.ok) throw new Error('Error al recalcular resumen');
+                                return r.text();
+                            })
+                            .then(html => {
+                                const summary = document.querySelector('aside.summary');
+                                if (summary) summary.innerHTML = html;
+                            })
+                            .catch(err => console.error(err));
+                    }, 400); // pequeño debounce
+                };
+
+                input.addEventListener('change', handler);
+                input.addEventListener('blur', handler);
+            });
+        }
+
+        // Al cargar
+        attachPrecioHandlers();
+        window.attachPrecioHandlers = attachPrecioHandlers;
     })();
 </script>
-

@@ -4,16 +4,25 @@
 }
 
 @{
-    Layout = null; /* Déjalo así si esta vista es independiente.
-              Si quieres convertirla en layout, reemplaza el cuerpo por @RenderBody() en #app-content */
+    Layout = null;
     ViewData["Title"] = "Dashboard";
+
+    // Leemos el querystring ?initial=...
+    var initial = Context.Request.Query["initial"].ToString();
+    var hasInitial = !string.IsNullOrEmpty(initial);
 }
+
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] - Hotel Oasis</title>
+
+    <link rel="icon" type="image/png"
+          href="~/img/login/logo-oasis.png"
+          asp-append-version="true" />
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -139,9 +148,6 @@
             z-index: 2;
         }
 
-
-
-
     </style>
 </head>
 
@@ -160,18 +166,12 @@
         </div>
 
         <div class="header-right">
-            @* @using System.Security.Claims
-            @{
-                var avatar = User.FindFirst("avatar")?.Value ?? Url.Content("~/img/DefaultUsuario.png");
-                var userName = User.Identity?.Name ?? "";
-                var roleName = User.FindFirstValue(ClaimTypes.Role) ?? "";
-            } *@
 
             @using System.Security.Claims
             @{
                 // Id del usuario (ajusta al claim que realmente usas)
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) 
-                             ?? User.FindFirst("userid")?.Value;
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirst("userid")?.Value;
 
                 var avatarUrl = !string.IsNullOrWhiteSpace(userId)
                 ? Url.Action("Avatar", "Usuarios", new { id = userId }) + "?v=" + DateTimeOffset.UtcNow.ToUnixTimeSeconds()
@@ -212,12 +212,14 @@
         <!-- ======= SIDEBAR ======= -->
         <nav id="appSidebar" class="sidebar">
             <ul class="menu">
+                <!-- INICIO -->
                 <li>
                     <a href="/Home/Dashboard" data-url="/Home/Dashboard" data-home="1">
                         <i class="bi bi-house-door"></i> <span>Inicio</span>
                     </a>
                 </li>
 
+                <!-- RESERVACIONES -->
                 @if (Can("MOD0000001"))
                 {
                     <li class="has-children need-caja">
@@ -226,65 +228,83 @@
                             <i class="bi bi-caret-down-fill caret"></i>
                         </a>
                         <ul class="submenu">
-                            <li><a class="bi bi-calendar4-week" href="/Reservas/ElegirHabitacion" data-url="/Reservas/ElegirHabitacion" data-need-caja="1"><span>Reservar</span></a></li>
-                            <li><a class="bi bi-card-checklist" href="/Reservas/Index" data-url="/Reservas/Index" data-need-caja="1"><span>Listado de reservaciones</span></a></li>
+                            <li>
+                                <a class="bi bi-calendar4-week"
+                                   href="/Home/Dashboard?initial=/Reservas/ElegirHabitacion"
+                                   data-url="/Reservas/ElegirHabitacion"
+                                   data-need-caja="1">
+                                    <span>Reservar</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="bi bi-card-checklist"
+                                   href="/Home/Dashboard?initial=/Reservas/Index"
+                                   data-url="/Reservas/Index"
+                                   data-need-caja="1">
+                                    <span>Listado de reservaciones</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 }
 
-                @* @if (Can("MOD0000001")) {
-                    <li class="has-children">
-                        <a href="#" class="toggle" data-toggle="submenu">
-                            <i class="bi bi-calendar-check"></i> <span>Reservaciones</span>
-                            <i class="bi bi-caret-down-fill caret"></i>
-                        </a>
-                        <ul class="submenu">
-                            <li><a href="/Reservas/ElegirHabitacion" data-url="/Reservas/ElegirHabitacion"><span>Reservar</span></a></li>
-                            <li><a href="/Reservas/Index" data-url="/Reservas/Index"><span>Listado de reservaciones</span></a></li>
-                        </ul>
-                    </li>
-                } *@
-                @* <li>
-                    <a href="/Reservas/ElegirHabitacion" data-url="/Reservas/ElegirHabitacion">
-                        <i class="bi bi-calendar-check"></i> <span>Reservaciones</span>
-                    </a>
-                </li> *@
-
                 <!-- REPORTES -->
-                @if (Can("MOD0000002")) {
+                @if (Can("MOD0000002"))
+                {
                     <li class="has-children">
                         <a href="#" class="toggle" data-toggle="submenu">
                             <i class="bi bi-bar-chart"></i> <span>Reportes</span>
                             <i class="bi bi-caret-down-fill caret"></i>
                         </a>
                         <ul class="submenu">
-                            <li><a class="bi bi-file-earmark-bar-graph" href="/Reportes/Reservas" data-url="/Reportes/Reservas"><span>Reporte de reservas</span></a></li>
-                            <li><a class="bi bi-cash-stack" href="/Reportes/PagosIngresos" data-url="/Reportes/PagosIngresos"><span>Reporte de pagos / ingresos</span></a></li>
-                            <li><a class="bi bi-file-earmark-person" href="/Reportes/ClientesReporte" data-url="/Reportes/ClientesReporte"><span>Reporte de Clientes</span></a></li>
+                            <li>
+                                <a class="bi bi-file-earmark-bar-graph"
+                                   href="/Home/Dashboard?initial=/Reportes/Reservas"
+                                   data-url="/Reportes/Reservas">
+                                    <span>Reporte de reservas</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="bi bi-cash-stack"
+                                   href="/Home/Dashboard?initial=/Reportes/PagosIngresos"
+                                   data-url="/Reportes/PagosIngresos">
+                                    <span>Reporte de pagos / ingresos</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="bi bi-file-earmark-person"
+                                   href="/Home/Dashboard?initial=/Reportes/ClientesReporte"
+                                   data-url="/Reportes/ClientesReporte">
+                                    <span>Reporte de Clientes</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 }
 
                 <!-- HABITACIONES -->
-                @if (Can("MOD0000003")) {
+                @if (Can("MOD0000003"))
+                {
                     <li class="has-children">
                         <a href="#" class="toggle" data-toggle="submenu">
                             <i class="bi bi-door-open"></i> <span>Habitaciones</span>
                             <i class="bi bi-caret-down-fill caret"></i>
                         </a>
                         <ul class="submenu">
-                            <li><a class="bi bi-lamp" href="/habitaciones/Index" data-url="/habitaciones/Index"><span>Habitaciones</span></a></li>
+                            <li>
+                                <a class="bi bi-lamp"
+                                   href="/Home/Dashboard?initial=/habitaciones/Index"
+                                   data-url="/habitaciones/Index">
+                                    <span>Habitaciones</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 }
 
-                @if (Can("MOD0000004")) {
-                    @* <li>
-                        <a href="/Clientes/Index" data-url="/Clientes/Index">
-                            <i class="bi bi-people"></i> <span>Clientes</span>
-                        </a>
-                    </li> *@
-
+                <!-- CLIENTES -->
+                @if (Can("MOD0000004"))
+                {
                     <li class="has-children">
                         <a href="#" class="toggle" data-toggle="submenu">
                             <i class="bi bi-people"></i> <span>Clientes</span>
@@ -292,7 +312,8 @@
                         </a>
                         <ul class="submenu">
                             <li>
-                                <a href="/Clientes/Index" data-url="/Clientes/Index">
+                                <a href="/Home/Dashboard?initial=/Clientes/Index"
+                                   data-url="/Clientes/Index">
                                     <i class="bi bi-person-bounding-box"></i> <span>Clientes</span>
                                 </a>
                             </li>
@@ -301,31 +322,46 @@
                 }
 
                 <!-- EMPLEADOS -->
-                 @if (Can("MOD0000005")) {
+                @if (Can("MOD0000005"))
+                {
                     <li class="has-children">
                         <a href="#" class="toggle" data-toggle="submenu">
                             <i class="bi bi-person-badge"></i> <span>Empleados</span>
                             <i class="bi bi-caret-down-fill caret"></i>
                         </a>
                         <ul class="submenu">
-                            <li><a class="bi bi-person" href="/Empleados/Index" data-url="/Empleados/Index"><span>Empleados</span></a></li>
+                            <li>
+                                <a class="bi bi-person"
+                                   href="/Home/Dashboard?initial=/Empleados/Index"
+                                   data-url="/Empleados/Index">
+                                    <span>Empleados</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 }
 
                 <!-- USUARIOS -->
-                @if (Can("MOD0000006")) {
+                @if (Can("MOD0000006"))
+                {
                     <li class="has-children">
                         <a href="#" class="toggle" data-toggle="submenu">
                             <i class="bi bi-person"></i> <span>Usuarios</span>
                             <i class="bi bi-caret-down-fill caret"></i>
                         </a>
                         <ul class="submenu">
-                            <li><a class="bi bi-person-circle" href="/Usuarios/Index" data-url="/Usuarios/Index"><span>Usuarios</span></a></li>                            
+                            <li>
+                                <a class="bi bi-person-circle"
+                                   href="/Home/Dashboard?initial=/Usuarios/Index"
+                                   data-url="/Usuarios/Index">
+                                    <span>Usuarios</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 }
 
+                <!-- CAJA -->
                 @if (Can("MOD0000007"))
                 {
                     <li class="has-children">
@@ -335,7 +371,8 @@
                         </a>
                         <ul class="submenu">
                             <li>
-                                <a href="/Caja/Index" data-url="/Caja/Index">
+                                <a href="/Home/Dashboard?initial=/Caja/Index"
+                                   data-url="/Caja/Index">
                                     <i class="bi bi-cash-stack"></i> <span>Apertura/Cierre de Caja</span>
                                 </a>
                             </li>
@@ -344,19 +381,33 @@
                 }
 
                 <!-- CONFIGURACIONES -->
-                @if (Can("MOD0000008")) {
-                <li class="has-children">
-                    <a href="#" class="toggle" data-toggle="submenu">
-                        <i class="bi bi-gear"></i> <span>Configuraciones</span>
-                        <i class="bi bi-caret-down-fill caret"></i>
-                    </a>
-                    <ul class="submenu">
-                            <li><a class="bi bi-boxes" href="/Modulos/Index" data-url="/Modulos/Index"><span>Módulos</span></a></li>
-                            <li><a class="bi bi-ui-checks-grid" href="/Permisos/Index" data-url="/Permisos/Index"><span>Permisos</span></a></li>  
-                    </ul>
-                </li>
+                @if (Can("MOD0000008"))
+                {
+                    <li class="has-children">
+                        <a href="#" class="toggle" data-toggle="submenu">
+                            <i class="bi bi-gear"></i> <span>Configuraciones</span>
+                            <i class="bi bi-caret-down-fill caret"></i>
+                        </a>
+                        <ul class="submenu">
+                            <li>
+                                <a class="bi bi-boxes"
+                                   href="/Home/Dashboard?initial=/Modulos/Index"
+                                   data-url="/Modulos/Index">
+                                    <span>Módulos</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="bi bi-ui-checks-grid"
+                                   href="/Home/Dashboard?initial=/Permisos/Index"
+                                   data-url="/Permisos/Index">
+                                    <span>Permisos</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 }
 
+                <!-- MANTENIMIENTOS -->
                 @if (Can("MOD0000009"))
                 {
                     <li class="has-children">
@@ -365,16 +416,40 @@
                             <i class="bi bi-caret-down-fill caret"></i>
                         </a>
                         <ul class="submenu">
-                            <li><a class="bi bi-person-vcard" href="/TipoDocumentos/Index" data-url="/TipoDocumentos/Index"><span>Tipos de documento</span></a></li>
-                            <li><a class="bi bi-box" href="/TiposHabitacion/Index" data-url="/TiposHabitacion/Index"><span>Tipo de Habitación</span></a></li>
-                            <li><a class="bi bi-person-video2" href="/Puestos/Index" data-url="/Puestos/Index"><span>Puestos</span></a></li>
-                            <li><a class="bi bi-diagram-3" href="/Roles/Index" data-url="/Roles/Index"><span>Roles</span></a></li>
-
+                            <li>
+                                <a class="bi bi-person-vcard"
+                                   href="/Home/Dashboard?initial=/TipoDocumentos/Index"
+                                   data-url="/TipoDocumentos/Index">
+                                    <span>Tipos de documento</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="bi bi-box"
+                                   href="/Home/Dashboard?initial=/TiposHabitacion/Index"
+                                   data-url="/TiposHabitacion/Index">
+                                    <span>Tipo de Habitación</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="bi bi-person-video2"
+                                   href="/Home/Dashboard?initial=/Puestos/Index"
+                                   data-url="/Puestos/Index">
+                                    <span>Puestos</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="bi bi-diagram-3"
+                                   href="/Home/Dashboard?initial=/Roles/Index"
+                                   data-url="/Roles/Index">
+                                    <span>Roles</span>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 }
             </ul>
         </nav>
+
 
 
         <!-- Overlay móvil -->
@@ -383,11 +458,13 @@
         <!-- ======= CONTENT ======= -->
         <main id="appContent" class="app-content flex-grow-1">
 
-            
-            <!-- Hero inicial (como en tu prototipo) -->
-            <div id="hero" class="hero"></div>
 
-            <div class="container-fluid py-3 kpi-over-hero" id="dash-cards">
+            <!-- Hero inicial (como en tu prototipo) -->
+            @* <div id="hero" class="hero"></div> *@
+            <div id="hero" class="hero" style="@(hasInitial ? "display:none;" : "")"></div>
+
+            <div class="container-fluid py-3 kpi-over-hero" id="dash-cards" style="@(hasInitial ? "display:none;" : "")">
+                @* style="@(hasInitial ? "display:none;" : "")"> *@
                 <div class="row g-3 text-center">
                     <div class="col-6 col-md-3">
                         <div class="card kpi-card shadow-sm h-100">
@@ -416,7 +493,7 @@
                     <div class="col-6 col-md-3">
                         <div class="card kpi-card shadow-sm h-100">
                             <div class="card-body">
-                                <div class="small text-muted">Clientes alojados</div>
+                                <div class="small text-muted">Reservas por cliente confirmada</div>
                                 <div id="kpiClientes" class="h3 fw-bold text-info">—</div>
                             </div>
                         </div>
@@ -444,203 +521,204 @@
 
     <script>
 
-            // ---- Cerrar y limpiar cualquier modal/backdrop de Bootstrap ----
+                // ---- Cerrar y limpiar cualquier modal/backdrop de Bootstrap ----
 
-            // Reemplaza tu cleanupModals actual por este
-        function cleanupModals() {
-          try {
-            // Cierra cualquier modal visible
-            document.querySelectorAll('.modal.show').forEach(el => {
-              try { bootstrap.Modal.getInstance(el)?.hide(); } catch {}
-            });
+                // Reemplaza tu cleanupModals actual por este
+            function cleanupModals() {
+              try {
+                // Cierra cualquier modal visible
+                document.querySelectorAll('.modal.show').forEach(el => {
+                  try { bootstrap.Modal.getInstance(el)?.hide(); } catch {}
+                });
 
-            // Quita backdrops y estilos de body
-            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-            document.body.classList.remove('modal-open');
-            document.body.style.removeProperty('padding-right');
+                // Quita backdrops y estilos de body
+                document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('padding-right');
 
-            // ⛔ IMPORTANTE: NO borres el markup de los modales de la vista actual
-            // document.querySelectorAll('.modal').forEach(m => m.remove());
-          } catch {}
-        }
-
-
-    /* ======= jQuery Validate: defaults globales ======= */
-    (function () {
-      if (!(window.jQuery && $.validator)) return;
-
-      $.validator.setDefaults({
-        onkeyup: function (element) { $(element).valid(); },
-        onclick: function (element) { $(element).valid(); },
-        onfocusout: function (element) { $(element).valid(); },
-
-        highlight: function (element) {
-          $(element).addClass('is-invalid input-validation-error').removeClass('is-valid');
-        },
-        unhighlight: function (element) {
-          $(element).removeClass('is-invalid input-validation-error is-valid');
-          const $c = $(element.form).find('[data-valmsg-for="' + element.name + '"]');
-          $c.text('').removeClass('field-validation-error text-danger d-block').addClass('field-validation-valid');
-        },
-        errorClass: 'text-danger',
-        errorPlacement: function (error, element) {
-          const $c = $(element.form).find('[data-valmsg-for="' + element.attr('name') + '"]');
-          if ($c.length) { $c.addClass('d-block').html('').append(error); }
-          else { error.insertAfter(element); }
-        }
-      });
-    })();
-
-    /* Re-parsea unobtrusive en formularios dinámicos */
-    function wireUpValidation(scope) {
-      if (!(window.jQuery && $.validator && $.validator.unobtrusive)) return;
-      $(scope).find('form').each(function () {
-        const $f = $(this);
-        $f.removeData('validator').removeData('unobtrusiveValidation');
-        $.validator.unobtrusive.parse($f);
-      });
-    }
-
-    /* Utilidad: limpiar mensaje/clases de UN campo */
-    function clearOneField(el) {
-      if (!el || !el.form) return;
-      el.classList.remove('is-invalid', 'input-validation-error', 'is-valid');
-      const span = el.form.querySelector('[data-valmsg-for="' + CSS.escape(el.name) + '"]');
-      if (span) {
-        span.textContent = '';
-        span.classList.remove('field-validation-error', 'text-danger', 'd-block');
-        span.classList.add('field-validation-valid');
-      }
-    }
-
-    /* ================= Sidebar & Layout ================= */
-    const sidebar = document.getElementById('appSidebar');
-    const backdrop = document.getElementById('menuBackdrop');
-    const btnSidebar = document.getElementById('btnSidebar');
-
-    function openSidebar() {
-      sidebar?.classList.add('open');
-      if (window.matchMedia('(max-width: 991.98px)').matches) backdrop?.classList.add('show');
-      document.body.classList.add('sidebar-open');
-      localStorage.setItem('sidebar-open', '1');
-    }
-    function closeSidebar() {
-      sidebar?.classList.remove('open');
-      backdrop?.classList.remove('show');
-      document.body.classList.remove('sidebar-open');
-      localStorage.setItem('sidebar-open', '0');
-    }
-    function toggleSidebar() { sidebar?.classList.contains('open') ? closeSidebar() : openSidebar(); }
-
-    (function restoreSidebar() {
-      const saved = localStorage.getItem('sidebar-open');
-      if (saved === '1' && window.matchMedia('(min-width: 992px)').matches) openSidebar();
-      else document.body.classList.remove('sidebar-open');
-    })();
-
-    btnSidebar?.addEventListener('click', toggleSidebar);
-    backdrop?.addEventListener('click', closeSidebar);
-
-    // Submenús en acordeón
-    document.querySelectorAll('.menu .has-children > a[data-toggle="submenu"]').forEach(tg => {
-      tg.addEventListener('click', (e) => {
-        e.preventDefault();
-        const li = tg.closest('.has-children');
-        const isOpen = li.classList.contains('open');
-        document.querySelectorAll('.menu .has-children.open').forEach(o => { if (o !== li) o.classList.remove('open'); });
-        li.classList.toggle('open', !isOpen);
-      });
-    });
-
-    /* ================= Router ÚNICO para #contentHost ================= */
-    (function () {
-      const host = document.getElementById('contentHost');
-      const hero = document.getElementById('hero');
-      if (!host) return;
-
-      function showModalFromHost(modalEl, fallbackMsg) {
-        try {
-          if (!modalEl) { if (fallbackMsg) alert(fallbackMsg); return; }
-          if (!window.bootstrap || typeof bootstrap.Modal !== 'function') {
-            if (fallbackMsg) alert(fallbackMsg);
-            return;
-          }
-          const inst = bootstrap.Modal.getOrCreateInstance(modalEl);
-          inst.show();
-        } catch (err) {
-          console.error('showModalFromHost error:', err);
-          if (fallbackMsg) alert(fallbackMsg);
-        }
-      }
-
-      window.loadToHost =async function loadToHost(url, opts) {
-        const resp = await fetch(url, Object.assign({
-          headers: { 'X-Requested-With': 'XMLHttpRequest' },
-          credentials: 'same-origin'
-        }, opts || {}));
-
-        const ctype = (resp.headers.get('content-type') || '').toLowerCase();
-
-        if (ctype.includes('application/json')) {
-          const data = await resp.json();
-
-          if (data.ok) {
-            const okEl = host.querySelector('#saveOkModal');
-            if (okEl) {
-              showModalFromHost(okEl);
-              if (data.redirectUrl) okEl.addEventListener('hidden.bs.modal', () => { loadToHost(data.redirectUrl); }, { once: true });
-            } else if (data.redirectUrl) {
-              await loadToHost(data.redirectUrl);
+                // ⛔ IMPORTANTE: NO borres el markup de los modales de la vista actual
+                // document.querySelectorAll('.modal').forEach(m => m.remove());
+              } catch {}
             }
-            return;
+
+
+        /* ======= jQuery Validate: defaults globales ======= */
+        (function () {
+          if (!(window.jQuery && $.validator)) return;
+
+          $.validator.setDefaults({
+            onkeyup: function (element) { $(element).valid(); },
+            onclick: function (element) { $(element).valid(); },
+            onfocusout: function (element) { $(element).valid(); },
+
+            highlight: function (element) {
+              $(element).addClass('is-invalid input-validation-error').removeClass('is-valid');
+            },
+            unhighlight: function (element) {
+              $(element).removeClass('is-invalid input-validation-error is-valid');
+              const $c = $(element.form).find('[data-valmsg-for="' + element.name + '"]');
+              $c.text('').removeClass('field-validation-error text-danger d-block').addClass('field-validation-valid');
+            },
+            errorClass: 'text-danger',
+            errorPlacement: function (error, element) {
+              const $c = $(element.form).find('[data-valmsg-for="' + element.attr('name') + '"]');
+              if ($c.length) { $c.addClass('d-block').html('').append(error); }
+              else { error.insertAfter(element); }
+            }
+          });
+        })();
+
+        /* Re-parsea unobtrusive en formularios dinámicos */
+        function wireUpValidation(scope) {
+          if (!(window.jQuery && $.validator && $.validator.unobtrusive)) return;
+          $(scope).find('form').each(function () {
+            const $f = $(this);
+            $f.removeData('validator').removeData('unobtrusiveValidation');
+            $.validator.unobtrusive.parse($f);
+          });
+        }
+
+        /* Utilidad: limpiar mensaje/clases de UN campo */
+        function clearOneField(el) {
+          if (!el || !el.form) return;
+          el.classList.remove('is-invalid', 'input-validation-error', 'is-valid');
+          const span = el.form.querySelector('[data-valmsg-for="' + CSS.escape(el.name) + '"]');
+          if (span) {
+            span.textContent = '';
+            span.classList.remove('field-validation-error', 'text-danger', 'd-block');
+            span.classList.add('field-validation-valid');
+          }
+        }
+
+        /* ================= Sidebar & Layout ================= */
+        const sidebar = document.getElementById('appSidebar');
+        const backdrop = document.getElementById('menuBackdrop');
+        const btnSidebar = document.getElementById('btnSidebar');
+
+        function openSidebar() {
+          sidebar?.classList.add('open');
+          if (window.matchMedia('(max-width: 991.98px)').matches) backdrop?.classList.add('show');
+          document.body.classList.add('sidebar-open');
+          localStorage.setItem('sidebar-open', '1');
+        }
+        function closeSidebar() {
+          sidebar?.classList.remove('open');
+          backdrop?.classList.remove('show');
+          document.body.classList.remove('sidebar-open');
+          localStorage.setItem('sidebar-open', '0');
+        }
+        function toggleSidebar() { sidebar?.classList.contains('open') ? closeSidebar() : openSidebar(); }
+
+        (function restoreSidebar() {
+          const saved = localStorage.getItem('sidebar-open');
+          if (saved === '1' && window.matchMedia('(min-width: 992px)').matches) openSidebar();
+          else document.body.classList.remove('sidebar-open');
+        })();
+
+        btnSidebar?.addEventListener('click', toggleSidebar);
+        backdrop?.addEventListener('click', closeSidebar);
+
+        // Submenús en acordeón
+        document.querySelectorAll('.menu .has-children > a[data-toggle="submenu"]').forEach(tg => {
+          tg.addEventListener('click', (e) => {
+            e.preventDefault();
+            const li = tg.closest('.has-children');
+            const isOpen = li.classList.contains('open');
+            document.querySelectorAll('.menu .has-children.open').forEach(o => { if (o !== li) o.classList.remove('open'); });
+            li.classList.toggle('open', !isOpen);
+          });
+        });
+
+        /* ================= Router ÚNICO para #contentHost ================= */
+        (function () {
+          const host = document.getElementById('contentHost');
+          const hero = document.getElementById('hero');
+          if (!host) return;
+
+          function showModalFromHost(modalEl, fallbackMsg) {
+            try {
+              if (!modalEl) { if (fallbackMsg) alert(fallbackMsg); return; }
+              if (!window.bootstrap || typeof bootstrap.Modal !== 'function') {
+                if (fallbackMsg) alert(fallbackMsg);
+                return;
+              }
+              const inst = bootstrap.Modal.getOrCreateInstance(modalEl);
+              inst.show();
+            } catch (err) {
+              console.error('showModalFromHost error:', err);
+              if (fallbackMsg) alert(fallbackMsg);
+            }
           }
 
-            if (data.reason === 'nochanges') {
-              const warnEl = host.querySelector('#noChangesModal');
-              if (warnEl && window.bootstrap) {
-                const inst = bootstrap.Modal.getOrCreateInstance(warnEl);
-                warnEl.addEventListener('shown.bs.modal', () => {
-                  setTimeout(() => inst.hide(), 1500);
-                }, { once: true });
-                inst.show();
-              } else {
-                alert(data.message || 'No has modificado ningún campo.');
+          window.loadToHost =async function loadToHost(url, opts) {
+            const resp = await fetch(url, Object.assign({
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },
+              credentials: 'same-origin'
+            }, opts || {}));
+
+            const ctype = (resp.headers.get('content-type') || '').toLowerCase();
+
+            if (ctype.includes('application/json')) {
+              const data = await resp.json();
+
+              if (data.ok) {
+                const okEl = host.querySelector('#saveOkModal');
+                if (okEl) {
+                  showModalFromHost(okEl);
+                  if (data.redirectUrl) okEl.addEventListener('hidden.bs.modal', () => { loadToHost(data.redirectUrl); }, { once: true });
+                } else if (data.redirectUrl) {
+                  await loadToHost(data.redirectUrl);
+                }
+                return;
               }
+
+                if (data.reason === 'nochanges') {
+                  const warnEl = host.querySelector('#noChangesModal');
+                  if (warnEl && window.bootstrap) {
+                    const inst = bootstrap.Modal.getOrCreateInstance(warnEl);
+                    warnEl.addEventListener('shown.bs.modal', () => {
+                      setTimeout(() => inst.hide(), 1500);
+                    }, { once: true });
+                    inst.show();
+                  } else {
+                    alert(data.message || 'No has modificado ningún campo.');
+                  }
+                  return;
+                }
+
+              if (data.errors) {
+                const anyForm = host.querySelector('form');
+                if (anyForm) showFieldErrors(anyForm, data.errors);
+                return;
+              }
+
+              console.error(data.message || 'Ocurrió un problema.');
               return;
             }
 
-          if (data.errors) {
-            const anyForm = host.querySelector('form');
-            if (anyForm) showFieldErrors(anyForm, data.errors);
-            return;
+            if (!resp.ok) { window.location.href = url; return; }
+
+                    const html = await resp.text();
+
+            // Oculta el hero y las tarjetas del dashboard
+            if (hero) hero.style.display = 'none';
+            const dash = document.getElementById('dash-cards');
+            if (dash) dash.style.display = 'none';
+
+            if (window.swapContentIntoHost) window.swapContentIntoHost(html);
+            else host.innerHTML = html;
+
+            wireUpValidation(host);
+            initPageFeatures(host);
           }
 
-          console.error(data.message || 'Ocurrió un problema.');
-          return;
-        }
+                  // Menú lateral: manejador único con delegación
 
-        if (!resp.ok) { window.location.href = url; return; }
-        // const html = await resp.text();
-        // if (hero) hero.style.display = 'none';
-
-                const html = await resp.text();
-
-        // Oculta el hero y las tarjetas del dashboard
-        if (hero) hero.style.display = 'none';
-        const dash = document.getElementById('dash-cards');
-        if (dash) dash.style.display = 'none';
-
-        if (window.swapContentIntoHost) window.swapContentIntoHost(html);
-        else host.innerHTML = html;
-
-        wireUpValidation(host);
-        initPageFeatures(host);
-      }
-
-              // Menú lateral: manejador único con delegación
-            document.getElementById('appSidebar')?.addEventListener('click', (ev) => {
+                          document.getElementById('appSidebar')?.addEventListener('click', (ev) => {
               const a = ev.target.closest('.menu a[data-url]');
               if (!a) return;
+
+              const DASHBOARD_URL = '/Home/Dashboard';
 
               // Si el enlace requiere caja y está bloqueado, intercepta
               const grupoReservas = document.querySelector('.has-children.need-caja');
@@ -655,7 +733,7 @@
               ev.preventDefault();
               const url = a.dataset.url || a.href;
 
-              // home: muestra hero y limpia host
+              // === INICIO: vuelve al dashboard limpio ===
               if (a.dataset.home === '1' || url.endsWith('/Home/Index')) {
                 const host = document.getElementById('contentHost');
                 const hero = document.getElementById('hero');
@@ -664,171 +742,273 @@
                 if (hero) hero.style.display = '';
                 if (dash) dash.style.display = '';
 
-                //Refrescar KPIs cada vez que se entra a Inicio
+                // Refrescar KPIs
                 if (window.loadDashboardKpis) window.loadDashboardKpis();
 
-                history.replaceState(null, '', url);
-                    document.querySelectorAll('.menu .has-children.open')
-                    .forEach(li => li.classList.remove('open'));
+                // URL sin initial
+                history.replaceState(null, '', DASHBOARD_URL);
+
+                // Cerrar submenús
+                document.querySelectorAll('.menu .has-children.open')
+                  .forEach(li => li.classList.remove('open'));
                 return;
               }
 
+              // === Cualquier otro módulo: guardar ?initial= en la URL ===
+              const href = a.getAttribute('href');
+              const newUrl = (href && href.indexOf('initial=') >= 0)
+                ? href                              // ya tiene ?initial=...
+                : `${DASHBOARD_URL}?initial=${encodeURIComponent(url)}`;
+
+              history.replaceState(null, '', newUrl);
+
+              // Cargar el contenido en el host
               loadToHost(url);
-    });
+            });
 
-      // Delegación de CLICS dentro del host
-      host.addEventListener('click', (ev) => {
-        const askBtn = ev.target.closest('#btnAsk');
-        if (askBtn) {
-          ev.preventDefault();
-          const modalEl = host.querySelector('#confirmDeleteModal');
-          if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
-          return;
-        }
+          // Delegación de CLICS dentro del host
+          host.addEventListener('click', (ev) => {
+            const askBtn = ev.target.closest('#btnAsk');
+            if (askBtn) {
+              ev.preventDefault();
+              const modalEl = host.querySelector('#confirmDeleteModal');
+              if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).show();
+              return;
+            }
 
-        const confirmBtn = ev.target.closest('#btnConfirm');
-        if (confirmBtn) {
-          ev.preventDefault();
-          // Cierra el modal ANTES de enviar
-          const modalEl = host.querySelector('#confirmDeleteModal');
-          if (modalEl && window.bootstrap) {
-            try { bootstrap.Modal.getOrCreateInstance(modalEl).hide(); } catch {}
+            const confirmBtn = ev.target.closest('#btnConfirm');
+            if (confirmBtn) {
+              ev.preventDefault();
+              // Cierra el modal ANTES de enviar
+              const modalEl = host.querySelector('#confirmDeleteModal');
+              if (modalEl && window.bootstrap) {
+                try { bootstrap.Modal.getOrCreateInstance(modalEl).hide(); } catch {}
+              }
+              cleanupModals();
+
+              const form = host.querySelector('#frmDelete');
+              if (form?.requestSubmit) form.requestSubmit(); else form?.submit();
+              return;
+            }
+
+            const a = ev.target.closest('a[data-url], a.ajax-nav[data-url]');
+            if (a) {
+              ev.preventDefault();
+              const url = a.dataset.url || a.href;
+              const DASHBOARD_URL = '/Home/Dashboard';
+              history.replaceState(null, '', `${DASHBOARD_URL}?initial=${encodeURIComponent(url)}`);
+              loadToHost(url);
+            }
+
+          });
+
+          /* ----- Helpers errores por campo (para respuestas JSON con errors) ----- */
+          function clearFieldErrors(form) {
+            form.querySelectorAll('[data-valmsg-for]').forEach(sp => {
+              sp.textContent = '';
+              sp.classList.remove('field-validation-error', 'text-danger', 'invalid-feedback', 'd-block');
+              sp.classList.add('field-validation-valid');
+            });
+            form.querySelectorAll('.is-invalid, .input-validation-error').forEach(el => el.classList.remove('is-invalid', 'input-validation-error'));
           }
-          cleanupModals();
-
-          const form = host.querySelector('#frmDelete');
-          if (form?.requestSubmit) form.requestSubmit(); else form?.submit();
-          return;
-        }
-        const a = ev.target.closest('a[data-url], a.ajax-nav[data-url]');
-        if (a) { ev.preventDefault(); loadToHost(a.dataset.url || a.href); }
-      });
-
-      /* ----- Helpers errores por campo (para respuestas JSON con errors) ----- */
-      function clearFieldErrors(form) {
-        form.querySelectorAll('[data-valmsg-for]').forEach(sp => {
-          sp.textContent = '';
-          sp.classList.remove('field-validation-error', 'text-danger', 'invalid-feedback', 'd-block');
-          sp.classList.add('field-validation-valid');
-        });
-        form.querySelectorAll('.is-invalid, .input-validation-error').forEach(el => el.classList.remove('is-invalid', 'input-validation-error'));
-      }
-      function showFieldErrors(form, errors) {
-        let first = null;
-        for (const key in errors) {
-          const msgs = errors[key];
-          const span = form.querySelector('[data-valmsg-for="' + key + '"]');
-          if (span) {
-            span.textContent = msgs.join(' ');
-            span.classList.remove('field-validation-valid');
-            span.classList.add('field-validation-error', 'text-danger', 'd-block');
+          function showFieldErrors(form, errors) {
+            let first = null;
+            for (const key in errors) {
+              const msgs = errors[key];
+              const span = form.querySelector('[data-valmsg-for="' + key + '"]');
+              if (span) {
+                span.textContent = msgs.join(' ');
+                span.classList.remove('field-validation-valid');
+                span.classList.add('field-validation-error', 'text-danger', 'd-block');
+              }
+              const ctrl = form.querySelector('[name="' + key + '"]');
+              if (ctrl) {
+                ctrl.classList.add('is-invalid', 'input-validation-error');
+                if (!first) first = ctrl;
+              }
+            }
+            if (first) first.focus({ preventScroll: false });
           }
-          const ctrl = form.querySelector('[name="' + key + '"]');
-          if (ctrl) {
-            ctrl.classList.add('is-invalid', 'input-validation-error');
-            if (!first) first = ctrl;
-          }
-        }
-        if (first) first.focus({ preventScroll: false });
-      }
 
-       // --- Delegación de formularios AJAX dentro del host (CON manejo 400/500) ---
-        host.addEventListener('submit', async (ev) => {
-          const form = ev.target.closest('form');
-          if (!form) return;
+           // --- Delegación de formularios AJAX dentro del host (CON manejo 400/500) ---
+            host.addEventListener('submit', async (ev) => {
+              const form = ev.target.closest('form');
+              if (!form) return;
 
-          /* ===== Handler ESPECÍFICO para #frmBuscar (GET a /Reservas/Buscar) ===== */
-          if (form.id === 'frmBuscar') {
-            ev.preventDefault();
-            ev.stopImmediatePropagation(); // evita que el handler genérico también lo procese
+              /* ===== Handler ESPECÍFICO para #frmBuscar (GET a /Reservas/Buscar) ===== */
+              if (form.id === 'frmBuscar') {
+                ev.preventDefault();
+                ev.stopImmediatePropagation(); // evita que el handler genérico también lo procese
 
-            const btn = form.querySelector('button[type="submit"], button:not([type])');
-            let oldHtml = '';
-            if (btn) { btn.disabled = true; oldHtml = btn.innerHTML; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Buscando...'; }
+                const btn = form.querySelector('button[type="submit"], button:not([type])');
+                let oldHtml = '';
+                if (btn) { btn.disabled = true; oldHtml = btn.innerHTML; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Buscando...'; }
 
-            try {
-              const qs = new URLSearchParams(new FormData(form));
-              qs.append('_', Date.now()); // rompe caché
-              const r = await fetch(`${form.action}?${qs.toString()}`, {
-                method: 'GET',
-                cache: 'no-store',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                credentials: 'same-origin'
+                try {
+                  const qs = new URLSearchParams(new FormData(form));
+                  qs.append('_', Date.now()); // rompe caché
+                  const r = await fetch(`${form.action}?${qs.toString()}`, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin'
+                  });
+
+                  const html = await r.text();
+                  const panel = document.getElementById('resultados');
+                  if (panel) panel.innerHTML = html;
+
+                  // el partial trae tarjetas nuevas → inicializa montos/combos
+                  if (window.initCards) window.initCards();
+                  if (panel) window.scrollTo({ top: panel.offsetTop - 16, behavior: 'smooth' });
+                } catch (e) {
+                  console.error(e);
+                  const panel = document.getElementById('resultados');
+                  if (panel) panel.innerHTML = '<div class="alert alert-danger">Ocurrió un error al buscar.</div>';
+                } finally {
+                  if (btn) { btn.disabled = false; btn.innerHTML = oldHtml || 'Buscar'; }
+                }
+                return; // ¡no sigas al handler genérico!
+              }
+
+              /* ===== Resto de formularios GET (navega dentro del host) ===== */
+              const method = (form.method || 'GET').toUpperCase();
+              if (method === 'GET') {
+                ev.preventDefault();
+                const qs = new URLSearchParams(new FormData(form));
+                const url = form.action + (qs.toString() ? `?${qs.toString()}` : '');
+                await window.loadToHost(url);
+                return;
+              }
+
+              /* ====== POST/PUT/etc. con manejo de validaciones y errores (igual que tenías) ====== */
+              ev.preventDefault();
+
+              // Limpia errores previos
+              form.querySelectorAll('[data-valmsg-for]').forEach(sp => {
+                sp.classList.remove('field-validation-error','text-danger','invalid-feedback','d-block');
+                sp.classList.add('field-validation-valid');
+              });
+              form.querySelectorAll('.is-invalid, .input-validation-error')
+                  .forEach(el => el.classList.remove('is-invalid','input-validation-error'));
+
+              // Validación cliente opcional
+              try {
+                if (window.jQuery && $.validator) {
+                  const $f = $(form);
+                  if (!$f.data('validator')) {
+                    $f.removeData('validator').removeData('unobtrusiveValidation');
+                    $.validator.unobtrusive && $.validator.unobtrusive.parse($f);
+                  }
+                  if (!$f.valid()) return;
+                }
+              } catch {}
+
+              const fd = new FormData(form);
+              const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
+              const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+              if (token) headers['RequestVerificationToken'] = token;
+
+              const resp = await fetch(form.action, {
+                method: form.method || 'POST',
+                body: fd,
+                headers,
+                credentials: 'same-origin',
+                redirect: 'follow'
               });
 
-              const html = await r.text();
-              const panel = document.getElementById('resultados');
-              if (panel) panel.innerHTML = html;
-
-              // el partial trae tarjetas nuevas → inicializa montos/combos
-              if (window.initCards) window.initCards();
-              if (panel) window.scrollTo({ top: panel.offsetTop - 16, behavior: 'smooth' });
-            } catch (e) {
-              console.error(e);
-              const panel = document.getElementById('resultados');
-              if (panel) panel.innerHTML = '<div class="alert alert-danger">Ocurrió un error al buscar.</div>';
-            } finally {
-              if (btn) { btn.disabled = false; btn.innerHTML = oldHtml || 'Buscar'; }
-            }
-            return; // ¡no sigas al handler genérico!
-          }
-
-          /* ===== Resto de formularios GET (navega dentro del host) ===== */
-          const method = (form.method || 'GET').toUpperCase();
-          if (method === 'GET') {
-            ev.preventDefault();
-            const qs = new URLSearchParams(new FormData(form));
-            const url = form.action + (qs.toString() ? `?${qs.toString()}` : '');
-            await window.loadToHost(url);
-            return;
-          }
-
-          /* ====== POST/PUT/etc. con manejo de validaciones y errores (igual que tenías) ====== */
-          ev.preventDefault();
-
-          // Limpia errores previos
-          form.querySelectorAll('[data-valmsg-for]').forEach(sp => {
-            sp.classList.remove('field-validation-error','text-danger','invalid-feedback','d-block');
-            sp.classList.add('field-validation-valid');
-          });
-          form.querySelectorAll('.is-invalid, .input-validation-error')
-              .forEach(el => el.classList.remove('is-invalid','input-validation-error'));
-
-          // Validación cliente opcional
-          try {
-            if (window.jQuery && $.validator) {
-              const $f = $(form);
-              if (!$f.data('validator')) {
-                $f.removeData('validator').removeData('unobtrusiveValidation');
-                $.validator.unobtrusive && $.validator.unobtrusive.parse($f);
+              // --- Manejo explícito de 400/500 ---
+              if (!resp.ok) {
+                const ct = (resp.headers.get('content-type') || '').toLowerCase();
+                const rawErr = await resp.text();
+                if (ct.includes('application/json')) {
+                  try {
+                    const dataErr = JSON.parse(rawErr);
+                    if (dataErr.errors) {
+                      for (const key in dataErr.errors) {
+                        const msgs = dataErr.errors[key];
+                        const span = form.querySelector('[data-valmsg-for="' + key + '"]');
+                        if (span) {
+                          span.textContent = msgs.join(' ');
+                          span.classList.remove('field-validation-valid');
+                          span.classList.add('field-validation-error','text-danger','d-block');
+                        }
+                        const ctrl = form.querySelector('[name="' + key + '"]');
+                        if (ctrl) ctrl.classList.add('is-invalid','input-validation-error');
+                      }
+                      return;
+                    }
+                    alert(dataErr.message || ('Error ' + resp.status));
+                    return;
+                  } catch {
+                    console.error(rawErr);
+                    alert('Error ' + resp.status);
+                    return;
+                  }
+                } else {
+                  const host = document.getElementById('contentHost');
+                  if (host) {
+                    host.innerHTML = rawErr;
+                    host.querySelectorAll('script').forEach(old => {
+                      const s = document.createElement('script');
+                      if (old.src) { s.src = old.src; s.async = false; }
+                      else { s.text = old.textContent; }
+                      document.head.appendChild(s);
+                      old.remove();
+                    });
+                    wireUpValidation(host);
+                    initPageFeatures(host);
+                  } else {
+                    document.open(); document.write(rawErr); document.close();
+                  }
+                  return;
+                }
               }
-              if (!$f.valid()) return;
-            }
-          } catch {}
 
-          const fd = new FormData(form);
-          const token = form.querySelector('input[name="__RequestVerificationToken"]')?.value;
-          const headers = { 'X-Requested-With': 'XMLHttpRequest' };
-          if (token) headers['RequestVerificationToken'] = token;
+              // --- Éxito → JSON o HTML ---
+              const raw = await resp.text();
+              let data = null;
+              try { data = JSON.parse(raw); } catch {}
 
-          const resp = await fetch(form.action, {
-            method: form.method || 'POST',
-            body: fd,
-            headers,
-            credentials: 'same-origin',
-            redirect: 'follow'
-          });
+              if (data) {
+                if (data.ok) {
+                  const doReload = async () => {
+                    if (data.redirectUrl) {
+                      cleanupModals();
+                      await loadToHost(data.redirectUrl);
+                    }
+                    window.refreshCajaLock && window.refreshCajaLock();
+                  };
 
-          // --- Manejo explícito de 400/500 ---
-          if (!resp.ok) {
-            const ct = (resp.headers.get('content-type') || '').toLowerCase();
-            const rawErr = await resp.text();
-            if (ct.includes('application/json')) {
-              try {
-                const dataErr = JSON.parse(rawErr);
-                if (dataErr.errors) {
-                  for (const key in dataErr.errors) {
-                    const msgs = dataErr.errors[key];
+                  const okEl = document.getElementById('saveOkModal');
+                  if (okEl && window.bootstrap) {
+                    const inst = bootstrap.Modal.getOrCreateInstance(okEl);
+                    okEl.addEventListener('shown.bs.modal', () => { setTimeout(() => inst.hide(), 1500); }, { once: true });
+                    okEl.addEventListener('hidden.bs.modal', () => { doReload(); }, { once: true });
+                    inst.show();
+                  } else {
+                    await doReload();
+                  }
+                  return;
+                }
+
+                if (data.reason === 'nochanges') {
+                  const warnEl = document.getElementById('noChangesModal');
+                  if (warnEl && window.bootstrap) {
+                    const msg = warnEl.querySelector('.js-msg');
+                    if (msg && data.message) msg.textContent = data.message;
+                    const inst = bootstrap.Modal.getOrCreateInstance(warnEl);
+                    warnEl.addEventListener('shown.bs.modal', () => { setTimeout(() => inst.hide(), 1500); }, { once: true });
+                    inst.show();
+                  } else {
+                    alert(data.message || 'No has modificado ningún campo.');
+                  }
+                  return;
+                }
+
+                if (data.errors) {
+                  for (const key in data.errors) {
+                    const msgs = data.errors[key];
                     const span = form.querySelector('[data-valmsg-for="' + key + '"]');
                     if (span) {
                       span.textContent = msgs.join(' ');
@@ -840,97 +1020,269 @@
                   }
                   return;
                 }
-                alert(dataErr.message || ('Error ' + resp.status));
-                return;
-              } catch {
-                console.error(rawErr);
-                alert('Error ' + resp.status);
-                return;
+                if (data.message) { alert(data.message); return; }
               }
+
+              // HTML
+            if (host) {
+              // Limpia SOLO backdrops antes de inyectar
+              cleanupModals();
+
+              host.innerHTML = raw;
+
+              host.querySelectorAll('script').forEach(old => {
+                const s = document.createElement('script');
+                if (old.src) { s.src = old.src; s.async = false; }
+                else { s.text = old.textContent; }
+                document.head.appendChild(s);
+                old.remove();
+              });
+
+              wireUpValidation(host);
+              initPageFeatures(host);
+              window.scrollTo(0, 0);
+
+              // ⛔ NO llames cleanupModals aquí: podrías borrar el #saveOkModal recién renderizado
             } else {
-              const host = document.getElementById('contentHost');
-              if (host) {
-                host.innerHTML = rawErr;
-                host.querySelectorAll('script').forEach(old => {
-                  const s = document.createElement('script');
-                  if (old.src) { s.src = old.src; s.async = false; }
-                  else { s.text = old.textContent; }
-                  document.head.appendChild(s);
-                  old.remove();
-                });
-                wireUpValidation(host);
-                initPageFeatures(host);
-              } else {
-                document.open(); document.write(rawErr); document.close();
-              }
+              document.open(); document.write(raw); document.close();
+            }
+            });
+
+          // Exponer utilidad para reemplazar solo un fragmento
+          window.swapInHost = async function swapInHost(url, selector) {
+            const host = document.getElementById('contentHost');
+            const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!resp.ok) { window.location.href = url; return; }
+            const html = await resp.text();
+            const tmp = document.createElement('div'); tmp.innerHTML = html;
+            const newNode = tmp.querySelector(selector);
+            const oldNode = host.querySelector(selector);
+            if (newNode && oldNode) oldNode.replaceWith(newNode);
+          };
+
+          /* ==== Validación reactiva en TODOS los inputs dentro de #contentHost ==== */
+          host.addEventListener('input', (ev) => {
+            const el = ev.target;
+            if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) return;
+
+            if (window.jQuery && $(el.form).data('validator')) {
+              const ok = $(el).valid();
+              if (ok) clearOneField(el);
               return;
             }
+
+            const isRequired = el.hasAttribute('data-val') && el.hasAttribute('data-val-required');
+            if (isRequired && (el.value || '').trim() !== '') {
+              clearOneField(el);
+            }
+          });
+
+        })();
+
+        /* Atajo Ctrl+B para abrir/cerrar el sidebar */
+        document.addEventListener('keydown', (e) => {
+          if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); toggleSidebar(); }
+        });
+
+        /* ==== Autofiltros de Puestos (delegado en #contentHost) ==== */
+        (function () {
+          const host = document.getElementById('contentHost');
+          if (!host) return;
+
+          const debounce = (fn, ms = 400) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); } };
+
+          function buildUrl() {
+            const form = host.querySelector('#frmFiltros');
+            if (!form) return null;
+            const endpoint = form.dataset.endpoint || '/';
+            const codigo = form.querySelector('#fCodigo')?.value.trim() || '';
+            const nombre = form.querySelector('#fNombre')?.value.trim() || '';
+            const estado = form.querySelector('#fEstado')?.value ?? '';
+
+            const qs = new URLSearchParams();
+            if (codigo) qs.set('codigo', codigo);
+            if (nombre) qs.set('nombre', nombre);
+            qs.set('estado', estado);
+
+            return endpoint + (qs.toString() ? '?' + qs.toString() : '');
           }
 
-          // --- Éxito → JSON o HTML ---
-          const raw = await resp.text();
-          let data = null;
-          try { data = JSON.parse(raw); } catch {}
+          const run = debounce(async () => {
+            const url = buildUrl();
+            if (!url) return;
 
-          if (data) {
-            if (data.ok) {
-              const doReload = async () => {
-                if (data.redirectUrl) {
-                  cleanupModals();
-                  await loadToHost(data.redirectUrl);
-                }
-                window.refreshCajaLock && window.refreshCajaLock();
-              };
+            const active = document.activeElement;
+            const id = active?.id;
+            const selStart = ('selectionStart' in active) ? active.selectionStart : null;
+            const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
 
-              const okEl = document.getElementById('saveOkModal');
-              if (okEl && window.bootstrap) {
-                const inst = bootstrap.Modal.getOrCreateInstance(okEl);
-                okEl.addEventListener('shown.bs.modal', () => { setTimeout(() => inst.hide(), 1500); }, { once: true });
-                okEl.addEventListener('hidden.bs.modal', () => { doReload(); }, { once: true });
-                inst.show();
-              } else {
-                await doReload();
+            await window.swapInHost(url, '#printArea');
+            history.replaceState(null, '', url);
+            window.initPuestosPager(host.querySelector('#printArea'));
+
+            if (id) {
+              const el = host.querySelector('#' + CSS.escape(id));
+              if (el) {
+                el.focus();
+                if (selStart != null && selEnd != null && el.setSelectionRange) el.setSelectionRange(selStart, selEnd);
               }
+            }
+          }, 400);
+
+          host.addEventListener('input', (ev) => {
+            const id = ev.target?.id;
+            const v = ev.target?.value?.trim?.() || '';
+            if ((id === 'fCodigo' || id === 'fNombre') && (v.length === 0 || v.length >= 2)) run();
+          });
+
+          host.addEventListener('change', (ev) => { if (ev.target?.id === 'fEstado') run(); });
+
+          host.addEventListener('click', (ev) => {
+            const btn = ev.target.closest('#btnPrint');
+            if (!btn) return;
+
+            const form = host.querySelector('#frmFiltros');
+            const endpoint = form?.dataset.report || (form?.dataset.endpoint?.replace('/Index', '/ExportPdf')) || '';
+            if (!endpoint) return;
+
+            const qs = new URLSearchParams();
+            const cod = form.querySelector('#fCodigo')?.value.trim() || '';
+            const nom = form.querySelector('#fNombre')?.value.trim() || '';
+            const est = form.querySelector('#fEstado')?.value ?? '';
+            if (cod) qs.set('codigo', cod);
+            if (nom) qs.set('nombre', nom);
+            qs.set('estado', est);
+
+            window.open(endpoint + (qs.toString() ? '?' + qs.toString() : ''), '_blank');
+          });
+        })();
+
+        /* ========== Init extra de páginas ========== */
+        function initPageFeatures(host) {
+          const area = host.querySelector('#printArea');
+          if (area) window.initPuestosPager(area);
+          setupPasswordUi(host);
+        }
+
+        function setupPasswordUi(scope) {
+          const pwd = scope.querySelector('#NuevaContrasena, input[name="NuevaContrasena"]');
+          const confirm = scope.querySelector('#ConfirmarContrasena, input[name="ConfirmarContrasena"]');
+          const list = scope.querySelector('#pwChecklist');
+          const matchMsg = scope.querySelector('#pwMatchMsg');
+          if (!pwd || !list) return;
+
+          const req = (sel) => list?.querySelector(sel);
+          const setItem = (el, ok) => {
+            if (!el) return;
+            el.classList.toggle('pw-ok', ok);
+            el.classList.toggle('pw-bad', !ok);
+            const i = el.querySelector('i');
+            if (i) i.className = ok ? 'bi bi-check-circle-fill me-1' : 'bi bi-x-circle-fill me-1';
+          };
+
+          const checkPwd = () => {
+            const v = pwd.value || '';
+            const okLower = /[a-z]/.test(v);
+            const okUpper = /[A-Z]/.test(v);
+            const okDigit = /\d/.test(v);
+            const okLen = v.length >= 8 && v.length <= 15;
+
+            setItem(req('[data-req="lower"]'), okLower);
+            setItem(req('[data-req="upper"]'), okUpper);
+            setItem(req('[data-req="digit"]'), okDigit);
+            setItem(req('[data-req="len"]'), okLen);
+
+            const allOk = okLower && okUpper && okDigit && okLen;
+            pwd.classList.toggle('is-valid', allOk && v.length > 0);
+            pwd.classList.toggle('is-invalid', !allOk && v.length > 0);
+          };
+
+          const checkMatch = () => {
+            if (!confirm || !matchMsg) return;
+            const a = pwd.value || '';
+            const b = confirm.value || '';
+            if (!b) {
+              confirm.classList.remove('is-valid', 'is-invalid');
+              matchMsg.textContent = '';
+              matchMsg.classList.remove('text-success', 'text-danger');
               return;
             }
+            const same = a === b;
+            confirm.classList.toggle('is-valid', same);
+            confirm.classList.toggle('is-invalid', !same);
+            matchMsg.textContent = same ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
+            matchMsg.classList.toggle('text-success', same);
+            matchMsg.classList.toggle('text-danger', !same);
+          };
 
-            if (data.reason === 'nochanges') {
-              const warnEl = document.getElementById('noChangesModal');
-              if (warnEl && window.bootstrap) {
-                const msg = warnEl.querySelector('.js-msg');
-                if (msg && data.message) msg.textContent = data.message;
-                const inst = bootstrap.Modal.getOrCreateInstance(warnEl);
-                warnEl.addEventListener('shown.bs.modal', () => { setTimeout(() => inst.hide(), 1500); }, { once: true });
-                inst.show();
-              } else {
-                alert(data.message || 'No has modificado ningún campo.');
-              }
-              return;
-            }
+          pwd.addEventListener('input', () => { checkPwd(); checkMatch(); });
+          confirm?.addEventListener('input', checkMatch);
+          checkPwd(); checkMatch();
+        }
 
-            if (data.errors) {
-              for (const key in data.errors) {
-                const msgs = data.errors[key];
-                const span = form.querySelector('[data-valmsg-for="' + key + '"]');
-                if (span) {
-                  span.textContent = msgs.join(' ');
-                  span.classList.remove('field-validation-valid');
-                  span.classList.add('field-validation-error','text-danger','d-block');
-                }
-                const ctrl = form.querySelector('[name="' + key + '"]');
-                if (ctrl) ctrl.classList.add('is-invalid','input-validation-error');
-              }
-              return;
-            }
-            if (data.message) { alert(data.message); return; }
+        /* Init de paginación */
+        window.initPuestosPager = function initPuestosPager(rootEl) {
+          const wrap = rootEl || document.getElementById('printArea');
+          if (!wrap) return;
+
+          const pageSize = 9;
+          // const $tbody = wrap.querySelector('#tblPuestos tbody');
+          const $tbody = wrap.querySelector('#tblNumPaginador tbody');
+          const rows = Array.from($tbody?.querySelectorAll('tr') || []);
+          const $pager = wrap.querySelector('#pager');
+          const $info = wrap.querySelector('#infoRows');
+          let page = 1;
+
+          function render(toPage) {
+            page = toPage ?? page;
+            const total = rows.length;
+            const pages = Math.max(1, Math.ceil(total / pageSize));
+            if (page > pages) page = pages;
+
+            rows.forEach(tr => tr.style.display = 'none');
+            const start = (page - 1) * pageSize;
+            rows.slice(start, start + pageSize).forEach(tr => tr.style.display = '');
+
+            const first = total ? start + 1 : 0;
+            const last = Math.min(start + pageSize, total);
+            if ($info) $info.textContent = `Mostrando ${first}-${last} de ${total}`;
+            drawPager(pages);
           }
 
-          // HTML
-        if (host) {
-          // Limpia SOLO backdrops antes de inyectar
-          cleanupModals();
+          function drawPager(pages) {
+            if (!$pager) return;
+            const mk = (label, p, disabled = false, active = false) => {
+              const li = document.createElement('li');
+              li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+              const a = document.createElement('a');
+              a.className = 'page-link'; a.href = '#'; a.textContent = label;
+              a.addEventListener('click', ev => { ev.preventDefault(); if (!disabled && !active) render(p); });
+              li.appendChild(a);
+              return li;
+            };
+            $pager.innerHTML = '';
+            const pagesCount = pages;
+            $pager.appendChild(mk('«', 1, page === 1));
+            $pager.appendChild(mk('‹', page - 1, page === 1));
+            const range = 2;
+            const start = Math.max(1, page - range);
+            const end = Math.min(pagesCount, page + range);
+            if (start > 1) $pager.appendChild(mk('1', 1, false, page === 1));
+            if (start > 2) $pager.appendChild(mk('…', page, true));
+            for (let p = start; p <= end; p++) $pager.appendChild(mk(String(p), p, false, p === page));
+            if (end < pagesCount - 1) $pager.appendChild(mk('…', page, true));
+            if (end < pagesCount) $pager.appendChild(mk(String(pagesCount), pagesCount, false, p === pagesCount));
+            $pager.appendChild(mk('›', page + 1, page === pagesCount));
+            $pager.appendChild(mk('»', pagesCount, page === pagesCount));
+          }
 
-          host.innerHTML = raw;
+          render(1);
+        };
+
+        window.swapContentIntoHost = function (html) {
+          const host = document.getElementById('contentHost');
+          if (!host) return;
+          host.innerHTML = html;
 
           host.querySelectorAll('script').forEach(old => {
             const s = document.createElement('script');
@@ -940,381 +1292,128 @@
             old.remove();
           });
 
-          wireUpValidation(host);
-          initPageFeatures(host);
           window.scrollTo(0, 0);
-
-          // ⛔ NO llames cleanupModals aquí: podrías borrar el #saveOkModal recién renderizado
-        } else {
-          document.open(); document.write(raw); document.close();
-        }
-        });
-
-      // Exponer utilidad para reemplazar solo un fragmento
-      window.swapInHost = async function swapInHost(url, selector) {
-        const host = document.getElementById('contentHost');
-        const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        if (!resp.ok) { window.location.href = url; return; }
-        const html = await resp.text();
-        const tmp = document.createElement('div'); tmp.innerHTML = html;
-        const newNode = tmp.querySelector(selector);
-        const oldNode = host.querySelector(selector);
-        if (newNode && oldNode) oldNode.replaceWith(newNode);
-      };
-
-      /* ==== Validación reactiva en TODOS los inputs dentro de #contentHost ==== */
-      host.addEventListener('input', (ev) => {
-        const el = ev.target;
-        if (!(el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement)) return;
-
-        if (window.jQuery && $(el.form).data('validator')) {
-          const ok = $(el).valid();
-          if (ok) clearOneField(el);
-          return;
-        }
-
-        const isRequired = el.hasAttribute('data-val') && el.hasAttribute('data-val-required');
-        if (isRequired && (el.value || '').trim() !== '') {
-          clearOneField(el);
-        }
-      });
-
-    })();
-
-    /* Atajo Ctrl+B para abrir/cerrar el sidebar */
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && (e.key === 'b' || e.key === 'B')) { e.preventDefault(); toggleSidebar(); }
-    });
-
-    /* ==== Autofiltros de Puestos (delegado en #contentHost) ==== */
-    (function () {
-      const host = document.getElementById('contentHost');
-      if (!host) return;
-
-      const debounce = (fn, ms = 400) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); } };
-
-      function buildUrl() {
-        const form = host.querySelector('#frmFiltros');
-        if (!form) return null;
-        const endpoint = form.dataset.endpoint || '/';
-        const codigo = form.querySelector('#fCodigo')?.value.trim() || '';
-        const nombre = form.querySelector('#fNombre')?.value.trim() || '';
-        const estado = form.querySelector('#fEstado')?.value ?? '';
-
-        const qs = new URLSearchParams();
-        if (codigo) qs.set('codigo', codigo);
-        if (nombre) qs.set('nombre', nombre);
-        qs.set('estado', estado);
-
-        return endpoint + (qs.toString() ? '?' + qs.toString() : '');
-      }
-
-      const run = debounce(async () => {
-        const url = buildUrl();
-        if (!url) return;
-
-        const active = document.activeElement;
-        const id = active?.id;
-        const selStart = ('selectionStart' in active) ? active.selectionStart : null;
-        const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
-
-        await window.swapInHost(url, '#printArea');
-        history.replaceState(null, '', url);
-        window.initPuestosPager(host.querySelector('#printArea'));
-
-        if (id) {
-          const el = host.querySelector('#' + CSS.escape(id));
-          if (el) {
-            el.focus();
-            if (selStart != null && selEnd != null && el.setSelectionRange) el.setSelectionRange(selStart, selEnd);
-          }
-        }
-      }, 400);
-
-      host.addEventListener('input', (ev) => {
-        const id = ev.target?.id;
-        const v = ev.target?.value?.trim?.() || '';
-        if ((id === 'fCodigo' || id === 'fNombre') && (v.length === 0 || v.length >= 2)) run();
-      });
-
-      host.addEventListener('change', (ev) => { if (ev.target?.id === 'fEstado') run(); });
-
-      host.addEventListener('click', (ev) => {
-        const btn = ev.target.closest('#btnPrint');
-        if (!btn) return;
-
-        const form = host.querySelector('#frmFiltros');
-        const endpoint = form?.dataset.report || (form?.dataset.endpoint?.replace('/Index', '/ExportPdf')) || '';
-        if (!endpoint) return;
-
-        const qs = new URLSearchParams();
-        const cod = form.querySelector('#fCodigo')?.value.trim() || '';
-        const nom = form.querySelector('#fNombre')?.value.trim() || '';
-        const est = form.querySelector('#fEstado')?.value ?? '';
-        if (cod) qs.set('codigo', cod);
-        if (nom) qs.set('nombre', nom);
-        qs.set('estado', est);
-
-        window.open(endpoint + (qs.toString() ? '?' + qs.toString() : ''), '_blank');
-      });
-    })();
-
-    /* ========== Init extra de páginas ========== */
-    function initPageFeatures(host) {
-      const area = host.querySelector('#printArea');
-      if (area) window.initPuestosPager(area);
-      setupPasswordUi(host);
-    }
-
-    function setupPasswordUi(scope) {
-      const pwd = scope.querySelector('#NuevaContrasena, input[name="NuevaContrasena"]');
-      const confirm = scope.querySelector('#ConfirmarContrasena, input[name="ConfirmarContrasena"]');
-      const list = scope.querySelector('#pwChecklist');
-      const matchMsg = scope.querySelector('#pwMatchMsg');
-      if (!pwd || !list) return;
-
-      const req = (sel) => list?.querySelector(sel);
-      const setItem = (el, ok) => {
-        if (!el) return;
-        el.classList.toggle('pw-ok', ok);
-        el.classList.toggle('pw-bad', !ok);
-        const i = el.querySelector('i');
-        if (i) i.className = ok ? 'bi bi-check-circle-fill me-1' : 'bi bi-x-circle-fill me-1';
-      };
-
-      const checkPwd = () => {
-        const v = pwd.value || '';
-        const okLower = /[a-z]/.test(v);
-        const okUpper = /[A-Z]/.test(v);
-        const okDigit = /\d/.test(v);
-        const okLen = v.length >= 8 && v.length <= 15;
-
-        setItem(req('[data-req="lower"]'), okLower);
-        setItem(req('[data-req="upper"]'), okUpper);
-        setItem(req('[data-req="digit"]'), okDigit);
-        setItem(req('[data-req="len"]'), okLen);
-
-        const allOk = okLower && okUpper && okDigit && okLen;
-        pwd.classList.toggle('is-valid', allOk && v.length > 0);
-        pwd.classList.toggle('is-invalid', !allOk && v.length > 0);
-      };
-
-      const checkMatch = () => {
-        if (!confirm || !matchMsg) return;
-        const a = pwd.value || '';
-        const b = confirm.value || '';
-        if (!b) {
-          confirm.classList.remove('is-valid', 'is-invalid');
-          matchMsg.textContent = '';
-          matchMsg.classList.remove('text-success', 'text-danger');
-          return;
-        }
-        const same = a === b;
-        confirm.classList.toggle('is-valid', same);
-        confirm.classList.toggle('is-invalid', !same);
-        matchMsg.textContent = same ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden';
-        matchMsg.classList.toggle('text-success', same);
-        matchMsg.classList.toggle('text-danger', !same);
-      };
-
-      pwd.addEventListener('input', () => { checkPwd(); checkMatch(); });
-      confirm?.addEventListener('input', checkMatch);
-      checkPwd(); checkMatch();
-    }
-
-    /* Init de paginación */
-    window.initPuestosPager = function initPuestosPager(rootEl) {
-      const wrap = rootEl || document.getElementById('printArea');
-      if (!wrap) return;
-
-      const pageSize = 9;
-      // const $tbody = wrap.querySelector('#tblPuestos tbody');
-      const $tbody = wrap.querySelector('#tblNumPaginador tbody');
-      const rows = Array.from($tbody?.querySelectorAll('tr') || []);
-      const $pager = wrap.querySelector('#pager');
-      const $info = wrap.querySelector('#infoRows');
-      let page = 1;
-
-      function render(toPage) {
-        page = toPage ?? page;
-        const total = rows.length;
-        const pages = Math.max(1, Math.ceil(total / pageSize));
-        if (page > pages) page = pages;
-
-        rows.forEach(tr => tr.style.display = 'none');
-        const start = (page - 1) * pageSize;
-        rows.slice(start, start + pageSize).forEach(tr => tr.style.display = '');
-
-        const first = total ? start + 1 : 0;
-        const last = Math.min(start + pageSize, total);
-        if ($info) $info.textContent = `Mostrando ${first}-${last} de ${total}`;
-        drawPager(pages);
-      }
-
-      function drawPager(pages) {
-        if (!$pager) return;
-        const mk = (label, p, disabled = false, active = false) => {
-          const li = document.createElement('li');
-          li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
-          const a = document.createElement('a');
-          a.className = 'page-link'; a.href = '#'; a.textContent = label;
-          a.addEventListener('click', ev => { ev.preventDefault(); if (!disabled && !active) render(p); });
-          li.appendChild(a);
-          return li;
         };
-        $pager.innerHTML = '';
-        const pagesCount = pages;
-        $pager.appendChild(mk('«', 1, page === 1));
-        $pager.appendChild(mk('‹', page - 1, page === 1));
-        const range = 2;
-        const start = Math.max(1, page - range);
-        const end = Math.min(pagesCount, page + range);
-        if (start > 1) $pager.appendChild(mk('1', 1, false, page === 1));
-        if (start > 2) $pager.appendChild(mk('…', page, true));
-        for (let p = start; p <= end; p++) $pager.appendChild(mk(String(p), p, false, p === page));
-        if (end < pagesCount - 1) $pager.appendChild(mk('…', page, true));
-        if (end < pagesCount) $pager.appendChild(mk(String(pagesCount), pagesCount, false, p === pagesCount));
-        $pager.appendChild(mk('›', page + 1, page === pagesCount));
-        $pager.appendChild(mk('»', pagesCount, page === pagesCount));
-      }
 
-      render(1);
-    };
+        //bloqueo de menú reservas si no existe caja abierta
+                (async function lockReservasIfNoCaja(){
 
-    window.swapContentIntoHost = function (html) {
-      const host = document.getElementById('contentHost');
-      if (!host) return;
-      host.innerHTML = html;
+                            try {
+                    const r = await fetch('/Caja/IsOpen', { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' });
+                    const data = await r.json();
+                    const group = document.querySelector('.has-children.need-caja');
 
-      host.querySelectorAll('script').forEach(old => {
-        const s = document.createElement('script');
-        if (old.src) { s.src = old.src; s.async = false; }
-        else { s.text = old.textContent; }
-        document.head.appendChild(s);
-        old.remove();
-      });
+                    if (!data.abierta) {
+                      group?.classList.add('locked');
+                    } else {
+                      group?.classList.remove('locked');
+                    }
+                  } catch (e) {
+                    console.warn('No se pudo verificar caja abierta:', e);
+                  }
+                })();
 
-      window.scrollTo(0, 0);
-    };
 
-    //bloqueo de menú reservas si no existe caja abierta
-            (async function lockReservasIfNoCaja(){
-
-                        try {
-                const r = await fetch('/Caja/IsOpen', { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' });
-                const data = await r.json();
-                const group = document.querySelector('.has-children.need-caja');
-
-                if (!data.abierta) {
-                  group?.classList.add('locked');
-                } else {
-                  group?.classList.remove('locked');
+                // --- aplicar estado al menú ---
+                        function applyCajaLock(isOpen) {
+                  const group = document.querySelector('.has-children.need-caja');
+                  if (!isOpen) group?.classList.add('locked');
+                  else group?.classList.remove('locked');
                 }
-              } catch (e) {
-                console.warn('No se pudo verificar caja abierta:', e);
-              }
-            })();
 
-                
-            // --- aplicar estado al menú ---
-                    function applyCajaLock(isOpen) {
-              const group = document.querySelector('.has-children.need-caja');
-              if (!isOpen) group?.classList.add('locked');
-              else group?.classList.remove('locked');
-            }
+                // --- consulta al servidor y aplica ---
+                window.refreshCajaLock = async function () {
+                  try {
+                    const r = await fetch('/Caja/IsOpen', {
+                      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                      credentials: 'same-origin'
+                    });
+                    const data = await r.json();
+                    applyCajaLock(!!data.abierta);
+                  } catch (e) { console.warn('No se pudo verificar caja abierta:', e); }
+                };
 
-            // --- consulta al servidor y aplica ---
-            window.refreshCajaLock = async function () {
-              try {
-                const r = await fetch('/Caja/IsOpen', {
-                  headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                  credentials: 'same-origin'
-                });
-                const data = await r.json();
-                applyCajaLock(!!data.abierta);
-              } catch (e) { console.warn('No se pudo verificar caja abierta:', e); }
-            };
+                // 1) correr al entrar al dashboard
+                refreshCajaLock();
 
-            // 1) correr al entrar al dashboard
-            refreshCajaLock();
+                // 2) (opcional) escuchar un evento global para refrescar desde otras vistas
+                window.addEventListener('caja:changed', () => refreshCajaLock());
 
-            // 2) (opcional) escuchar un evento global para refrescar desde otras vistas
-            window.addEventListener('caja:changed', () => refreshCajaLock());
 
-                    document.addEventListener('DOMContentLoaded', () => {
+            document.addEventListener('DOMContentLoaded', () => {
               const sidebar = document.querySelector('#appSidebar');
               if (!sidebar) return;
 
               const ACTIVE_KEY = 'sidebar-active-url';
 
-              // Restaurar el estado activo al cargar
+              // --- Restaurar estado activo al cargar ---
               const savedUrl = localStorage.getItem(ACTIVE_KEY);
               if (savedUrl) {
                 const link = sidebar.querySelector(`a[data-url="${savedUrl}"]`);
-                        if (link) link.classList.add('active');
-                // if (link) {
-                //   link.classList.add('active');
-                //   const parent = link.closest('.has-children');
-                //   if (parent) parent.classList.add('open');
-                // }
+                if (link) {
+                  link.classList.add('active');
+                  const parent = link.closest('.has-children');
+                  if (parent) parent.classList.add('open');
+                }
               }
 
+              // --- Manejador de clics en enlaces ---
               sidebar.addEventListener('click', (ev) => {
                 const link = ev.target.closest('a[data-url]');
                 if (!link) return;
 
-                // Elimina el estado activo anterior
+                // Limpia el activo anterior
                 sidebar.querySelectorAll('a.active').forEach(a => a.classList.remove('active'));
-                sidebar.querySelectorAll('.has-children.open').forEach(li => li.classList.remove('open'));
+
+                // Cierra otros submenús (acordeón)
+                sidebar.querySelectorAll('.has-children.open').forEach(li => {
+                  if (!li.contains(link)) li.classList.remove('open');
+                });
 
                 // Marca el nuevo
                 link.classList.add('active');
                 const parent = link.closest('.has-children');
-                // if (parent) parent.classList.add('open');
+                if (parent) parent.classList.add('open');
 
-                // Guarda el estado
+                // Guarda la URL activa
                 localStorage.setItem(ACTIVE_KEY, link.dataset.url);
               });
             });
 
-            document.addEventListener('DOMContentLoaded', () => {
-              document.querySelectorAll('.menu .has-children').forEach(li => li.classList.remove('open'));
-            });
+                      // ---- Loader global (contador + anti-parpadeo) ----
+            (function(){
+              let loadingCount = 0;
+              let showTimer = null;
+              const $loader = () => document.getElementById('globalLoader');
 
-                  // ---- Loader global (contador + anti-parpadeo) ----
-        (function(){
-          let loadingCount = 0;
-          let showTimer = null;
-          const $loader = () => document.getElementById('globalLoader');
+              window.showLoader = function(){
+                loadingCount++;
+                if (loadingCount === 1) {
+                  clearTimeout(showTimer);
+                  // pequeño delay para evitar parpadeo en cargas muy rápidas
+                  showTimer = setTimeout(() => $loader()?.classList.add('show'), 150);
+                }
+              };
+              window.hideLoader = function(){
+                loadingCount = Math.max(0, loadingCount - 1);
+                if (loadingCount === 0){
+                  clearTimeout(showTimer);
+                  $loader()?.classList.remove('show');
+                }
+              };
 
-          window.showLoader = function(){
-            loadingCount++;
-            if (loadingCount === 1) {
-              clearTimeout(showTimer);
-              // pequeño delay para evitar parpadeo en cargas muy rápidas
-              showTimer = setTimeout(() => $loader()?.classList.add('show'), 150);
-            }
-          };
-          window.hideLoader = function(){
-            loadingCount = Math.max(0, loadingCount - 1);
-            if (loadingCount === 0){
-              clearTimeout(showTimer);
-              $loader()?.classList.remove('show');
-            }
-          };
-
-          // (Opcional) Monkey-patch a fetch para cubrir "todo" por defecto.
-          // Agrega el header 'X-No-Loader: 1' en llamadas de ping/silenciosas.
-          const _origFetch = window.fetch;
-          window.fetch = function(input, init){
-            const i = init || {};
-            const h = new Headers(i.headers || {});
-            const noLoader = h.get('X-No-Loader') === '1';
-            if (!noLoader) showLoader();
-            i.headers = h;
-            return _origFetch(input, i).finally(() => { if (!noLoader) hideLoader(); });
-          };
-        })();
+              // (Opcional) Monkey-patch a fetch para cubrir "todo" por defecto.
+              // Agrega el header 'X-No-Loader: 1' en llamadas de ping/silenciosas.
+              const _origFetch = window.fetch;
+              window.fetch = function(input, init){
+                const i = init || {};
+                const h = new Headers(i.headers || {});
+                const noLoader = h.get('X-No-Loader') === '1';
+                if (!noLoader) showLoader();
+                i.headers = h;
+                return _origFetch(input, i).finally(() => { if (!noLoader) hideLoader(); });
+              };
+            })();
 
     </script>
 
@@ -1340,13 +1439,33 @@
           }
         };
 
-        // primera carga
-        document.addEventListener('DOMContentLoaded', () => {
-          window.loadDashboardKpis();
+                document.addEventListener('DOMContentLoaded', () => {
+          // KPIs del dashboard
+          window.loadDashboardKpis && window.loadDashboardKpis();
+
+          // ¿viene un módulo inicial en la URL?  /Home/Dashboard?initial=/Reservas/ElegirHabitacion
+          const params = new URLSearchParams(window.location.search);
+          const initial = params.get('initial');
+
+          if (initial && window.loadToHost) {
+            // carga el contenido en #contentHost
+            loadToHost(initial);
+
+            // marcar activo en el menú lateral
+            const sidebar = document.getElementById('appSidebar');
+            if (sidebar) {
+              sidebar.querySelectorAll('a.active').forEach(a => a.classList.remove('active'));
+              const link = sidebar.querySelector(`a[data-url="${initial}"]`);
+              if (link) {
+                link.classList.add('active');
+                const parent = link.closest('.has-children');
+                if (parent) parent.classList.add('open');
+              }
+            }
+          }
         });
+
+
     </script>
-
-
-
 </body>
 </html>

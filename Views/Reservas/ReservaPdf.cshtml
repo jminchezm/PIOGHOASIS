@@ -356,63 +356,91 @@
 
 
     <section class="block">
-        <h2 class="title">Detalle</h2>
-        <table class="table">
-            <thead>
+    <h2 class="title">Detalle</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width:24%">Habitación</th>
+                <th style="width:8%">Pers.</th>
+                <th style="width:8%">Noches</th>
+                <th style="width:15%">Precio lista<br /><small>(por noche)</small></th>
+                <th style="width:15%">Precio acordado<br /><small>(por noche)</small></th>
+                <th style="width:13%">Desc. por noche</th>
+                <th class="text-end" style="width:17%">Total línea</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in reserva.Detalles)
+            {
+                
+                    // Precio de lista por noche: si no hay, asumimos que lista = precio final
+                    decimal precioLista = d.PrecioListaPorNoche ?? d.PrecioPorNoche;
+                    decimal precioAcordado = d.PrecioPorNoche;
+
+                    // Descuento por noche: usamos el campo si viene; si no, lo calculamos
+                    decimal descNoche = 0m;
+                    if (d.DescuentoPorNoche.HasValue && d.DescuentoPorNoche.Value > 0)
+                    {
+                        descNoche = d.DescuentoPorNoche.Value;
+                    }
+                    else if (d.PrecioListaPorNoche.HasValue && d.PrecioListaPorNoche.Value > d.PrecioPorNoche)
+                    {
+                        descNoche = d.PrecioListaPorNoche.Value - d.PrecioPorNoche;
+                    }
+                
                 <tr>
-                    <th style="width:28%">Habitación</th>
-                    <th style="width:12%">Personas</th>
-                    <th style="width:12%">Noches</th>
-                    <th style="width:18%">Precio por noche</th>
-                    <th class="text-end" style="width:18%">Total</th>
+                    <td>@d.Habitacion?.TipoHabitacion?.Nombre #@d.Habitacion?.NumeroHabitacion</td>
+                    <td>@d.Personas</td>
+                    <td>@d.Noches</td>
+                    <td>Q @fmt(precioLista)</td>
+                    <td>Q @fmt(precioAcordado)</td>
+                    <td>
+                        @if (descNoche > 0)
+                        {
+                            <span>-Q @fmt(descNoche)</span>
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </td>
+                    <td class="text-end">Q @fmt(d.TotalLinea)</td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var d in reserva.Detalles)
-                {
-                    <tr>
-                        <td>@d.Habitacion?.TipoHabitacion?.Nombre #@d.Habitacion?.NumeroHabitacion</td>
-                        <td>@d.Personas</td>
-                        <td>@d.Noches</td>
-                        <td>Q @fmt(d.PrecioPorNoche)</td>
-                        <td class="text-end">Q @fmt(d.TotalLinea)</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+            }
+        </tbody>
+    </table>
 
-        <div class="totals">
-            <div class="line"><span>Subtotal (sin impuestos)</span><strong> Q @fmt(baseNeta)</strong></div>
-            <div class="line"><span>INGUAT 10%</span><strong> Q @fmt(inguat)</strong></div>
-            <div class="line"><span>IVA 12%</span><strong> Q @fmt(iva)</strong></div>
-            <div class="line"><span>Impuestos totales</span><strong> Q @fmt(impuestosTotales)</strong></div>
-            <div class="line grand"><span>Total</span><strong> Q @fmt(total)</strong></div>
-        </div>
+    <div class="totals">
+        <div class="line"><span>Subtotal (sin impuestos)</span><strong> Q @fmt(baseNeta)</strong></div>
+        <div class="line"><span>INGUAT 10%</span><strong> Q @fmt(inguat)</strong></div>
+        <div class="line"><span>IVA 12%</span><strong> Q @fmt(iva)</strong></div>
+        <div class="line"><span>Impuestos totales</span><strong> Q @fmt(impuestosTotales)</strong></div>
+        <div class="line grand"><span>Total</span><strong> Q @fmt(total)</strong></div>
+    </div>
 
-        @if (Model.TieneDescuento)
-        {
-            <div class="totals" style="margin-top:4px; font-size:13px;">
-                <div class="line">
-                    <span>Precio de lista (promedio por noche)</span>
-                    <strong>Q @fmt(Model.PrecioListaPorNoche)</strong>
-                </div>
-                <div class="line">
-                    <span>Precio acordado (promedio por noche)</span>
-                    <strong>Q @fmt(Model.PrecioFinalPorNoche)</strong>
-                </div>
-                <div class="line">
-                    <span>Descuento por noche</span>
-                    <strong>-Q @fmt(Model.DescuentoPorNoche)</strong>
-                </div>
-                <div class="line">
-                    <span>Descuento total aplicado</span>
-                    <strong>-Q @fmt(Model.DescuentoTotal)</strong>
-                </div>
+    @* @if (Model.TieneDescuento)
+    {
+        <div class="totals" style="margin-top:4px; font-size:13px;">
+            <div class="line">
+                <span>Precio de lista (promedio por noche)</span>
+                <strong>Q @fmt(Model.PrecioListaPorNoche)</strong>
             </div>
-        }
+            <div class="line">
+                <span>Precio acordado (promedio por noche)</span>
+                <strong>Q @fmt(Model.PrecioFinalPorNoche)</strong>
+            </div>
+            <div class="line">
+                <span>Descuento por noche</span>
+                <strong>-Q @fmt(Model.DescuentoPorNoche)</strong>
+            </div>
+            <div class="line">
+                <span>Descuento total aplicado</span>
+                <strong>-Q @fmt(Model.DescuentoTotal)</strong>
+            </div>
+        </div>
+    } *@
+</section>
 
-
-    </section>
 
     <!-- ====== Pagos ====== -->
     <section class="block">

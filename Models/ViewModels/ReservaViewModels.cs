@@ -47,44 +47,85 @@
         public string? Etiqueta { get; set; }
     }
 
-
-
-    //public class HabitacionDisponibleVM
-    //{
-    //    public int HabitacionID { get; set; }
-    //    public string Codigo { get; set; } = "";
-    //    public string? Imagen { get; set; }
-    //    public string Titulo { get; set; } = ""; // ej. "Standard #1"
-    //    public string TipoNombre { get; set; } = "";    // ej. "Standard"
-    //    public string NumeroHabitacion { get; set; } = ""; // ej. "1"
-    //    public int Capacidad { get; set; }
-    //    public decimal PrecioNoche { get; set; }
-
-    //    //public string nombreTipoHabitacion {  get; set; } = "";
-    //}
-
     public class ReservaResumenVM
     {
         public DateTime CheckIn { get; set; }
         public DateTime CheckOut { get; set; }
-        public int Noches { get; set; }
-        public int Personas { get; set; }
 
-        public int HabitacionID { get; set; }
-        public string HabitacionTitulo { get; set; } = "";
-        public decimal PrecioNoche { get; set; }
-        public int? TarifaID { get; set; }
-
-        public decimal Subtotal { get; set; }
-        public decimal Impuestos { get; set; }
-        public decimal Total { get; set; }
+        // Mismas fechas para todas las habitaciones
+        public int Noches =>
+            (int)(CheckOut.Date - CheckIn.Date).TotalDays;
 
         // Cliente seleccionado
         public string? ClienteID { get; set; }
         public string? ClienteNombre { get; set; }
 
-        // === NUEVO: guardar precio de lista / original ===
+        // Todas las habitaciones seleccionadas
+        public List<ReservaLineaVM> Lineas { get; set; } = new();
+
+        public bool TieneLineas => Lineas.Any();
+
+        // Totales de toda la reserva
+        public decimal Subtotal => Lineas.Sum(l => l.Subtotal);
+        public decimal Impuestos => Lineas.Sum(l => l.Impuestos);
+        public decimal Total => Lineas.Sum(l => l.Total);
+    }
+
+    //public class ReservaResumenVM
+    //{
+    //    public DateTime CheckIn { get; set; }
+    //    public DateTime CheckOut { get; set; }
+    //    public int Noches { get; set; }
+    //    public int Personas { get; set; }
+
+    //    public int HabitacionID { get; set; }
+    //    public string HabitacionTitulo { get; set; } = "";
+    //    public decimal PrecioNoche { get; set; }
+    //    public int? TarifaID { get; set; }
+
+    //    public decimal Subtotal { get; set; }
+    //    public decimal Impuestos { get; set; }
+    //    public decimal Total { get; set; }
+
+    //    // Cliente seleccionado
+    //    public string? ClienteID { get; set; }
+    //    public string? ClienteNombre { get; set; }
+
+    //    // === NUEVO: guardar precio de lista / original ===
+    //    public decimal PrecioNocheOriginal { get; set; }
+
+    //    public bool TieneDescuento =>
+    //        PrecioNocheOriginal > 0 && PrecioNoche < PrecioNocheOriginal;
+
+    //    public decimal DescuentoPorNoche =>
+    //        (PrecioNocheOriginal > 0 && PrecioNocheOriginal > PrecioNoche)
+    //            ? (PrecioNocheOriginal - PrecioNoche)
+    //            : 0m;
+
+    //    public decimal DescuentoTotal =>
+    //        DescuentoPorNoche * Noches;
+    //}
+
+    public class ReservaLineaVM
+    {
+        public int HabitacionID { get; set; }
+        public string HabitacionTitulo { get; set; } = "";
+
+        public int Personas { get; set; }
+        public int Noches { get; set; }
+
+        public int? TarifaID { get; set; }
+
+        // Precio realmente cobrado (por noche, con impuestos)
+        public decimal PrecioNoche { get; set; }
+
+        // Precio original de lista (por noche), para descuentos
         public decimal PrecioNocheOriginal { get; set; }
+
+        // Totales de esta línea (todas las noches)
+        public decimal Subtotal { get; set; }   // sin impuestos
+        public decimal Impuestos { get; set; }  // INGUAT + IVA
+        public decimal Total { get; set; }      // con impuestos
 
         public bool TieneDescuento =>
             PrecioNocheOriginal > 0 && PrecioNoche < PrecioNocheOriginal;
@@ -97,6 +138,7 @@
         public decimal DescuentoTotal =>
             DescuentoPorNoche * Noches;
     }
+
 
     public class ReservaCreateVM
     {

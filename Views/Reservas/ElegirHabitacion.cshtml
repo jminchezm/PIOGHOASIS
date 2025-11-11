@@ -1,6 +1,7 @@
 ﻿@model PIOGHOASIS.Models.ViewModels.BusquedaHabitacionVM
 @{
     Layout = null;
+    var resumenHtml = ViewData["ResumenSidebar"] as string;
 }
 
 <style>
@@ -60,7 +61,11 @@
         border-radius: .65rem;
         padding: 14px;
         box-shadow: 0 6px 14px rgba(0,0,0,.08);
+        position: sticky;
+        top: calc(var(--header-h) + 16px);
+        z-index: 20;
     }
+
 
     .rs-searchbar__form {
         display: grid;
@@ -134,8 +139,11 @@
         padding: 16px;
         box-shadow: 0 10px 24px rgba(0,0,0,.06);
         position: sticky;
-        top: 16px;
+        /* header + 16px (barra) + 100px (altura aproximada de la barra) */
+        top: calc(var(--header-h) + 16px + 120px);
+        z-index: 10; /* opcional, por debajo de la barra */
     }
+
 
     .rs-summary__title {
         font-weight: 800;
@@ -335,10 +343,40 @@
 
             <!-- Resultados + Resumen -->
             <div class="row g-4">
+                <div class="col-lg-8">
+                    <div id="resultados">@Html.Raw(ViewData["Resultados"] as string ?? "")</div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="rs-summary" id="resumenSidebar">
+                        @if (!string.IsNullOrEmpty(resumenHtml))
+                        {
+                            @Html.Raw(resumenHtml)
+                        }
+                        else
+                        {
+                            <div class="rs-summary__title">Resumen de Reserva</div>
+                            <div class="rs-summary__empty">
+                                Aún no has seleccionado ninguna habitación.
+                            </div>
+                        }
+                    </div>
+                </div>
+                @*<div class="col-lg-4">
+                    <div class="rs-summary" id="resumenSidebar">
+                        <div class="rs-summary__title">Resumen de Reserva</div>
+                        <div class="rs-summary__empty">
+                            Aún no has seleccionado ninguna habitación.
+                        </div>
+                    </div>
+                </div>*@
+            </div>
+
+
+           @*  <div class="row g-4">
                 <div class="col-lg-12">
                     <div id="resultados"> @Html.Raw(ViewData["Resultados"] as string ?? "") </div>
                 </div>
-            </div>
+            </div> *@
 
         </div>
     </div>
@@ -376,6 +414,8 @@
           if (cont) cont.innerHTML = html;
 
           if (window.initCards) window.initCards();
+          if (window.syncButtonsWithResumen) window.syncButtonsWithResumen();
+
           if (cont) window.scrollTo({ top: cont.offsetTop - 16, behavior: 'smooth' });
         } catch (e) {
           console.error(e);
@@ -388,6 +428,9 @@
           }
         }
       });
+
+      // Al cargar, por si ya había resumen
+      if (window.syncButtonsWithResumen) window.syncButtonsWithResumen();
     });
 
     /* --- Delegación y helpers para tarjetas de resultados --- */
@@ -408,49 +451,25 @@
           const tarifasAll = JSON.parse(card.getAttribute('data-tarifas') || '[]');
           const list = tarifasAll.filter(t => Number(t.Personas) === p);
 
-        const selTarifa = card.querySelector('.js-tarifa');     // puede NO existir
-        const priceEl   = card.querySelector('.price-night');
-        const hPersonas = card.querySelector('.js-personas-hidden');
-        const hTarifa   = card.querySelector('.js-tarifa-hidden');
+          const selTarifa = card.querySelector('.js-tarifa');     // puede NO existir
+          const priceEl   = card.querySelector('.price-night');
+          const hPersonas = card.querySelector('.js-personas-hidden');
+          const hTarifa   = card.querySelector('.js-tarifa-hidden');
 
-        if (hPersonas) hPersonas.value = String(p);
+          if (hPersonas) hPersonas.value = String(p);
 
-        // Sin combo de tarifa: modo AUTO
-        if (!selTarifa) {
-            if (list.length > 0) {
-            const t = list[0];
-            if (priceEl) priceEl.textContent = 'Q. ' + fmt(Number(t.PrecioNoche || 0)); // YA con impuestos
-            if (hTarifa) hTarifa.value = t.TarifaID ?? '';
-            } else {
-            if (priceEl) priceEl.textContent = 'Q. ' + fmt(0);
-            if (hTarifa) hTarifa.value = '';
-            }
-            return;
-        }
-
-
-          // const selTarifa = card.querySelector('.js-tarifa');     // puede NO existir
-          // const priceEl   = card.querySelector('.price-night');
-          // const totalEl   = card.querySelector('.total-night');
-          // const hPersonas = card.querySelector('.js-personas-hidden');
-          // const hTarifa   = card.querySelector('.js-tarifa-hidden');
-
-          // if (hPersonas) hPersonas.value = String(p);
-
-          // // Sin combo de tarifa: modo AUTO
-          // if (!selTarifa) {
-          //   if (list.length > 0) {
-          //     const t = list[0];
-          //     if (priceEl) priceEl.textContent = 'Q. ' + fmt(Number(t.PrecioNoche || 0));
-          //     if (totalEl) totalEl.textContent = 'Q. ' + fmt(Number(t.TotalConImpuestos || 0));
-          //     if (hTarifa) hTarifa.value = t.TarifaID ?? '';
-          //   } else {
-          //     if (priceEl) priceEl.textContent = 'Q. ' + fmt(0);
-          //     if (totalEl) totalEl.textContent = 'Q. ' + fmt(0);
-          //     if (hTarifa) hTarifa.value = '';
-          //   }
-          //   return;
-          // }
+          // Sin combo de tarifa: modo AUTO
+          if (!selTarifa) {
+              if (list.length > 0) {
+                const t = list[0];
+                if (priceEl) priceEl.textContent = 'Q. ' + fmt(Number(t.PrecioNoche || 0)); // YA con impuestos
+                if (hTarifa) hTarifa.value = t.TarifaID ?? '';
+              } else {
+                if (priceEl) priceEl.textContent = 'Q. ' + fmt(0);
+                if (hTarifa) hTarifa.value = '';
+              }
+              return;
+          }
 
           // Con combo de tarifa: reconstruir opciones
           selTarifa.innerHTML = '';
@@ -468,6 +487,7 @@
             selTarifa.dispatchEvent(new Event('change'));
           } else {
             if (priceEl) priceEl.textContent = 'Q. ' + fmt(0);
+            const totalEl = card.querySelector('.total-night');
             if (totalEl) totalEl.textContent = 'Q. ' + fmt(0);
             if (hTarifa) hTarifa.value = '';
           }
@@ -508,13 +528,114 @@
             document.dispatchEvent(evt);
           }
         });
+
+        if (window.syncButtonsWithResumen) window.syncButtonsWithResumen();
+      };
+
+      // --- Sincroniza botones "Seleccionar" con las habitaciones del resumen ---
+      window.syncButtonsWithResumen = function syncButtonsWithResumen() {
+        // IDs de habitaciones en el sidebar (inputs hidden habitacionId)
+        const ids = Array.from(document.querySelectorAll('#resumenSidebar [name="habitacionId"]'))
+                         .map(input => parseInt(input.value, 10))
+                         .filter(id => !isNaN(id));
+
+        // Recorrer todas las tarjetas y habilitar / deshabilitar según corresponda
+        document.querySelectorAll('.rs-room').forEach(card => {
+          const form = card.querySelector('.js-form');
+          const btn  = form?.querySelector('button');
+          const hid  = parseInt(form?.querySelector('[name="habitacionId"]')?.value || '0', 10);
+
+          if (!btn || isNaN(hid)) return;
+
+          if (ids.includes(hid)) {
+            // está en el resumen → bloquear
+            btn.disabled = true;
+            btn.dataset.locked = "1";
+            btn.classList.add('disabled');
+          } else {
+            // no está en el resumen → habilitar
+            btn.disabled = false;
+            btn.dataset.locked = "0";
+            btn.classList.remove('disabled');
+          }
+        });
       };
 
       // Si ya hubiera contenido al cargar la página
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', window.initCards);
+        document.addEventListener('DOMContentLoaded', () => {
+          window.initCards();
+          window.syncButtonsWithResumen();
+        });
       } else {
         window.initCards();
+        window.syncButtonsWithResumen();
       }
     })();
+
+    // Delegación para los forms de "Seleccionar"
+    document.addEventListener('submit', async (ev) => {
+      const form = ev.target;
+      if (!form.classList.contains('js-form')) return;
+
+      ev.preventDefault();
+
+      const btn = form.querySelector('button');
+      let oldHtml = '';
+      if (btn) {
+        oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Agregando...';
+      }
+
+      try {
+        const fd = new FormData(form);
+        const r = await fetch(form.action, {
+          method: 'POST',
+          body: fd,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+
+        const json = await r.json();
+        if (json.ok && json.resumenHtml) {
+          const cont = document.getElementById('resumenSidebar');
+          if (cont) cont.innerHTML = json.resumenHtml;
+
+          if (window.syncButtonsWithResumen) window.syncButtonsWithResumen();
+        } else if (!json.ok && json.msg) {
+          alert(json.msg);
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Ocurrió un error al agregar la habitación.');
+      } finally {
+        if (btn) {
+          btn.innerHTML = oldHtml;
+          // El estado disabled lo deja syncButtonsWithResumen
+        }
+      }
+    });
+
+    // Delegación para quitar habitación desde el sidebar
+    document.addEventListener('submit', async (ev) => {
+      const form = ev.target;
+      if (!form.classList.contains('js-quitar-form')) return;
+
+      ev.preventDefault();
+
+      const fd = new FormData(form);
+      const r = await fetch(form.action, {
+        method: 'POST',
+        body: fd,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+
+      const json = await r.json();
+      if (json.ok && json.resumenHtml) {
+        const cont = document.getElementById('resumenSidebar');
+        if (cont) cont.innerHTML = json.resumenHtml;
+
+        if (window.syncButtonsWithResumen) window.syncButtonsWithResumen();
+      }
+    });
 </script>
