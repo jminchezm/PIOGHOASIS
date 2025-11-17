@@ -379,44 +379,45 @@
 </div>
 
 
-@* @section Scripts { *@
-    <script>
-        (function(){
-          const fCodigo = document.getElementById('fCodigo');
-          const fUsuario = document.getElementById('fUsuario');
-          const fEstado = document.getElementById('fEstado');
-          const fDesde = document.getElementById('fDesde');
-          const fHasta = document.getElementById('fHasta');
-          const host = document.getElementById('modalHost');
+<script>
+    (function () {
+        const fCodigo  = document.getElementById('fCodigo');
+        const fUsuario = document.getElementById('fUsuario');
+        const fEstado  = document.getElementById('fEstado');
+        const fDesde   = document.getElementById('fDesde');
+        const fHasta   = document.getElementById('fHasta');
+        const host     = document.getElementById('modalHost');
 
-          // 0) Verifica Bootstrap
-          function ensureBootstrap(){
+        const DASHBOARD_URL = '/Home/Dashboard';
+
+        // 0) Verifica Bootstrap
+        function ensureBootstrap() {
             if (!window.bootstrap || !bootstrap.Modal) {
-              console.error('Bootstrap JS no está cargado en esta vista.');
-              alert('No se pudo abrir el modal porque Bootstrap JS no está cargado aquí.\nAsegúrate que el Layout del dashboard incluya bootstrap.bundle.js');
-              return false;
+                console.error('Bootstrap JS no está cargado en esta vista.');
+                alert('No se pudo abrir el modal porque Bootstrap JS no está cargado aquí.\nAsegúrate que el Layout del dashboard incluya bootstrap.bundle.js');
+                return false;
             }
             return true;
-          }
+        }
 
-          // 1) Mover y mostrar modal
-          function showModalById(id){
+        // 1) Mover y mostrar modal
+        function showModalById(id) {
             if (!ensureBootstrap()) return;
             const el = document.getElementById(id);
             if (!el) { console.warn('Modal no encontrado:', id); return; }
             if (el.parentElement !== document.body) document.body.appendChild(el);
             const inst = bootstrap.Modal.getOrCreateInstance(el);
             inst.show();
-          }
+        }
 
-          // 2) Filtros (idéntico a tu versión)
-          function buildUrl(){
-            const qs = new URLSearchParams();
-            const cod = (fCodigo?.value || '').trim();
+        // 2) Filtros
+        function buildUrl() {
+            const qs  = new URLSearchParams();
+            const cod = (fCodigo?.value  || '').trim();
             const usr = (fUsuario?.value || '').trim();
-            const est = (fEstado?.value ?? '');
-            const des = (fDesde?.value || '').trim();
-            const has = (fHasta?.value || '').trim();
+            const est = (fEstado?.value  ?? '');
+            const des = (fDesde?.value   || '').trim();
+            const has = (fHasta?.value   || '').trim();
 
             if (cod) qs.set('Codigo', cod);
             if (usr) qs.set('Usuario', usr);
@@ -425,835 +426,442 @@
             if (has) qs.set('FechaHasta', has);
 
             return '/Caja/Index' + (qs.toString() ? '?' + qs.toString() : '');
-          }
+        }
 
-          function debounce(fn, ms=700){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+        function debounce(fn, ms = 700) {
+            let t;
+            return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+        }
 
-          const go = debounce(async ()=>{
+        const go = debounce(async () => {
             const url = buildUrl();
 
             // guarda foco/caret
-            const active = document.activeElement;
-            const id = active?.id;
+            const active   = document.activeElement;
+            const id       = active?.id;
             const selStart = ('selectionStart' in active) ? active.selectionStart : null;
-            const selEnd   = ('selectionEnd' in active) ? active.selectionEnd   : null;
+            const selEnd   = ('selectionEnd'   in active) ? active.selectionEnd   : null;
 
             if (window.swapInHost) {
-              await window.swapInHost(url, '#printArea');
-            } else {
-              const r = await fetch(url, { headers:{ 'X-Requested-With':'XMLHttpRequest' }});
-              if (r.ok) {
-                const html = await r.text();
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                const newArea = doc.querySelector('#printArea');
-                const curArea = document.querySelector('#printArea');
-                if (newArea && curArea) curArea.replaceWith(newArea);
-              } else {
-                console.error('Error al recargar tabla:', r.status, await r.text());
-              }
-            }
-            history.replaceState(null, '', url);
+                // --- Escenario normal dentro del dashboard ---
+                await window.swapInHost(url, '#printArea');
+                window.initPuestosPager?.(document.getElementById('printArea'));
 
-            if (window.initPuestosPager) {
-              window.initPuestosPager(document.getElementById('printArea'));
+                // Mantener SIEMPRE la URL del dashboard con el initial
+                history.replaceState(
+                    null,
+                    '',
+                    `${DASHBOARD_URL}?initial=${encodeURIComponent(url)}`
+                );
+            } else {
+                // --- Fallback si se entra directo a /Caja/Index sin dashboard ---
+                const r = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (r.ok) {
+                    const html   = await r.text();
+                    const doc    = new DOMParser().parseFromString(html, 'text/html');
+                    const newArea = doc.querySelector('#printArea');
+                    const curArea = document.querySelector('#printArea');
+                    if (newArea && curArea) curArea.replaceWith(newArea);
+                    window.initPuestosPager?.(document.getElementById('printArea'));
+                } else {
+                    console.error('Error al recargar tabla:', r.status, await r.text());
+                }
+                history.replaceState(null, '', url);
             }
 
             // restaura foco/caret
             if (id) {
-              const el = document.getElementById(id);
-              if (el) {
-                el.focus();
-                if (selStart != null && selEnd != null) el.setSelectionRange(selStart, selEnd);
-              }
+                const el = document.getElementById(id);
+                if (el) {
+                    el.focus();
+                    if (selStart != null && selEnd != null && el.setSelectionRange) {
+                        el.setSelectionRange(selStart, selEnd);
+                    }
+                }
             }
-          }, 700);
+        }, 700);
 
-          window.addEventListener('DOMContentLoaded', () => {
-            if (window.initPuestosPager) {
-              window.initPuestosPager(document.getElementById('printArea'));
-            }
-          });
+        window.addEventListener('DOMContentLoaded', () => {
+            window.initPuestosPager?.(document.getElementById('printArea'));
+        });
 
-          function onTextInput(){ const v=this.value.trim(); if (v.length===0 || v.length>=2) go(); }
-          fCodigo?.addEventListener('input', onTextInput);
-          fUsuario?.addEventListener('input', onTextInput);
-          fEstado?.addEventListener('change', go);
-          fDesde?.addEventListener('change', go);
-          fHasta?.addEventListener('change', go);
-
-          // ====== IMPRESIÓN ======
-          function pdfUrl(){
-            const qs = new URLSearchParams();
-            const cod = (fCodigo?.value || '').trim();
-            const usr = (fUsuario?.value || '').trim();
-            const est = (fEstado?.value ?? '');
-            const des = (fDesde?.value || '').trim();
-            const has = (fHasta?.value || '').trim();
-
-            if (cod) qs.set('Codigo', cod);
-            if (usr) qs.set('Usuario', usr);
-            qs.set('EstadoCajaID', est);
-            if (des) qs.set('FechaDesde', des);
-            if (has) qs.set('FechaHasta', has);
-
-            return '/Caja/ExportPdf' + (qs.toString() ? '?' + qs.toString() : '');
-          }
-          document.getElementById('btnPrint')?.addEventListener('click', ()=> window.open(pdfUrl(), '_blank'));
-
-          // ====== NUEVA ======
-              document.getElementById('btnNueva')?.addEventListener('click', async ()=>{
-      const r = await fetch('@Url.Action("Nueva", "Caja")', { headers: {'X-Requested-With':'XMLHttpRequest'} });
-
-      // Si el servidor devuelve 400 con el mensaje “Ya existe una caja abierta…”
-      if (!r.ok) {
-        const msg = (await r.text()) || 'No se pudo abrir el formulario.';
-        showInfoModal('NUEVA CAJA', msg);
-        return;
-      }
-
-      // Si todo bien, inyecta la partial y abre el modal de creación
-      const html = await r.text();
-      if (!html.trim()) { showInfoModal('NUEVA CAJA', 'La partial _NuevaCaja devolvió vacío.'); return; }
-      host.innerHTML = html;
-      // Si mueves el modal al body:
-      const el = document.getElementById('modalNueva');
-      if (el && el.parentElement !== document.body) document.body.appendChild(el);
-      bootstrap.Modal.getOrCreateInstance(el).show();
-    });
-
-
-    //Cierra el modal de nueva caja.
-    function cleanupModalNuevaCaja() {
-        const prev = document.getElementById('modalNueva');
-        if (prev) {
-          try { bootstrap.Modal.getInstance(prev)?.hide(); } catch {}
-          // Quitar backdrop “huérfano”, por si quedó alguno
-          document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-          prev.remove();
+        function onTextInput() {
+            const v = this.value.trim();
+            if (v.length === 0 || v.length >= 2) go();
         }
-    }
 
-    // Delegación a nivel documento: capturará envíos sin importar dónde esté el modal
+        fCodigo?.addEventListener('input', onTextInput);
+        fUsuario?.addEventListener('input', onTextInput);
+        fEstado?.addEventListener('change', go);
+        fDesde?.addEventListener('change', go);
+        fHasta?.addEventListener('change', go);
 
-        // Aviso inline dentro de un modal (snackbar simple)
-    function showInlineBeforeForm(modalEl, msg = 'Ajuste registrado', ms = 2500) {
-        try {
-            if (!modalEl) return;
-            const form = modalEl.querySelector('#frmAjuste');
-            const container = form || modalEl.querySelector('.modal-content');
-            if (!container) return;
+        // ====== IMPRESIÓN ======
+        document.getElementById('btnPrint')?.addEventListener('click', () => {
+            const base = buildUrl();
+            const pdfUrl = base
+                .replace('/Caja/Index', '/Caja/ExportPdf')
+                .replace('/Index', '/ExportPdf'); // por si acaso
+            window.open(pdfUrl, '_blank');
+        });
 
-            // si ya hay uno, lo quitamos
-            const prev = modalEl.querySelector('.inline-ok-banner');
-            if (prev) prev.remove();
-
-            const banner = document.createElement('div');
-            banner.className = 'inline-ok-banner';
-            banner.setAttribute('role', 'status');
-            banner.setAttribute('aria-live', 'polite');
-            banner.style.cssText = `
-              position: relative;
-              margin: 8px 8px 0 8px;
-              border-radius: 8px;
-              background: #e8f7e9;
-              border: 1px solid #bfe8c2;
-              color: #166534;
-              font-weight: 600;
-              padding: 10px 12px;
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              transition: opacity .25s ease, transform .25s ease;
-              opacity: 0;
-              transform: translateY(-6px);
-            `;
-
-            const icon = document.createElement('span');
-            icon.textContent = '✔️';
-            icon.style.flex = '0 0 auto';
-
-            const text = document.createElement('span');
-            text.textContent = msg;
-
-            banner.appendChild(icon);
-            banner.appendChild(text);
-
-            if (form) {
-                form.insertAdjacentElement('beforebegin', banner);
-            } else {
-                container.insertAdjacentElement('afterbegin', banner);
-            }
-
-            // animación de entrada
-            requestAnimationFrame(() => {
-                banner.style.opacity = '1';
-                banner.style.transform = 'translateY(0)';
+        // ====== NUEVA CAJA ======
+        document.getElementById('btnNueva')?.addEventListener('click', async () => {
+            const r = await fetch('@Url.Action("Nueva", "Caja")', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
 
-            // desaparecer solo
-            if (modalEl._inlineOkTimer) clearTimeout(modalEl._inlineOkTimer);
-            modalEl._inlineOkTimer = setTimeout(() => {
-                banner.style.opacity = '0';
-                banner.style.transform = 'translateY(-6px)';
-                setTimeout(() => banner.remove(), 260);
-                modalEl._inlineOkTimer = null;
-            }, ms);
-        } catch (e) {
-            console.warn('showInlineBeforeForm error:', e);
+            // Si el servidor devuelve 400 con el mensaje “Ya existe una caja abierta…”
+            if (!r.ok) {
+                const msg = (await r.text()) || 'No se pudo abrir el formulario.';
+                showInfoModal('NUEVA CAJA', msg);
+                return;
+            }
+
+            const html = await r.text();
+            if (!html.trim()) {
+                showInfoModal('NUEVA CAJA', 'La partial _NuevaCaja devolvió vacío.');
+                return;
+            }
+            host.innerHTML = html;
+            const el = document.getElementById('modalNueva');
+            if (el && el.parentElement !== document.body) document.body.appendChild(el);
+            bootstrap.Modal.getOrCreateInstance(el).show();
+        });
+
+        // Cierra el modal de nueva caja.
+        function cleanupModalNuevaCaja() {
+            const prev = document.getElementById('modalNueva');
+            if (prev) {
+                try { bootstrap.Modal.getInstance(prev)?.hide(); } catch { }
+                document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+                prev.remove();
+            }
         }
-    }
 
-    // Delegación a nivel documento: frmNueva y frmAjuste
-    document.addEventListener('submit', async (ev) => {
-        const form = ev.target;
-        if (!form) return;
-
-        // ================== ABRIR CAJA (frmNueva) ==================
-        if (form.id === 'frmNueva') {
-            ev.preventDefault();
-
-            // anti doble click
-            if (form.dataset.sending === '1') return;
-            form.dataset.sending = '1';
-
-            const btn = form.querySelector('button[type="submit"]');
-            btn?.setAttribute('disabled', 'disabled');
-
+        // Aviso inline dentro de un modal (snackbar simple)
+        function showInlineBeforeForm(modalEl, msg = 'Ajuste agregado correctamente.', ms = 2500) {
             try {
-                const r = await fetch('@Url.Action("Abrir", "Caja")', {
-                    method: 'POST',
-                    body: new FormData(form),
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    credentials: 'same-origin'
-                });
+                if (!modalEl) return;
+                const form = modalEl.querySelector('#frmAjuste');
+                const container = form || modalEl.querySelector('.modal-content');
+                if (!container) return;
 
-                if (!r.ok) {
-                    const msg = await r.text().catch(() => '');
-                    throw new Error(msg || 'No se pudo abrir la caja.');
+                const prev = modalEl.querySelector('.inline-ok-banner');
+                if (prev) prev.remove();
+
+                const banner = document.createElement('div');
+                banner.className = 'inline-ok-banner';
+                banner.setAttribute('role', 'status');
+                banner.setAttribute('aria-live', 'polite');
+                banner.style.cssText = `
+                  position: relative;
+                  margin: 8px 8px 0 8px;
+                  border-radius: 8px;
+                  background: #e8f7e9;
+                  border: 1px solid #bfe8c2;
+                  color: #166534;
+                  font-weight: 600;
+                  padding: 10px 12px;
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  transition: opacity .25s ease, transform .25s ease;
+                  opacity: 0;
+                  transform: translateY(-6px);
+                `;
+
+                const icon = document.createElement('span');
+                icon.textContent = '✔️';
+                icon.style.flex = '0 0 auto';
+
+                const text = document.createElement('span');
+                text.textContent = msg;
+
+                banner.appendChild(icon);
+                banner.appendChild(text);
+
+                if (form) {
+                    form.insertAdjacentElement('beforebegin', banner);
+                } else {
+                    container.insertAdjacentElement('afterbegin', banner);
                 }
 
-                const data = await r.json();
+                requestAnimationFrame(() => {
+                    banner.style.opacity = '1';
+                    banner.style.transform = 'translateY(0)';
+                });
 
-                window.dispatchEvent(new CustomEvent('caja:changed', { detail: { abierta: true } }));
-
-                const m = document.getElementById('modalNueva');
-                if (m && window.bootstrap)
-                    bootstrap.Modal.getOrCreateInstance(m).hide();
-
-                cleanupModalNuevaCaja();
-
-                showInfoModalafterOpenModal('Caja abierta', 'La caja se abrió correctamente.');
-
-                setTimeout(() => {
-                    const url = data?.redirectUrl || '@Url.Action("Index", "Caja")';
-                    if (window.loadToHost) window.loadToHost(url);
-                    else window.location.href = url;
-                }, 1500);
-            } catch (err) {
-                console.error(err);
-                alert(err.message || 'No se pudo abrir la caja (error de red).');
-                btn?.removeAttribute('disabled');
-                delete form.dataset.sending;
+                if (modalEl._inlineOkTimer) clearTimeout(modalEl._inlineOkTimer);
+                modalEl._inlineOkTimer = setTimeout(() => {
+                    banner.style.opacity = '0';
+                    banner.style.transform = 'translateY(-6px)';
+                    setTimeout(() => banner.remove(), 260);
+                    modalEl._inlineOkTimer = null;
+                }, ms);
+            } catch (e) {
+                console.warn('showInlineBeforeForm error:', e);
             }
-            return;
         }
 
-        // ================== AJUSTE DE CAJA (frmAjuste) ==================
+        // Delegación submit: frmNueva y frmAjuste
+        document.addEventListener('submit', async (ev) => {
+            const form = ev.target;
+            if (!form) return;
 
+            // ======= ABRIR CAJA (frmNueva) =======
+            if (form.id === 'frmNueva') {
+                ev.preventDefault();
+
+                if (form.dataset.sending === '1') return;
+                form.dataset.sending = '1';
+
+                const btn = form.querySelector('button[type="submit"]');
+                btn?.setAttribute('disabled', 'disabled');
+
+                try {
+                    const r = await fetch('@Url.Action("Abrir", "Caja")', {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
+                    });
+
+                    if (!r.ok) {
+                        const msg = await r.text().catch(() => '');
+                        throw new Error(msg || 'No se pudo abrir la caja.');
+                    }
+
+                    const data = await r.json();
+
+                    window.dispatchEvent(new CustomEvent('caja:changed', { detail: { abierta: true } }));
+
+                    const m = document.getElementById('modalNueva');
+                    if (m && window.bootstrap)
+                        bootstrap.Modal.getOrCreateInstance(m).hide();
+
+                    cleanupModalNuevaCaja();
+
+                    showInfoModalafterOpenModal('Caja abierta', 'La caja se abrió correctamente.');
+
+                    setTimeout(() => {
+                        const url = data?.redirectUrl || '@Url.Action("Index", "Caja")';
+                        if (window.loadToHost) window.loadToHost(url);
+                        else window.location.href = url;
+                    }, 1500);
+                } catch (err) {
+                    console.error(err);
+                    alert(err.message || 'No se pudo abrir la caja (error de red).');
+                    btn?.removeAttribute('disabled');
+                    delete form.dataset.sending;
+                }
+                return;
+            }
+
+            // ======= AJUSTE DE CAJA (frmAjuste) =======
             if (form.id === 'frmAjuste') {
-        ev.preventDefault();
+                ev.preventDefault();
 
-        // 🔒 Anti doble envío
-        if (form.dataset.sending === '1') return;
-        form.dataset.sending = '1';
+                if (form.dataset.sending === '1') return;
+                form.dataset.sending = '1';
 
-        const btn = form.querySelector('button[type="submit"]');
-        btn?.setAttribute('disabled', 'disabled');
+                const btn = form.querySelector('button[type="submit"]');
+                btn?.setAttribute('disabled', 'disabled');
 
-        try {
-            // 1) POST: guardar ajuste
-            const r = await fetch(form.action, {
+                try {
+                    const r = await fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
+                    });
+
+                    if (!r.ok) {
+                        const msg = await r.text().catch(() => '');
+                        alert(msg || 'No se pudo agregar el ajuste.');
+                        return;
+                    }
+
+                    const data = await r.json();
+                    if (!data.ok) {
+                        alert(data.msg || 'No se pudo agregar el ajuste.');
+                        return;
+                    }
+
+                    const r2 = await fetch(`/Caja/Detalle/${data.cajaId}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!r2.ok) {
+                        console.error('Detalle no cargó:', r2.status, await r2.text());
+                        alert('No se pudo refrescar el detalle.');
+                        return;
+                    }
+
+                    const html = await r2.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const newModal = doc.querySelector('#modalDetalle');
+                    if (!newModal) {
+                        alert('Respuesta inválida del servidor.');
+                        return;
+                    }
+
+                    let curModal = document.getElementById('modalDetalle');
+
+                    if (!curModal) {
+                        const host = document.getElementById('modalHost');
+                        host.innerHTML = html;
+                        curModal = document.getElementById('modalDetalle');
+                        if (curModal && curModal.parentElement !== document.body)
+                            document.body.appendChild(curModal);
+                        bootstrap.Modal.getOrCreateInstance(curModal).show();
+                    } else {
+                        const curContent = curModal.querySelector('.modal-content');
+                        const newContent = newModal.querySelector('.modal-content');
+                        if (curContent && newContent) {
+                            const cloned = document.importNode(newContent, true);
+                            curContent.replaceWith(cloned);
+                        }
+                        bootstrap.Modal.getOrCreateInstance(curModal).show();
+                    }
+
+                    showInlineBeforeForm(curModal, 'Ajuste agregado correctamente.');
+                } catch (err) {
+                    console.error('Error procesando el ajuste:', err);
+                    const curModal = document.getElementById('modalDetalle');
+                    showInlineBeforeForm(curModal, 'Error al procesar el ajuste.');
+                } finally {
+                    btn?.removeAttribute('disabled');
+                    delete form.dataset.sending;
+                }
+
+                return;
+            }
+        });
+
+        // ====== DETALLE ======
+        document.addEventListener('click', async (e) => {
+            const btn = e.target.closest('.js-detalle');
+            if (!btn) return;
+
+            const id = btn.dataset.id;
+            const r = await fetch(`@Url.Content("~/Caja/Detalle/")${id}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!r.ok) { alert(await r.text()); return; }
+
+            const html = await r.text();
+            if (!html.trim()) { alert('La partial _DetalleCaja devolvió vacío'); return; }
+
+            (function cleanupModalDetalle() {
+                const prev = document.getElementById('modalDetalle');
+                if (prev) {
+                    try { bootstrap.Modal.getInstance(prev)?.hide(); } catch { }
+                    document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+                    prev.remove();
+                }
+            })();
+
+            host.innerHTML = html;
+            showModalById('modalDetalle');
+        });
+
+        // ====== CERRAR CAJA ======
+        let cajaIdToClose = null;
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.js-cerrar');
+            if (!btn) return;
+            cajaIdToClose = btn.dataset.id;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConfirmCerrar')).show();
+        });
+
+        document.getElementById('btnConfirmCerrar').addEventListener('click', async () => {
+            if (!cajaIdToClose) return;
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            const fd = new FormData();
+            if (token) fd.append('__RequestVerificationToken', token);
+
+            const resp = await fetch(`@Url.Content("~/Caja/Cerrar/")${cajaIdToClose}`, {
                 method: 'POST',
-                body: new FormData(form),
+                body: fd,
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 credentials: 'same-origin'
             });
 
-            if (!r.ok) {
-                const msg = await r.text().catch(() => '');
-                alert(msg || 'No se pudo agregar el ajuste.');
-                return;
-            }
+            bootstrap.Modal.getInstance(document.getElementById('modalConfirmCerrar'))?.hide();
 
-            const data = await r.json();
-            if (!data.ok) {
-                alert(data.msg || 'No se pudo agregar el ajuste.');
-                return;
-            }
+            if (!resp.ok) { alert(await resp.text()); cajaIdToClose = null; return; }
+            const data = await resp.json();
+            window.dispatchEvent(new CustomEvent('caja:changed', { detail: { abierta: false } }));
 
-            // 2) GET: recargar detalle de la caja
-            const r2 = await fetch(`/Caja/Detalle/${data.cajaId}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!r2.ok) {
-                console.error('Detalle no cargó:', r2.status, await r2.text());
-                alert('No se pudo refrescar el detalle.');
-                return;
-            }
+            const goNext = () => {
+                const url = data?.redirectUrl || '@Url.Action("Index", "Caja")';
+                if (window.loadToHost) window.loadToHost(url);
+                else window.location.href = url;
+            };
 
-            const html = await r2.text();
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            const newModal = doc.querySelector('#modalDetalle');
-            if (!newModal) {
-                alert('Respuesta inválida del servidor.');
-                return;
-            }
-
-            let curModal = document.getElementById('modalDetalle');
-
-            if (!curModal) {
-                const host = document.getElementById('modalHost');
-                host.innerHTML = html;
-                curModal = document.getElementById('modalDetalle');
-                if (curModal && curModal.parentElement !== document.body)
-                    document.body.appendChild(curModal);
-                bootstrap.Modal.getOrCreateInstance(curModal).show();
+            const okEl = document.getElementById('afterCloseModal');
+            if (okEl) {
+                okEl.addEventListener('hidden.bs.modal', goNext, { once: true });
+                showInfoModalafterCloseModal('Caja cerrada', 'La caja se cerró correctamente.');
             } else {
-                const curContent = curModal.querySelector('.modal-content');
-                const newContent = newModal.querySelector('.modal-content');
-                if (curContent && newContent) {
-                    const cloned = document.importNode(newContent, true);
-                    curContent.replaceWith(cloned);
-                }
-                bootstrap.Modal.getOrCreateInstance(curModal).show();
+                setTimeout(goNext, 300);
             }
 
-            showInlineBeforeForm(curModal, 'Ajuste agregado correctamente.');
-        } catch (err) {
-            console.error('Error procesando el ajuste:', err);
-            const curModal = document.getElementById('modalDetalle');
-            showInlineBeforeForm(curModal, 'Error al procesar el ajuste.');
-        } finally {
-            // ✅ Siempre reactivamos el botón y permitimos otro envío
-            btn?.removeAttribute('disabled');
-            delete form.dataset.sending;
-        }
-
-        return;
-    }
-
-
-        // if (form.id === 'frmAjuste') {
-        //     ev.preventDefault();
-
-        //     try {
-        //         // 1) POST: guardar ajuste
-        //         const r = await fetch(form.action, {
-        //             method: 'POST',
-        //             body: new FormData(form),
-        //             headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        //             credentials: 'same-origin'
-        //         });
-
-        //         if (!r.ok) {
-        //             const msg = await r.text().catch(() => '');
-        //             alert(msg || 'No se pudo agregar el ajuste.');
-        //             return;
-        //         }
-
-        //         const data = await r.json();
-        //         if (!data.ok) {
-        //             alert('No se pudo agregar el ajuste.');
-        //             return;
-        //         }
-
-        //         // 2) GET: recargar detalle de la caja
-        //         const r2 = await fetch(`/Caja/Detalle/${data.cajaId}`, {
-        //             headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        //         });
-        //         if (!r2.ok) {
-        //             console.error('Detalle no cargó:', r2.status, await r2.text());
-        //             alert('No se pudo refrescar el detalle.');
-        //             return;
-        //         }
-
-        //         const html = await r2.text();
-        //         const doc = new DOMParser().parseFromString(html, 'text/html');
-        //         const newModal = doc.querySelector('#modalDetalle');
-        //         if (!newModal) {
-        //             alert('Respuesta inválida del servidor.');
-        //             return;
-        //         }
-
-        //         // modal actual (ya abierto)
-        //         let curModal = document.getElementById('modalDetalle');
-
-        //         if (!curModal) {
-        //             // si por lo que sea no existe, lo inyectamos de cero
-        //             const host = document.getElementById('modalHost');
-        //             host.innerHTML = html;
-        //             curModal = document.getElementById('modalDetalle');
-        //             if (curModal && curModal.parentElement !== document.body)
-        //                 document.body.appendChild(curModal);
-        //             bootstrap.Modal.getOrCreateInstance(curModal).show();
-        //         } else {
-        //             // reemplazamos solo el contenido
-        //             const curContent = curModal.querySelector('.modal-content');
-        //             const newContent = newModal.querySelector('.modal-content');
-        //             if (curContent && newContent) {
-        //                 const cloned = document.importNode(newContent, true);
-        //                 curContent.replaceWith(cloned);
-        //             }
-        //             // nos aseguramos de que el modal siga visible
-        //             bootstrap.Modal.getOrCreateInstance(curModal).show();
-        //         }
-
-        //         // 3) mostrar “snackbar” OK dentro del modal
-        //         showInlineBeforeForm(curModal, 'Ajuste agregado correctamente.');
-
-        //     } catch (err) {
-        //         console.error('Error procesando el ajuste:', err);
-        //         const curModal = document.getElementById('modalDetalle');
-        //         showInlineBeforeForm(curModal, 'Ajuste agregado (con aviso).');
-        //     }
-
-        //     return;
-        // }
-    });
-
-
-    // document.addEventListener('submit', async (ev) => {
-    // const form = ev.target;
-    // if (!form || form.id !== 'frmNueva') return;
-
-    // ev.preventDefault();
-
-    // // Guard anti-doble envío
-    // if (form.dataset.sending === '1') return;
-    // form.dataset.sending = '1';
-
-    // const btn = form.querySelector('button[type="submit"]');
-    // btn?.setAttribute('disabled', 'disabled');
-
-    // try {
-    //   const r = await fetch('@Url.Action("Abrir", "Caja")', {
-    //     method: 'POST',
-    //     body: new FormData(form),
-    //     headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    //     credentials: 'same-origin'
-    //   });
-
-    //   if (!r.ok) {
-    //     const msg = await r.text().catch(() => '');
-    //     throw new Error(`Error ${r.status}: ${msg || 'No se pudo abrir la caja.'}`);
-    //   }
-
-    //   const data = await r.json();
-
-    //   // Notifica a quien escuche este evento
-    //   window.dispatchEvent(new CustomEvent('caja:changed', { detail: { abierta: true } }));
-
-    //   // Cierra el modal de creación
-    //   const m = document.getElementById('modalNueva');
-    //   if (m && window.bootstrap) bootstrap.Modal.getOrCreateInstance(m).hide();
-
-    //   cleanupModalNuevaCaja();
-
-    //   // Mensaje de éxito y navegación
-    //   showInfoModalafterOpenModal('Caja abierta', 'La caja se abrió correctamente.');
-    //   setTimeout(() => {
-    //     const url = data?.redirectUrl || '@Url.Action("Index", "Caja")';
-    //     if (window.loadToHost) window.loadToHost(url);
-    //     else window.location.href = url;
-    //   }, 1500);
-
-    //   // En éxito NO re-habilitamos (vamos a navegar)
-
-    // } catch (err) {
-    //   console.error(err);
-    //   alert(err.message || 'No se pudo abrir la caja (error de red).');
-
-    //   // Solo si falla: permitir reintentar
-    //   btn?.removeAttribute('disabled');
-    //   delete form.dataset.sending;
-    // }
-
-    // document.addEventListener('submit', async (ev) => {
-    //   const form = ev.target;
-    //   if (!form) return;
-
-    //   // ABRIR CAJA
-    //       if (form.id === 'frmNueva') {
-    //   ev.preventDefault();
-    //   const fd = new FormData(form);
-    //   try {
-    //     const r = await fetch('@Url.Action("Abrir", "Caja")', {
-    //       method: 'POST',
-    //       body: fd,
-    //       headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    //       credentials: 'same-origin'
-    //     });
-
-    //     if (!r.ok) {
-    //       const msg = await r.text();
-    //       alert(`Error ${r.status}: ${msg}`);
-    //       return;
-    //     }
-
-    //     const data = await r.json();
-    //     window.dispatchEvent(new CustomEvent('caja:changed', { detail: { abierta: true } }));
-
-    //     // cierra el modal de creación
-    //     const m = document.getElementById('modalNueva');
-    //     if (m && window.bootstrap) bootstrap.Modal.getOrCreateInstance(m).hide();
-
-    //     // muestra confirmación y redirige en 1.5s
-    //     showInfoModalafterOpenModal('Caja abierta', 'La caja se abrió correctamente.');
-    //     // setTimeout(() => {
-    //     //   location.href = data.redirectUrl || '@Url.Action("Index", "Caja")';
-    //     // }, 1500);
-    //     setTimeout(() => {
-    //   // nada de location.href / reload
-    //   if (window.loadToHost) {
-    //     window.loadToHost(data.redirectUrl || '@Url.Action("Index", "Caja")');
-    //   } else {
-    //     // fallback (no recomendado): navegación completa
-    //     window.location.href = data.redirectUrl || '@Url.Action("Index", "Caja")';
-    //   }
-    // }, 1500);
-
-    //   } catch (err) {
-    //     console.error(err);
-    //     alert('No se pudo abrir la caja (error de red).');
-    //   }
-    //   return;
-    // }
-
-          // === AJUSTE ===
-    // if (form.id === 'frmAjuste') {
-    //   ev.preventDefault();
-    //   const fd = new FormData(form);
-
-    //   try {
-    //     // 1) POST: guardar ajuste
-    //     const r = await fetch(form.action, {
-    //       method: 'POST',
-    //       body: fd,
-    //       headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    //       credentials: 'same-origin'
-    //     });
-
-    //     if (!r.ok) {
-    //       const msg = await r.text().catch(()=> '');
-    //       alert(msg || 'No se pudo agregar el ajuste.');
-    //       return;
-    //     }
-
-    //     const data = await r.json();
-    //     if (!data.ok) {
-    //       alert('No se pudo agregar el ajuste.');
-    //       return;
-    //     }
-
-    //     // 2) GET: traer detalle actualizado
-    //     const r2 = await fetch(`/Caja/Detalle/${data.cajaId}`, { headers:{'X-Requested-With':'XMLHttpRequest'} });
-    //     if (!r2.ok) {
-    //       console.error('Detalle no cargó:', r2.status, await r2.text());
-    //       alert('No se pudo refrescar el detalle.');
-    //       return;
-    //     }
-
-    //     const html = await r2.text();
-    //     const doc = new DOMParser().parseFromString(html, 'text/html');
-    //     const newContent = doc.querySelector('#modalDetalle .modal-content');
-    //     if (!newContent) {
-    //       alert('Respuesta inválida del servidor.');
-    //       return;
-    //     }
-
-    //     // 3) Reemplazar SOLO el contenido del modal ya abierto (importNode evita el error de documento distinto)
-    //     const curModal = document.getElementById('modalDetalle');
-    //     if (!curModal) {
-    //       // fallback: inyecta el modal completo y muéstralo
-    //       const host = document.getElementById('modalHost');
-    //       host.innerHTML = html;
-    //       const el = document.getElementById('modalDetalle');
-    //       if (el && el.parentElement !== document.body) document.body.appendChild(el);
-    //       bootstrap.Modal.getOrCreateInstance(el).show();
-    //       return;
-    //     }
-
-    //     const curContent = curModal.querySelector('.modal-content');
-    //     const cloned = document.importNode(newContent, true);
-    //     curContent.replaceWith(cloned);
-
-    //     // 4) Toast inline de éxito
-    //     showInlineBeforeForm(curModal, 'Ajuste registrado');
-
-    //   } catch (err) {
-    //     console.error('Error procesando el ajuste:', err);
-    //     // Diferencia un poco el tipo de error para depurar mejor
-    //     // if (err instanceof TypeError) {
-    //     //   alert('Error de red al guardar el ajuste.');
-    //     // } else {
-    //     //   alert('Error al actualizar el modal.');
-    //     // }
-    //     showInlineBeforeForm(curModal, 'Ajuste registrado');
-    //   }
-    //   return;
-    // }
-
-    //     // Aviso inline dentro de un modal (sin abrir otro modal)
-    //         function showInlineBeforeForm(modalEl, msg = 'Ajuste registrado', ms = 2500) {
-    //   try {
-    //     if (!modalEl) return;
-    //     const form = modalEl.querySelector('#frmAjuste');
-    //     const container = form || modalEl.querySelector('.modal-content');
-    //     if (!container) return;
-
-    //     // Si ya hay uno, elimínalo
-    //     const prev = modalEl.querySelector('.inline-ok-banner');
-    //     if (prev && prev.remove) prev.remove();
-
-    //     // Crear banner
-    //     const banner = document.createElement('div');
-    //     banner.className = 'inline-ok-banner';
-    //     banner.setAttribute('role', 'status');
-    //     banner.setAttribute('aria-live', 'polite');
-    //     banner.style.cssText = `
-    //       position: relative;
-    //       margin: 8px 8px 0 8px;
-    //       border-radius: 8px;
-    //       background: #e8f7e9;
-    //       border: 1px solid #bfe8c2;
-    //       color: #166534;
-    //       font-weight: 600;
-    //       padding: 10px 12px;
-    //       display: flex;
-    //       align-items: center;
-    //       gap: 8px;
-    //       transition: opacity .25s ease, transform .25s ease;
-    //       opacity: 0;
-    //       transform: translateY(-6px);
-    //     `;
-
-    //     const icon = document.createElement('span');
-    //     icon.innerHTML = '✔️';
-    //     icon.style.flex = '0 0 auto';
-
-    //     const text = document.createElement('span');
-    //     text.textContent = msg;
-
-    //     banner.appendChild(icon);
-    //     banner.appendChild(text);
-
-    //     // Si hay form, inserta ANTES del form; si no, al inicio del modal-content
-    //     if (form) {
-    //       form.insertAdjacentElement('beforebegin', banner);
-    //     } else {
-    //       container.insertAdjacentElement('afterbegin', banner);
-    //     }
-
-    //     // Animación de entrada
-    //     requestAnimationFrame(() => {
-    //       banner.style.opacity = '1';
-    //       banner.style.transform = 'translateY(0)';
-    //     });
-
-    //     // Timer de salida
-    //     if (modalEl._inlineOkTimer) clearTimeout(modalEl._inlineOkTimer);
-    //     modalEl._inlineOkTimer = setTimeout(() => {
-    //       try {
-    //         banner.style.opacity = '0';
-    //         banner.style.transform = 'translateY(-6px)';
-    //         setTimeout(() => banner.remove(), 260);
-    //       } catch {}
-    //       modalEl._inlineOkTimer = null;
-    //     }, ms);
-
-    //   } catch (e) {
-    //     console.warn('showInlineBeforeForm: no se pudo mostrar el aviso:', e);
-    //   }
-    // }
-    // });
-
-          // ====== DETALLE ======
-              // ====== DETALLE ======
-    document.addEventListener('click', async (e) => {
-      const btn = e.target.closest('.js-detalle');
-      if (!btn) return;
-
-      const id = btn.dataset.id;
-      const r = await fetch(`@Url.Content("~/Caja/Detalle/")${id}`, { headers:{'X-Requested-With':'XMLHttpRequest'} });
-      if (!r.ok){ alert(await r.text()); return; }
-      const html = await r.text();
-      if (!html.trim()) { alert('La partial _DetalleCaja devolvió vacío'); return; }
-
-      // 1) Cerrar y eliminar cualquier modalDetalle previo en el DOM
-      (function cleanupModalDetalle() {
-        const prev = document.getElementById('modalDetalle');
-        if (prev) {
-          try { bootstrap.Modal.getInstance(prev)?.hide(); } catch {}
-          // Quitar backdrop “huérfano”, por si quedó alguno
-          document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
-          prev.remove();
-        }
-      })();
-
-      // 2) Inyectar nueva partial y mostrar
-      host.innerHTML = html;
-      showModalById('modalDetalle');
-    });
-          // document.addEventListener('click', async (e)=>{
-          //   const btn = e.target.closest('.js-detalle'); if(!btn) return;
-          //   const id = btn.dataset.id;
-          //   const r = await fetch(`@Url.Content("~/Caja/Detalle/")${id}`, { headers:{'X-Requested-With':'XMLHttpRequest'} });
-          //   if (!r.ok){ alert(await r.text()); return; }
-          //   const html = await r.text();
-          //   if (!html.trim()) { alert('La partial _DetalleCaja devolvió vacío'); return; }
-          //   host.innerHTML = html;
-          //   showModalById('modalDetalle');
-          // });
-
-              // === CERRAR CAJA (bloque ÚNICO) ===
-    let cajaIdToClose = null;
-
-    // abrir modal de confirmación
-    document.addEventListener('click', (e) => {
-      const btn = e.target.closest('.js-cerrar');
-      if (!btn) return;
-      cajaIdToClose = btn.dataset.id;
-      bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConfirmCerrar')).show();
-    });
-
-    // confirmar y cerrar
-    document.getElementById('btnConfirmCerrar').addEventListener('click', async () => {
-      if (!cajaIdToClose) return;
-
-      const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-      const fd = new FormData();
-      if (token) fd.append('__RequestVerificationToken', token);
-
-      const resp = await fetch(`@Url.Content("~/Caja/Cerrar/")${cajaIdToClose}`, {
-        method: 'POST',
-        body: fd,
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        credentials: 'same-origin'
-      });
-
-      bootstrap.Modal.getInstance(document.getElementById('modalConfirmCerrar'))?.hide();
-
-      if (!resp.ok) { alert(await resp.text()); cajaIdToClose = null; return; }
-      const data = await resp.json();
-      window.dispatchEvent(new CustomEvent('caja:changed', { detail: { abierta: false } }));
-
-      // --- Opción A: redirigir directo, sin depender de modal "ok"
-      const go = () => {
-        const url = data?.redirectUrl || '@Url.Action("Index", "Caja")';
-        if (window.loadToHost) window.loadToHost(url);
-        else window.location.href = url;
-      };
-
-      // Si tienes showInfoModalafterCloseModal, úsalo SI y SOLO SI el modal existe
-      const okEl = document.getElementById('afterCloseModal');
-      if (okEl) {
-        okEl.addEventListener('hidden.bs.modal', go, { once: true });
-        // muestra y auto-cierra con tu helper
-        showInfoModalafterCloseModal('Caja cerrada', 'La caja se cerró correctamente.');
-      } else {
-        // sin modal: pequeña pausa opcional y navega
-        setTimeout(go, 300);
-      }
-
-      cajaIdToClose = null;
-    });
-
-          // Limpiar filtros en empty state
-          document.getElementById('printArea')?.addEventListener('click', (ev)=>{
-            const btn = ev.target.closest('.js-clear-filters'); if(!btn) return;
-            fCodigo.value = ''; fUsuario.value = ''; fEstado.value = '';
-            fDesde.value = ''; fHasta.value = '';
-            fCodigo.dispatchEvent(new Event('input',{bubbles:true}));
-            fUsuario.dispatchEvent(new Event('input',{bubbles:true}));
-            fEstado.dispatchEvent(new Event('change',{bubbles:true}));
-            fDesde.dispatchEvent(new Event('change',{bubbles:true}));
-            fHasta.dispatchEvent(new Event('change',{bubbles:true}));
-          });
-        })();
-
-    function showInfoModal(title, message){
+            cajaIdToClose = null;
+        });
+
+        // ====== Botón "Limpiar filtros" (delegado en .caja-ui) ======
+        document.querySelector('.caja-ui')?.addEventListener('click', (ev) => {
+            const btn = ev.target.closest('.js-clear-filters');
+            if (!btn) return;
+
+            if (fCodigo)  fCodigo.value  = '';
+            if (fUsuario) fUsuario.value = '';
+            if (fEstado)  fEstado.value  = '';
+            if (fDesde)   fDesde.value   = '';
+            if (fHasta)   fHasta.value   = '';
+
+            go();
+        });
+
+    })();
+
+    // Helpers de mensajes (se mantienen igual)
+    function showInfoModal(title, message) {
         const el = document.getElementById('saveOkModal');
         if (!el || !window.bootstrap) { alert(message); return; }
-        // const t = el.querySelector('.js-title');
-        // const m = el.querySelector('.js-msg');
-        // if (t) t.textContent = title || 'Aviso';
-        // if (m) m.textContent = message || '';
         const inst = bootstrap.Modal.getOrCreateInstance(el);
         inst.show();
 
-        // Programa cierre sin depender de eventos
         clearTimeout(el._autoTimer);
         el._autoTimer = setTimeout(() => {
-          try { bootstrap.Modal.getInstance(el)?.hide(); } catch {}
+            try { bootstrap.Modal.getInstance(el)?.hide(); } catch { }
         }, 1500);
-
     }
 
-    function showInfoModalafterOpenModal(title, message){
+    function showInfoModalafterOpenModal(title, message) {
         const el = document.getElementById('afterOpenModal');
         if (!el || !window.bootstrap) { alert(message); return; }
-        // const t = el.querySelector('.js-title');
-        // const m = el.querySelector('.js-msg');
-        // if (t) t.textContent = title || 'Aviso';
-        // if (m) m.textContent = message || '';
         const inst = bootstrap.Modal.getOrCreateInstance(el);
         inst.show();
 
-        // Programa cierre sin depender de eventos
         clearTimeout(el._autoTimer);
         el._autoTimer = setTimeout(() => {
-          try { bootstrap.Modal.getInstance(el)?.hide(); } catch {}
+            try { bootstrap.Modal.getInstance(el)?.hide(); } catch { }
         }, 1500);
-
     }
 
-    function showInfoModalafterCloseModal(title, message){
+    function showInfoModalafterCloseModal(title, message) {
         const el = document.getElementById('afterCloseModal');
         if (!el || !window.bootstrap) { alert(message); return; }
-        // const t = el.querySelector('.js-title');
-        // const m = el.querySelector('.js-msg');
-        // if (t) t.textContent = title || 'Aviso';
-        // if (m) m.textContent = message || '';
         const inst = bootstrap.Modal.getOrCreateInstance(el);
         inst.show();
 
-        // Programa cierre sin depender de eventos
         clearTimeout(el._autoTimer);
         el._autoTimer = setTimeout(() => {
-          try { bootstrap.Modal.getInstance(el)?.hide(); } catch {}
+            try { bootstrap.Modal.getInstance(el)?.hide(); } catch { }
         }, 1500);
-
     }
-
-        // Botón "Limpiar filtros" (delegado en un contenedor estable de Cajas)
-    document.querySelector('.caja-ui')?.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('.js-clear-filters');
-      if (!btn) return;
-
-      // limpia campos
-      fCodigo.value = '';
-      fUsuario.value = '';
-      fEstado.value = '';   // "" = Todos
-      fDesde.value = '';
-      fHasta.value = '';
-
-      // dispara eventos para que se ejecute el debounce + recarga
-      fCodigo.dispatchEvent(new Event('input',  { bubbles: true }));
-      fUsuario.dispatchEvent(new Event('input', { bubbles: true }));
-      fEstado.dispatchEvent(new Event('change', { bubbles: true }));
-      fDesde.dispatchEvent(new Event('change',  { bubbles: true }));
-      fHasta.dispatchEvent(new Event('change',  { bubbles: true }));
-    });
-
-
 </script>

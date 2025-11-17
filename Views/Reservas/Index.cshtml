@@ -298,19 +298,26 @@
         const d=(fDesde?.value||'').trim();
         const h=(fHasta?.value||'').trim();
         const e=(fEstado?.value||'Reservada').trim();
+
         if(c)qs.set('codigo',c);
         if(cli)qs.set('cliente',cli);
         if(d)qs.set('desde',d);
         if(h)qs.set('hasta',h);
         qs.set('estado',e || 'Reservada');
-        return '/Reservas/Index'+(qs.toString()?('?'+qs.toString()):'');
+
+        return '/Reservas/Index' + (qs.toString() ? ('?' + qs.toString()) : '');
       }
 
       const run=debounce(async ()=>{
-        const url=buildUrl();
-        await window.swapInHost(url,'#printArea'); // dentro de #contentHost
-        history.replaceState(null,'',url);
+        const url = buildUrl();
+
+        // 1) Actualiza solo el listado dentro del dashboard
+        await window.swapInHost(url,'#printArea');
         window.initPuestosPager(document.getElementById('printArea'));
+
+        // 2) Mantiene la URL en el Dashboard guardando el módulo + filtros en ?initial=
+        const DASHBOARD_URL = '/Home/Dashboard';
+        history.replaceState(null, '', `${DASHBOARD_URL}?initial=${encodeURIComponent(url)}`);
       });
 
       fCodigo?.addEventListener('input', e=>{ const v=e.target.value.trim(); if(v.length===0||v.length>=2) run(); });
@@ -319,6 +326,9 @@
       fHasta?.addEventListener('change',run);
       fEstado?.addEventListener('change',run);
 
-      window.addEventListener('DOMContentLoaded',()=>{ window.initPuestosPager(document.getElementById('printArea')); });
+      window.addEventListener('DOMContentLoaded',()=>{
+        window.initPuestosPager(document.getElementById('printArea'));
+      });
     })();
 </script>
+

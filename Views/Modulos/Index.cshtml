@@ -205,55 +205,102 @@
 </div>
 
 <script>
-    (function(){
-      const fCodigo=document.getElementById('fCodigo');
-      const fNombre=document.getElementById('fNombre');
-      const fEstado=document.getElementById('fEstado');
+    (function () {
+        const fCodigo = document.getElementById('fCodigo');
+        const fNombre = document.getElementById('fNombre');
+        const fEstado = document.getElementById('fEstado');
 
-      const debounce=(fn,ms=700)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
+        const DASHBOARD_URL = '/Home/Dashboard';
 
-      function buildUrl(){
-        const qs=new URLSearchParams();
-        const c=(fCodigo?.value||'').trim();
-        const n=(fNombre?.value||'').trim();
-        const e=(fEstado?.value??'');
-        if(c)qs.set('codigo',c);
-        if(n)qs.set('nombre',n);
-        qs.set('estado',e);
-        return '/Modulos/Index'+(qs.toString()?('?'+qs.toString()):'');
-      }
+        function buildUrl() {
+            const qs = new URLSearchParams();
+            const c = (fCodigo?.value || '').trim();
+            const n = (fNombre?.value || '').trim();
+            const e = (fEstado?.value ?? '');
 
-      const run=debounce(async ()=>{
-        const url=buildUrl();
-        if(window.swapInHost){ await window.swapInHost(url,'#printArea'); }
-        else{
-          const html=await fetch(url,{headers:{'X-Requested-With':'XMLHttpRequest'}}).then(r=>r.text());
-          document.querySelector('#printArea').outerHTML=html;
+            if (c) qs.set('codigo', c);
+            if (n) qs.set('nombre', n);
+            qs.set('estado', e);
+
+            return '/Modulos/Index' + (qs.toString() ? '?' + qs.toString() : '');
         }
-        history.replaceState(null,'',url);
-        window.initPuestosPager?.(document.getElementById('printArea'));
-      });
 
-      function onInput(){const v=this.value.trim(); if(v.length===0||v.length>=2) run();}
-      fCodigo?.addEventListener('input',onInput);
-      fNombre?.addEventListener('input',onInput);
-      fEstado?.addEventListener('change',run);
+        function debounce(fn, ms = 700) {
+            let t;
+            return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+        }
 
-      window.addEventListener('DOMContentLoaded',()=>window.initPuestosPager?.(document.getElementById('printArea')));
+        const go = debounce(async () => {
+            const url = buildUrl();
+
+            // guardar foco/caret
+            const active = document.activeElement;
+            const id = active?.id;
+            const selStart = ('selectionStart' in active) ? active.selectionStart : null;
+            const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
+
+            if (window.swapInHost) {
+                // Escenario normal dentro del Dashboard
+                await window.swapInHost(url, '#printArea');
+                window.initPuestosPager?.(document.getElementById('printArea'));
+
+                // Mantener siempre la URL del Dashboard con initial
+                history.replaceState(
+                    null,
+                    '',
+                    `${DASHBOARD_URL}?initial=${encodeURIComponent(url)}`
+                );
+            } else {
+                // Fallback si se entra directo a /Modulos/Index
+                const r = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (r.ok) {
+                    const html = await r.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const newArea = doc.querySelector('#printArea');
+                    const curArea = document.querySelector('#printArea');
+                    if (newArea && curArea) curArea.replaceWith(newArea);
+                    window.initPuestosPager?.(document.getElementById('printArea'));
+                } else {
+                    console.error('Error al recargar tabla:', r.status, await r.text());
+                }
+                history.replaceState(null, '', url);
+            }
+
+            // restaurar foco/caret
+            if (id) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.focus();
+                    if (selStart != null && selEnd != null && el.setSelectionRange) {
+                        el.setSelectionRange(selStart, selEnd);
+                    }
+                }
+            }
+        }, 700);
+
+        function onInput() {
+            const v = this.value.trim();
+            if (v.length === 0 || v.length >= 2) go();
+        }
+
+        fCodigo?.addEventListener('input', onInput);
+        fNombre?.addEventListener('input', onInput);
+        fEstado?.addEventListener('change', go);
+
+        window.addEventListener('DOMContentLoaded', () => {
+            window.initPuestosPager?.(document.getElementById('printArea'));
+        });
+
+        // Botón "Limpiar filtros" (delegado en un contenedor estable)
+        document.querySelector('.puestos-ui')?.addEventListener('click', (ev) => {
+            const btn = ev.target.closest('.js-clear-filters');
+            if (!btn) return;
+
+            if (fCodigo) fCodigo.value = '';
+            if (fNombre) fNombre.value = '';
+            if (fEstado) fEstado.value = '';
+
+            go();
+        });
     })();
-
-    // Botón "Limpiar filtros" (delegado en un contenedor estable)
-    document.querySelector('.puestos-ui')?.addEventListener('click', (ev) => {
-        const btn = ev.target.closest('.js-clear-filters');
-        if (!btn) return;
-        // limpia los campos escribibles
-        fCodigo.value = '';
-        fNombre.value = '';
-        // si quieres que Estado vuelva a "Todos":
-        fEstado.value = '';
-        // dispara eventos para que se ejecute tu debounce + recarga
-        fCodigo.dispatchEvent(new Event('input', { bubbles: true }));
-        fNombre.dispatchEvent(new Event('input', { bubbles: true }));
-        fEstado.dispatchEvent(new Event('change', { bubbles: true }));
-    });
 </script>

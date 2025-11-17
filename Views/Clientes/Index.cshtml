@@ -1,5 +1,7 @@
 ﻿@model IEnumerable<PIOGHOASIS.Models.Cliente>
 @{
+    Layout = null;
+
     if (ViewBag.IsPartial == true) { Layout = null; }
 
     var q = Context.Request.Query;
@@ -311,73 +313,92 @@
 </div>
 
 <script>
-    (function(){
-      const fCodigo = document.getElementById('fCodigo');
-      const fNombre = document.getElementById('fNombre');
-      const fEstado = document.getElementById('fEstado');
+    (function () {
+        const fCodigo = document.getElementById('fCodigo');
+        const fNombre = document.getElementById('fNombre');
+        const fEstado = document.getElementById('fEstado');
 
-      function buildUrl(){
-        const qs = new URLSearchParams();
-        const cod = (fCodigo?.value || '').trim();
-        const nom = (fNombre?.value || '').trim();
-        const est = (fEstado?.value ?? '');
+        function buildUrl() {
+            const qs = new URLSearchParams();
+            const cod = (fCodigo?.value || '').trim();
+            const nom = (fNombre?.value || '').trim();
+            const est = (fEstado?.value ?? '');
 
-        if (cod) qs.set('codigo', cod);
-        if (nom) qs.set('nombre', nom);
-        qs.set('estado', est);
+            if (cod) qs.set('codigo', cod);
+            if (nom) qs.set('nombre', nom);
+            qs.set('estado', est);
 
-        return '/Clientes/Index' + (qs.toString() ? '?' + qs.toString() : '');
-      }
-
-      function debounce(fn, ms=700){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
-
-      const go = debounce(async ()=>{
-        const url = buildUrl();
-
-        const active=document.activeElement, id=active?.id;
-        const s1=('selectionStart' in active)?active.selectionStart:null;
-        const s2=('selectionEnd'   in active)?active.selectionEnd:null;
-
-        await window.swapInHost(url, '#printArea');
-        history.replaceState(null,'',url);
-        // Reutilizamos el mismo paginador global que usas en Empleados
-        window.initPuestosPager?.(document.getElementById('printArea'));
-
-        if(id){
-          const el=document.getElementById(id);
-          if(el){ el.focus(); if(s1!=null && s2!=null) el.setSelectionRange(s1,s2); }
+            return '/Clientes/Index' + (qs.toString() ? '?' + qs.toString() : '');
         }
-      },700);
 
-      function onText(){ go(); }
-      fCodigo?.addEventListener('input', onText);
-      fNombre?.addEventListener('input', onText);
-      fEstado?.addEventListener('change', go);
+        function debounce(fn, ms = 700) {
+            let t;
+            return (...a) => {
+                clearTimeout(t);
+                t = setTimeout(() => fn(...a), ms);
+            };
+        }
 
-      // PDF
-      document.getElementById('btnPrint')?.addEventListener('click', ()=>{
-        const url = buildUrl().replace('/Index','/ExportPdf');
-        window.open(url,'_blank');
-      });
+        const go = debounce(async () => {
+            const url = buildUrl();
 
-      window.addEventListener('DOMContentLoaded', ()=>{
-        window.initPuestosPager?.(document.getElementById('printArea'));
-      });
+            // Guardar foco y selección del input activo
+            const active = document.activeElement;
+            const id = active?.id;
+            const s1 = ('selectionStart' in active) ? active.selectionStart : null;
+            const s2 = ('selectionEnd'   in active) ? active.selectionEnd   : null;
 
-        // Botón "Limpiar filtros" (Clientes)
+            // 1) Recargar solo printArea dentro del dashboard
+            await window.swapInHost(url, '#printArea');
+            window.initPuestosPager?.(document.getElementById('printArea'));
+
+            // 2) Mantener la URL en el Dashboard con ?initial=
+            const DASHBOARD_URL = '/Home/Dashboard';
+            history.replaceState(null, '', `${DASHBOARD_URL}?initial=${encodeURIComponent(url)}`);
+
+            // Restaurar foco
+            if (id) {
+                const el = document.getElementById(id);
+                if (el && s1 != null && s2 != null && el.setSelectionRange) {
+                    el.focus();
+                    el.setSelectionRange(s1, s2);
+                }
+            }
+        }, 700);
+
+        function onText() { go(); }
+
+        fCodigo?.addEventListener('input', onText);
+        fNombre?.addEventListener('input', onText);
+        fEstado?.addEventListener('change', go);
+
+        // Botón Imprimir
+        document.getElementById('btnPrint')?.addEventListener('click', () => {
+            const baseUrl = buildUrl();
+            const pdfUrl = baseUrl
+                .replace('/Clientes/Index', '/Clientes/ExportPdf')
+                .replace('/Index', '/ExportPdf'); // por si acaso
+
+            window.open(pdfUrl, '_blank');
+        });
+
+        // Paginador cuando se carga como página completa
+        window.addEventListener('DOMContentLoaded', () => {
+            window.initPuestosPager?.(document.getElementById('printArea'));
+        });
+
+        // Botón "Limpiar filtros"
         document.querySelector('.clientes-ui')?.addEventListener('click', (ev) => {
             const btn = ev.target.closest('.js-clear-filters');
             if (!btn) return;
 
-            // limpia campos
-            fCodigo.value = '';
-            fNombre.value = '';
-            fEstado.value = ''; // "" = Todos
+            if (fCodigo) fCodigo.value = '';
+            if (fNombre) fNombre.value = '';
+            if (fEstado) fEstado.value = '';
 
-            // dispara eventos para que corra el debounce + recarga
-            fCodigo.dispatchEvent(new Event('input',  { bubbles: true }));
-            fNombre.dispatchEvent(new Event('input',  { bubbles: true }));
-            fEstado.dispatchEvent(new Event('change', { bubbles: true }));
+            // Disparar búsqueda con filtros en blanco
+            go();
         });
     })();
 </script>
+

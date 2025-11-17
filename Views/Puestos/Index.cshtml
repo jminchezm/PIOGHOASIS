@@ -362,22 +362,29 @@
         const fNombre = document.getElementById('fNombre');
         const fEstado = document.getElementById('fEstado');
 
+        // misma convención que el resto de catálogos
+        const DASHBOARD_URL = '/Home/Dashboard';
+
         function buildUrl() {
             const params = new URLSearchParams();
             const cod = (fCodigo?.value || '').trim();
             const nom = (fNombre?.value || '').trim();
-            const est = (fEstado?.value ?? '');          // "" cuando es “Todos”
+            const est = (fEstado?.value ?? ''); // "" cuando es “Todos”
 
             if (cod) params.set('codigo', cod);
             if (nom) params.set('nombre', nom);
-            params.set('estado', est);                   // <-- SIEMPRE incluirlo
+            params.set('estado', est); // siempre mandamos el estado
 
             const qs = params.toString();
             return '/Puestos/Index' + (qs ? ('?' + qs) : '');
         }
 
         function debounce(fn, ms = 700) {
-            let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
+            let t;
+            return (...args) => {
+                clearTimeout(t);
+                t = setTimeout(() => fn.apply(null, args), ms);
+            };
         }
 
         const go = debounce(async () => {
@@ -387,54 +394,90 @@
             const active = document.activeElement;
             const id = active?.id;
             const selStart = ('selectionStart' in active) ? active.selectionStart : null;
-            const selEnd = ('selectionEnd' in active) ? active.selectionEnd : null;
+            const selEnd   = ('selectionEnd' in active) ? active.selectionEnd   : null;
 
-            await window.swapInHost(url, '#printArea');      // solo grilla/pager
-            history.replaceState(null, '', url);             // actualiza URL
+            if (window.swapInHost) {
+                // Escenario normal: inyectado en Dashboard
+                await window.swapInHost(url, '#printArea');      // solo grilla/pager
+                window.initPuestosPager?.(document.getElementById('printArea'));
 
-            // re-inicializa paginación sobre el NUEVO #printArea
-            window.initPuestosPager(document.getElementById('printArea'));
+                // La URL del navegador apunta al Dashboard, con initial
+                history.replaceState(
+                    null,
+                    '',
+                    `${DASHBOARD_URL}?initial=${encodeURIComponent(url)}`
+                );
+            } else {
+                // Fallback: si entras directo a /Puestos/Index
+                const r = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                if (r.ok) {
+                    const html = await r.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const newArea = doc.querySelector('#printArea');
+                    const curArea = document.querySelector('#printArea');
+                    if (newArea && curArea) curArea.replaceWith(newArea);
+                    window.initPuestosPager?.(document.getElementById('printArea'));
+                } else {
+                    console.error('Error al recargar tabla:', r.status, await r.text());
+                }
+                history.replaceState(null, '', url);
+            }
 
             // restaura foco/caret
             if (id) {
                 const el = document.getElementById(id);
                 if (el) {
                     el.focus();
-                    if (selStart != null && selEnd != null) el.setSelectionRange(selStart, selEnd);
+                    if (selStart != null && selEnd != null && el.setSelectionRange) {
+                        el.setSelectionRange(selStart, selEnd);
+                    }
                 }
             }
         }, 700);
 
-        // Llama una vez al cargar la página inicial
-        window.addEventListener('DOMContentLoaded', () => {
-            window.initPuestosPager(document.getElementById('printArea'));
-        });
-
-
         function onTextInput() {
             const v = this.value.trim();
-            if (v.length === 0 || v.length >= 2) go();   // no recargar en 1 carácter
+            if (v.length === 0 || v.length >= 2) go();   // evita requests con 1 solo carácter
         }
 
         fCodigo?.addEventListener('input', onTextInput);
         fNombre?.addEventListener('input', onTextInput);
         fEstado?.addEventListener('change', go);
 
+        // Inicializar paginación al cargar
+        window.addEventListener('DOMContentLoaded', () => {
+            window.initPuestosPager?.(document.getElementById('printArea'));
+        });
+
+        // ===== Exportar a PDF con los filtros actuales =====
+        function pdfUrl() {
+            const qs = new URLSearchParams();
+            const cod = (fCodigo?.value || '').trim();
+            const nom = (fNombre?.value || '').trim();
+            const est = (fEstado?.value ?? '');
+            if (cod) qs.set('codigo', cod);
+            if (nom) qs.set('nombre', nom);
+            qs.set('estado', est);
+            return '/Puestos/ExportPdf' + (qs.toString() ? '?' + qs.toString() : '');
+        }
+
+        document.getElementById('btnPrint')?.addEventListener('click', () => {
+            window.open(pdfUrl(), '_blank');
+        });
+
+        // Botón "Limpiar filtros" (delegado en un contenedor estable)
+        document.querySelector('.puestos-ui')?.addEventListener('click', (ev) => {
+            const btn = ev.target.closest('.js-clear-filters');
+            if (!btn) return;
+
+            if (fCodigo) fCodigo.value = '';
+            if (fNombre) fNombre.value = '';
+            if (fEstado) fEstado.value = '';
+
+            fCodigo?.dispatchEvent(new Event('input',  { bubbles: true }));
+            fNombre?.dispatchEvent(new Event('input',  { bubbles: true }));
+            fEstado?.dispatchEvent(new Event('change', { bubbles: true }));
+        });
     })();
-
-    // Botón "Limpiar filtros" (delegado en un contenedor estable)
-    document.querySelector('.puestos-ui')?.addEventListener('click', (ev) => {
-        const btn = ev.target.closest('.js-clear-filters');
-        if (!btn) return;
-        // limpia los campos escribibles
-        fCodigo.value = '';
-        fNombre.value = '';
-        // si quieres que Estado vuelva a "Todos":
-        fEstado.value = '';
-        // dispara eventos para que se ejecute tu debounce + recarga
-        fCodigo.dispatchEvent(new Event('input', { bubbles: true }));
-        fNombre.dispatchEvent(new Event('input', { bubbles: true }));
-        fEstado.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-
 </script>
+

@@ -1,6 +1,6 @@
 ﻿@model IEnumerable<PIOGHOASIS.Models.Empleado>
 @{
-    // Layout = null;
+    Layout = null;
     if (ViewBag.IsPartial == true) { Layout = null; }
 
     var q = Context.Request.Query;
@@ -203,101 +203,104 @@
 </div>
 
 <script>
-(function () {
-  const fCodigo  = document.getElementById('fCodigo');
-  const fPersona = document.getElementById('fPersona');
-  const fPuesto  = document.getElementById('fPuesto');
-  const fEstado  = document.getElementById('fEstado');
-  const fIni     = document.getElementById('fIni');   // NUEVO
-  const fFin     = document.getElementById('fFin');   // NUEVO
+    (function () {
+      const fCodigo  = document.getElementById('fCodigo');
+      const fPersona = document.getElementById('fPersona');
+      const fPuesto  = document.getElementById('fPuesto');
+      const fEstado  = document.getElementById('fEstado');
+      const fIni     = document.getElementById('fIni');   // rango fecha inicio
+      const fFin     = document.getElementById('fFin');   // rango fecha fin
 
-  function buildUrl(){
-    const qs = new URLSearchParams();
-    const cod=(fCodigo?.value  || '').trim();
-    const per=(fPersona?.value || '').trim();
-    const pue=(fPuesto?.value  || '').trim();
-    const est=(fEstado?.value  ?? '');
-    const ini=(fIni?.value     || '').trim(); // yyyy-MM-dd
-    const fin=(fFin?.value     || '').trim();
+      function buildUrl() {
+        const qs  = new URLSearchParams();
+        const cod = (fCodigo?.value  || '').trim();
+        const per = (fPersona?.value || '').trim();
+        const pue = (fPuesto?.value  || '').trim();
+        const est = (fEstado?.value  ?? '');
+        const ini = (fIni?.value     || '').trim();
+        const fin = (fFin?.value     || '').trim();
 
-    if (cod) qs.set('codigo',  cod);
-    if (per) qs.set('persona', per);
-    if (pue) qs.set('puesto',  pue);
-    qs.set('estado', est);
-    if (ini) qs.set('fIni', ini);
-    if (fin) qs.set('fFin', fin);
+        if (cod) qs.set('codigo',  cod);
+        if (per) qs.set('persona', per);
+        if (pue) qs.set('puesto',  pue);
+        qs.set('estado', est);
+        if (ini) qs.set('fIni', ini);
+        if (fin) qs.set('fFin', fin);
 
-    return '/Empleados/Index' + (qs.toString()? '?' + qs.toString() : '');
-  }
+        return '/Empleados/Index' + (qs.toString() ? '?' + qs.toString() : '');
+      }
 
-  function debounce(fn, ms=700){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+      function debounce(fn, ms = 700) {
+        let t;
+        return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+      }
 
-  const go = debounce(async ()=>{
-    const url = buildUrl();
+      const go = debounce(async () => {
+        const url = buildUrl();
 
-    const active=document.activeElement, id=active?.id;
-    const s1=('selectionStart' in active)?active.selectionStart:null;
-    const s2=('selectionEnd'   in active)?active.selectionEnd:null;
+        // Guardar foco/selección del input activo
+        const active = document.activeElement;
+        const id  = active?.id;
+        const s1  = ('selectionStart' in active) ? active.selectionStart : null;
+        const s2  = ('selectionEnd'   in active) ? active.selectionEnd   : null;
 
-    await window.swapInHost(url, '#printArea');
-    history.replaceState(null,'',url);
-    window.initPuestosPager(document.getElementById('printArea'));
+        // 1) Recargar SOLO el printArea dentro del dashboard
+        await window.swapInHost(url, '#printArea');
+        window.initPuestosPager?.(document.getElementById('printArea'));
 
-    if(id){
-      const el=document.getElementById(id);
-      if(el){ el.focus(); if(s1!=null && s2!=null) el.setSelectionRange(s1,s2); }
-    }
-  },700);
+        // 2) Mantener URL del Dashboard con ?initial=
+        const DASHBOARD_URL = '/Home/Dashboard';
+        history.replaceState(null, '', `${DASHBOARD_URL}?initial=${encodeURIComponent(url)}`);
 
-  // function onText(){ const v=this.value.trim(); if(v.length===0 || v.length>=2) go(); }
-  function onText(){ go(); }
+        // Restaurar foco en el mismo control
+        if (id) {
+          const el = document.getElementById(id);
+          if (el && s1 != null && s2 != null && el.setSelectionRange) {
+            el.focus();
+            el.setSelectionRange(s1, s2);
+          }
+        }
+      }, 700);
 
-  fCodigo?.addEventListener('input', onText);
-  fPersona?.addEventListener('input', onText);
-  fPuesto?.addEventListener('input', onText);
-  fEstado?.addEventListener('change', go);
-  fIni?.addEventListener('change', go);     // NUEVO
-  fFin?.addEventListener('change', go);     // NUEVO
+      function onText() { go(); }
 
-  // PDF
-  document.getElementById('btnPrint')?.addEventListener('click', ()=>{
-    const url = buildUrl().replace('/Index','/ExportPdf');
-    window.open(url, '_blank');
-  });
+      fCodigo?.addEventListener('input', onText);
+      fPersona?.addEventListener('input', onText);
+      fPuesto?.addEventListener('input', onText);
+      fEstado?.addEventListener('change', go);
+      fIni?.addEventListener('change', go);
+      fFin?.addEventListener('change', go);
 
-  window.addEventListener('DOMContentLoaded', ()=> window.initPuestosPager(document.getElementById('printArea')));
+      // Botón Imprimir → ExportPdf en nueva pestaña
+      document.getElementById('btnPrint')?.addEventListener('click', () => {
+        const baseUrl = buildUrl();
+        const pdfUrl = baseUrl
+          .replace('/Empleados/Index', '/Empleados/ExportPdf')
+          .replace('/Index', '/ExportPdf'); // por si acaso
 
-  document.getElementById('printArea')?.addEventListener('click', (ev)=>{
-    const btn = ev.target.closest('.js-clear-filters'); if(!btn) return;
-    fCodigo.value=''; fPersona.value=''; fPuesto.value=''; fEstado.value='';
-    fIni.value=''; fFin.value='';
-    fCodigo.dispatchEvent(new Event('input')); fPersona.dispatchEvent(new Event('input'));
-    fPuesto.dispatchEvent(new Event('input')); fEstado.dispatchEvent(new Event('change'));
-    fIni.dispatchEvent(new Event('change'));   fFin.dispatchEvent(new Event('change'));
-  });
+        window.open(pdfUrl, '_blank');
+      });
 
-      // Botón "Limpiar filtros" (Empleados)
-    document.querySelector('.puestos-ui')?.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('.js-clear-filters');
-      if (!btn) return;
+      // Paginador cuando la vista se carga completa
+      window.addEventListener('DOMContentLoaded', () => {
+        window.initPuestosPager?.(document.getElementById('printArea'));
+      });
 
-      // limpia campos
-      fCodigo.value  = '';
-      fPersona.value = '';
-      fPuesto.value  = '';
-      fEstado.value  = '';   // "" = Todos
-      fIni.value     = '';
-      fFin.value     = '';
+      // Botón "Limpiar filtros"
+      document.querySelector('.puestos-ui')?.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('.js-clear-filters');
+        if (!btn) return;
 
-      // dispara eventos para que se ejecute el debounce + recarga
-      fCodigo.dispatchEvent(new Event('input',  { bubbles: true }));
-      fPersona.dispatchEvent(new Event('input', { bubbles: true }));
-      fPuesto.dispatchEvent(new Event('input',  { bubbles: true }));
-      fEstado.dispatchEvent(new Event('change', { bubbles: true }));
-      fIni.dispatchEvent(new Event('change',    { bubbles: true }));
-      fFin.dispatchEvent(new Event('change',    { bubbles: true }));
-    });
+        if (fCodigo)  fCodigo.value  = '';
+        if (fPersona) fPersona.value = '';
+        if (fPuesto)  fPuesto.value  = '';
+        if (fEstado)  fEstado.value  = '';
+        if (fIni)     fIni.value     = '';
+        if (fFin)     fFin.value     = '';
 
-
-})();
+        // Dispara búsqueda con filtros en blanco
+        go();
+      });
+    })();
 </script>
+

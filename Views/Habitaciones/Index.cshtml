@@ -226,68 +226,86 @@
 </div>
 
 <script>
-    (function(){
-      const host = document.getElementById('contentHost'); // dashboard
-      const fCodigo=document.getElementById('fCodigo');
-      const fTipo=document.getElementById('fTipo');
-      const fPersonas=document.getElementById('fPersonas');
-      const fEstado=document.getElementById('fEstado');
+    (function () {
+        const fCodigo   = document.getElementById('fCodigo');
+        const fTipo     = document.getElementById('fTipo');
+        const fPersonas = document.getElementById('fPersonas');
+        const fEstado   = document.getElementById('fEstado');
 
-      const debounce=(fn,ms=500)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
+        const debounce = (fn, ms = 500) => {
+            let t;
+            return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+        };
 
-      function buildUrl(){
-        const qs=new URLSearchParams();
-        const c=(fCodigo?.value||'').trim();
-        const t=(fTipo?.value||'').trim();
-        const p=(fPersonas?.value||'').trim();
-        const e=(fEstado?.value??'');
-        if(c)qs.set('codigo',c);
-        if(t)qs.set('tipo',t);
-        if(p)qs.set('personas',p);
-        qs.set('estado',e);
-        return '/Habitaciones/Index'+(qs.toString()?('?'+qs.toString()):'');
-      }
+        function buildUrl() {
+            const qs = new URLSearchParams();
+            const c = (fCodigo?.value || '').trim();
+            const t = (fTipo?.value || '').trim();
+            const p = (fPersonas?.value || '').trim();
+            const e = (fEstado?.value ?? '');
 
-      const run=debounce(async ()=>{
-        const url=buildUrl();
-        await window.swapInHost(url,'#printArea');
-        history.replaceState(null,'',url);
-        window.initPuestosPager(document.getElementById('printArea'));
-      },450);
+            if (c) qs.set('codigo', c);
+            if (t) qs.set('tipo', t);
+            if (p) qs.set('personas', p);
+            qs.set('estado', e);
 
-      fCodigo?.addEventListener('input', e=>{ const v=e.target.value.trim(); if(v.length===0||v.length>=2) run(); });
-      fTipo?.addEventListener('change',run);
-      fPersonas?.addEventListener('input',run);
-      fEstado?.addEventListener('change',run);
+            return '/Habitaciones/Index' + (qs.toString() ? ('?' + qs.toString()) : '');
+        }
 
-      document.getElementById('btnPrint')?.addEventListener('click',()=>{
-        const url=buildUrl().replace('/Index','/ExportPdf');
-        window.open(url,'_blank');
-      });
+        async function reloadList() {
+            const url = buildUrl();
 
-      window.addEventListener('DOMContentLoaded',()=>{ window.initPuestosPager(document.getElementById('printArea')); });
+            // 1) Recargamos solo el listado dentro del dashboard
+            await window.swapInHost(url, '#printArea');
+            window.initPuestosPager(document.getElementById('printArea'));
+
+            // 2) Mantenemos la URL en el Dashboard con ?initial=
+            const DASHBOARD_URL = '/Home/Dashboard';
+            history.replaceState(null, '', `${DASHBOARD_URL}?initial=${encodeURIComponent(url)}`);
+        }
+
+        const run = debounce(reloadList, 450);
+
+        // ==== Eventos de filtros ====
+        fCodigo?.addEventListener('input', e => {
+            const v = e.target.value.trim();
+            if (v.length === 0 || v.length >= 2) run();
+        });
+        fTipo?.addEventListener('change', run);
+        fPersonas?.addEventListener('input', run);
+        fEstado?.addEventListener('change', run);
+
+        // ==== Botón Imprimir ====
+        document.getElementById('btnPrint')?.addEventListener('click', () => {
+            const baseUrl = buildUrl();
+            const pdfUrl = baseUrl.replace('/Habitaciones/Index', '/Habitaciones/ExportPdf')
+                                  .replace('/Index', '/ExportPdf'); // por si acaso
+            window.open(pdfUrl, '_blank');
+        });
+
+        // ==== Botón "Limpiar filtros" ====
+        const habUi = document.querySelector('.hab-ui');
+        if (habUi) {
+            habUi.addEventListener('click', (ev) => {
+                const btn = ev.target.closest('.js-clear-filters');
+                if (!btn) return;
+
+                if (fCodigo)   fCodigo.value = '';
+                if (fTipo)     fTipo.value = '';
+                if (fPersonas) fPersonas.value = '';
+                if (fEstado)   fEstado.value = ''; // "" = Todos
+
+                run();
+            });
+        }
+
+        // Paginador cuando se carga esta vista como página completa
+        window.addEventListener('DOMContentLoaded', () => {
+            window.initPuestosPager && window.initPuestosPager(document.getElementById('printArea'));
+        });
     })();
-
-        // Botón "Limpiar filtros" (Habitaciones)
-    document.querySelector('.hab-ui')?.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('.js-clear-filters');
-      if (!btn) return;
-
-      // limpia campos
-      if (fCodigo)    fCodigo.value = '';
-      if (fTipo)      fTipo.value = '';
-      if (fPersonas)  fPersonas.value = '';
-      if (fEstado)    fEstado.value = ''; // "" = Todos
-
-      // dispara eventos para que corra el debounce + recarga
-      fCodigo?.dispatchEvent(new Event('input',  { bubbles: true }));
-      fTipo?.dispatchEvent(new Event('change',   { bubbles: true }));
-      fPersonas?.dispatchEvent(new Event('input', { bubbles: true }));
-      fEstado?.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-
-
 </script>
+
 
 
 

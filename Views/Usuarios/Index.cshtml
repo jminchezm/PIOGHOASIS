@@ -1,6 +1,7 @@
 ﻿@model IEnumerable<PIOGHOASIS.Models.Entities.Usuario>
 @using Microsoft.AspNetCore.Mvc.Rendering
 @{
+    Layout = null;
     if (ViewBag.IsPartial == true) { Layout = null; }
 
     var q = Context.Request.Query;
@@ -314,78 +315,95 @@
     (function () {
         const fCodigo = document.getElementById('fCodigo');
         const fNombre = document.getElementById('fNombre');
-        const fRol = document.getElementById('fRol');     // ← input de texto
+        const fRol    = document.getElementById('fRol');     // input de texto (rol)
         const fEstado = document.getElementById('fEstado');
 
         function buildUrl() {
-            const qs = new URLSearchParams();
+            const qs  = new URLSearchParams();
             const cod = (fCodigo?.value || '').trim();
             const nom = (fNombre?.value || '').trim();
-            const rol = (fRol?.value || '').trim();
+            const rol = (fRol?.value    || '').trim();
             const est = (fEstado?.value ?? '');
 
             if (cod) qs.set('codigo', cod);
             if (nom) qs.set('nombre', nom);
-            if (rol) qs.set('rol', rol);       // ← ahora sí viaja en la URL
+            if (rol) qs.set('rol', rol);   // viaja en el querystring
             qs.set('estado', est);
 
             return '/Usuarios/Index' + (qs.toString() ? '?' + qs.toString() : '');
         }
 
-        function debounce(fn, ms = 700) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+        function debounce(fn, ms = 700) {
+            let t;
+            return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+        }
+
         const go = debounce(async () => {
             const url = buildUrl();
 
-            const active = document.activeElement, id = active?.id;
+            // guardar foco actual
+            const active = document.activeElement;
+            const id = active?.id;
             const s1 = ('selectionStart' in active) ? active.selectionStart : null;
-            const s2 = ('selectionEnd' in active) ? active.selectionEnd : null;
+            const s2 = ('selectionEnd'   in active) ? active.selectionEnd   : null;
 
-            await window.swapInHost(url, '#printArea');        // recarga parcial
-            history.replaceState(null, '', url);
-            window.initPuestosPager(document.getElementById('printArea'));
+            // 1) recargar SOLO #printArea dentro del dashboard
+            await window.swapInHost(url, '#printArea');
+            window.initPuestosPager?.(document.getElementById('printArea'));
 
+            // 2) mantener siempre la URL del Dashboard con ?initial=
+            const DASHBOARD_URL = '/Home/Dashboard';
+            history.replaceState(null, '', `${DASHBOARD_URL}?initial=${encodeURIComponent(url)}`);
+
+            // restaurar foco
             if (id) {
                 const el = document.getElementById(id);
-                if (el) { el.focus(); if (s1 != null && s2 != null) el.setSelectionRange(s1, s2); }
+                if (el && s1 != null && s2 != null && el.setSelectionRange) {
+                    el.focus();
+                    el.setSelectionRange(s1, s2);
+                }
             }
         }, 700);
 
         function onText() {
             const v = this.value.trim();
-            if (v.length === 0 || v.length >= 2) go();  // evita requests con 1 char
+            if (v.length === 0 || v.length >= 2) go();   // evita llamadas con 1 solo carácter
         }
 
         fCodigo?.addEventListener('input', onText);
         fNombre?.addEventListener('input', onText);
-        fRol?.addEventListener('input', onText);   // ← CLAVE
+        fRol?.addEventListener('input', onText);
         fEstado?.addEventListener('change', go);
 
+        // Botón imprimir → ExportPdf en nueva pestaña
         document.getElementById('btnPrint')?.addEventListener('click', () => {
-            const url = buildUrl().replace('/Index', '/ExportPdf');
-            window.open(url, '_blank');
+            const baseUrl = buildUrl();
+            const pdfUrl  = baseUrl
+                .replace('/Usuarios/Index', '/Usuarios/ExportPdf')
+                .replace('/Index', '/ExportPdf'); // por si acaso
+
+            window.open(pdfUrl, '_blank');
         });
 
+        // Paginador cuando la vista se carga completa
         window.addEventListener('DOMContentLoaded', () => {
-            window.initPuestosPager(document.getElementById('printArea'));
+            window.initPuestosPager?.(document.getElementById('printArea'));
         });
 
-        // limpiar filtros desde empty-state
+        // Botón "Limpiar filtros"
         document.querySelector('.puestos-ui')?.addEventListener('click', (ev) => {
-          const btn = ev.target.closest('.js-clear-filters');
-          if (!btn) return;
+            const btn = ev.target.closest('.js-clear-filters');
+            if (!btn) return;
 
-          // limpia campos
-          fCodigo.value = '';
-          fNombre.value = '';
-          fRol.value    = '';
-          fEstado.value = '';   // "" = Todos
+            if (fCodigo) fCodigo.value = '';
+            if (fNombre) fNombre.value = '';
+            if (fRol)    fRol.value    = '';
+            if (fEstado) fEstado.value = ''; // "" = Todos
 
-          // dispara eventos para que se ejecute el debounce + recarga
-          fCodigo.dispatchEvent(new Event('input',  { bubbles: true }));
-          fNombre.dispatchEvent(new Event('input',  { bubbles: true }));
-          fRol.dispatchEvent(new Event('input',     { bubbles: true }));
-          fEstado.dispatchEvent(new Event('change', { bubbles: true }));
+            // dispara búsqueda con filtros limpios
+            go();
         });
 
     })();
 </script>
+
