@@ -14,26 +14,6 @@ namespace PIOGHOASIS.Controllers
         public PagosController(AppDbContext db, IWebHostEnvironment env)
         { _db = db; _env = env; }
 
-        //[HttpGet("Nueva")]
-        //public async Task<IActionResult> Nueva(int reservaId)
-        //{
-        //    var r = await _db.reservas
-        //        .Include(x => x.Cliente).ThenInclude(c => c.Persona)
-        //        .AsNoTracking()
-        //        .FirstOrDefaultAsync(x => x.ReservaID == reservaId);
-        //    if (r == null) return NotFound();
-
-        //    ViewBag.TiposPago = await _db.tiposPago.Where(x => x.Estado).OrderBy(x => x.Nombre).ToListAsync();
-        //    ViewBag.FormasPago = await _db.formasPago.Where(x => x.Estado).OrderBy(x => x.Nombre).ToListAsync();
-        //    ViewBag.Plataformas = await _db.plataformasReserva.Where(x => x.Estado).OrderBy(x => x.Nombre).ToListAsync();
-
-        //    // cálculo de pagado/pendiente
-        //    var pagado = await _db.pagosReserva.Where(p => p.ReservaID == reservaId).SumAsync(p => (decimal?)p.MontoPagado) ?? 0m;
-        //    ViewBag.Pagado = pagado;
-        //    ViewBag.Pendiente = Math.Max(0m, r.Total - pagado);
-
-        //    return View(r); // tu vista elegante de “registro de pago”
-        //}
 
         [HttpGet("Nueva")]
         public async Task<IActionResult> Nueva(int reservaId)

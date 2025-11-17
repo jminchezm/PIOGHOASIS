@@ -10,7 +10,6 @@ namespace PIOGHOASIS.Infraestructure.Data
 
         public DbSet<Usuario> usuarios => Set<Usuario>();
         public DbSet<Empleado> empleados => Set<Empleado>();
-        //public DbSet<Empleado> empleados { get; set; } = null!;
         public DbSet<Persona> personas => Set<Persona>();
         public DbSet<Rol> roles => Set<Rol>();
         public DbSet<Puesto> puestos => Set<Puesto>();
@@ -19,10 +18,8 @@ namespace PIOGHOASIS.Infraestructure.Data
         public DbSet<Pais> paises { get; set; } = null!;
         public DbSet<Departamento> departamentos { get; set; } = null!;
         public DbSet<Municipio> municipios { get; set; } = null!;
-        //public DbSet<PasswordResetToken> password_reset_tokens { get; set; } = null!;
         public DbSet<PasswordResetToken> password_reset_tokens => Set<PasswordResetToken>();
 
-        //public DbSet<Cliente> clientes { get; set; } = null!;
         public DbSet<Cliente> clientes => Set<Cliente>();
 
         public DbSet<TipoHabitacion> tiposHabitacion { get; set; } = default!;
@@ -35,7 +32,6 @@ namespace PIOGHOASIS.Infraestructure.Data
         public DbSet<PagoReserva> pagosReserva => Set<PagoReserva>();
         public DbSet<FormaPago> formasPago => Set<FormaPago>();
         public DbSet<TipoPago> tiposPago => Set<TipoPago>();
-        //public DbSet<PlataformaReserva> plataformas => Set<PlataformaReserva>();
         public DbSet<PlataformaReserva> plataformasReserva { get; set; } = null!;
 
         public DbSet<Modulo> modulos { get; set; } = default!;
@@ -54,8 +50,6 @@ namespace PIOGHOASIS.Infraestructure.Data
 
             // Aplica todas las configuraciones en el ensamblado
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-            //base.OnModelCreating(modelBuilder);
-            // Default de Estado en PUESTO (opcional)
             modelBuilder.Entity<Puesto>()
                 .Property(p => p.Estado)
                 .HasDefaultValue(true);
@@ -66,13 +60,6 @@ namespace PIOGHOASIS.Infraestructure.Data
                 .WithOne(p => p.Empleado)
                 .HasForeignKey<Empleado>(e => e.PersonalID)
                 .HasPrincipalKey<Persona>(p => p.PersonaID);
-
-            // EMPLEADO -> PUESTO (N–1), FK: PuestoID -> PuestoID
-            //modelBuilder.Entity<Empleado>()
-            //    .HasOne(e => e.Puesto)
-            //    .WithMany()  // si no tienes colección en Puesto
-            //    .HasForeignKey(e => e.PuestoID)
-            //    .HasPrincipalKey<Puesto>(p => p.PuestoID);
 
             // EMPLEADO 1–1 USUARIO (FK: Usuario.EmpleadoID)
             modelBuilder.Entity<Usuario>()
@@ -95,22 +82,6 @@ namespace PIOGHOASIS.Infraestructure.Data
                 .HasForeignKey(d => d.PaisID)
                 .HasPrincipalKey(p => p.PaisID);
 
-            //modelBuilder.Entity<PasswordResetToken>(b =>
-            //{
-            //    b.ToTable("PASSWORD_RESET_TOKENS", "dbo");
-            //    b.HasKey(x => x.Id);
-            //    b.Property(x => x.UsuarioID).HasMaxLength(20).IsRequired();
-            //    b.Property(x => x.TokenHash).HasMaxLength(64).IsRequired();
-
-            //    b.HasIndex(x => new { x.UsuarioID, x.TokenHash }).IsUnique();
-            //    b.HasIndex(x => x.ExpiresAtUtc);
-
-            //    b.HasOne<Usuario>()                           // sin navegación
-            //     .WithMany()
-            //     .HasForeignKey(x => x.UsuarioID)
-            //     .HasPrincipalKey(u => u.UsuarioID)          // PK de USUARIO es string
-            //     .OnDelete(DeleteBehavior.Cascade);
-            //});
 
             // PASSWORD_RESET_TOKENS
             modelBuilder.Entity<PasswordResetToken>(eb =>
@@ -130,7 +101,7 @@ namespace PIOGHOASIS.Infraestructure.Data
 
                 // Relación clara: t.UsuarioID ---> u.UsuarioID
                 eb.HasOne(t => t.Usuario)
-                  .WithMany()                              // (o .WithMany(u => u.PasswordResetTokens) si agregas la colección)
+                  .WithMany()                              
                   .HasForeignKey(t => t.UsuarioID)         // FK en PasswordResetToken
                   .HasPrincipalKey(u => u.UsuarioID)       // PK en Usuario
                   .OnDelete(DeleteBehavior.Cascade);
@@ -158,38 +129,6 @@ namespace PIOGHOASIS.Infraestructure.Data
                  .OnDelete(DeleteBehavior.Restrict);
             });
 
-            //  modelBuilder.Entity<Reserva>()
-            //.HasOne(r => r.Cliente).WithMany().HasForeignKey(r => r.ClienteID);
-
-            //  modelBuilder.Entity<Reserva>()
-            //    .HasOne(r => r.Estado).WithMany().HasForeignKey(r => r.EstadoReservaID);
-
-            //  modelBuilder.Entity<DetalleReserva>()
-            //    .HasOne(d => d.Reserva).WithMany(r => r.Detalles).HasForeignKey(d => d.ReservaID);
-
-            //  modelBuilder.Entity<DetalleReserva>()
-            //    .HasOne(d => d.Habitacion).WithMany().HasForeignKey(d => d.HabitacionID);
-
-            //  modelBuilder.Entity<DetalleReserva>()
-            //    .HasOne(d => d.Tarifa).WithMany().HasForeignKey(d => d.TarifaID);
-
-            //  modelBuilder.Entity<PagoReserva>()
-            //    .HasOne(p => p.Reserva).WithMany(r => r.Pagos).HasForeignKey(p => p.ReservaID);
-            //  modelBuilder.Entity<PagoReserva>()
-            //    .HasOne(p => p.FormaPago).WithMany().HasForeignKey(p => p.FormaPagoID);
-            //  modelBuilder.Entity<PagoReserva>()
-            //    .HasOne(p => p.TipoPago).WithMany().HasForeignKey(p => p.TipoPagoID);
-            //  modelBuilder.Entity<PagoReserva>()
-            //    .HasOne(p => p.Plataforma).WithMany().HasForeignKey(p => p.PlataformaID);
-
-            //  // Índices útiles
-            //  modelBuilder.Entity<TarifaHabitacion>()
-            //    .HasIndex(t => new { t.HabitacionID, t.NumeroPersonas, t.FechaInicio, t.FechaFin });
-            //  modelBuilder.Entity<Reserva>()
-            //    .HasIndex(r => new { r.FechaCheckIn, r.FechaCheckOut });
-            //  modelBuilder.Entity<Habitacion>()
-            //    .HasIndex(h => h.Estado);
-
             // Si todo está en dbo, fija el esquema por defecto y te ahorras repetirlo:
             modelBuilder.HasDefaultSchema("dbo");
 
@@ -200,14 +139,9 @@ namespace PIOGHOASIS.Infraestructure.Data
                 e.HasKey(x => x.EstadoReservaID);
                 //e.Property(x => x.EstadoReservaID).HasColumnType("smallint");
             });
-            //modelBuilder.Entity<Reserva>()
-            //    .HasOne(r => r.Estado)
-            //    .WithMany()
-            //    .HasForeignKey(r => r.EstadoReservaID);
 
             modelBuilder.Entity<Reserva>(e =>
             {
-                //e.Property(x => x.EstadoReservaID).HasColumnType("smallint");
                 e.HasOne(r => r.Estado)
                  .WithMany()
                  .HasForeignKey(r => r.EstadoReservaID);
@@ -230,7 +164,7 @@ namespace PIOGHOASIS.Infraestructure.Data
             modelBuilder.Entity<PlataformaReserva>(e =>
             {
                 e.ToTable("PLATAFORMA_RESERVA");
-                e.HasKey(x => x.PlataformaID);           // <- CLAVE PRIMARIA (evita el error “requires a primary key”)
+                e.HasKey(x => x.PlataformaID);           
                 e.Property(x => x.Nombre).HasMaxLength(60).IsRequired();
                 e.Property(x => x.Codigo).HasMaxLength(20);
             });
@@ -246,7 +180,6 @@ namespace PIOGHOASIS.Infraestructure.Data
                 e.HasIndex(x => x.NumeroDocumento)
                  .IsUnique()
                  .HasDatabaseName("UX_PERSONA_NumeroDocumento");
-                // ... lo demás que tengas en el modelo
             });
 
             modelBuilder.Entity<Cliente>(e =>
@@ -270,7 +203,6 @@ namespace PIOGHOASIS.Infraestructure.Data
                 e.ToTable("USUARIO");
                 e.HasKey(x => x.UsuarioID);
                 e.Property(x => x.UsuarioID).HasMaxLength(10);
-                // relaciones que ya definiste (Empleado, Rol) pueden quedarse como están
             });
 
             // ===== Habitaciones / tarifas =====
@@ -319,7 +251,7 @@ namespace PIOGHOASIS.Infraestructure.Data
                 e.HasKey(x => x.ReservaID);
 
                 e.Property(x => x.Codigo).HasMaxLength(12).IsRequired();
-                e.Property(x => x.ClienteID).HasMaxLength(10).IsRequired();   // <- string(10)
+                e.Property(x => x.ClienteID).HasMaxLength(10).IsRequired();   
                 e.Property(x => x.Subtotal).HasColumnType("decimal(18,2)");
                 e.Property(x => x.Impuestos).HasColumnType("decimal(18,2)");
                 e.Property(x => x.Total).HasColumnType("decimal(18,2)");
@@ -375,7 +307,7 @@ namespace PIOGHOASIS.Infraestructure.Data
 
             modelBuilder.Entity<Caja>()
                 .Property(c => c.Codigo)
-                .ValueGeneratedOnAdd(); // EF sabe que viene de la BD (por DEFAULT)
+                .ValueGeneratedOnAdd();
 
 
         }

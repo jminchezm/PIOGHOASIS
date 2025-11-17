@@ -389,7 +389,7 @@ namespace PIOGHOASIS.Controllers
             }
             else
             {
-                // Opcional: forzar mismas fechas para todas las habitaciones
+                // forzar mismas fechas para todas las habitaciones
                 resumen.CheckIn = checkIn.Date;
                 resumen.CheckOut = checkOut.Date;
             }
@@ -1022,6 +1022,8 @@ namespace PIOGHOASIS.Controllers
             if (reserva.EstadoReservaID != idCancelada)
             {
                 reserva.EstadoReservaID = idCancelada;
+                reserva.UsuarioFinaliza = GetUserId();
+
                 if (!string.IsNullOrWhiteSpace(motivo))
                 {
                     reserva.NotaCancelacion = string.IsNullOrWhiteSpace(reserva.NotaCancelacion)
